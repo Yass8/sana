@@ -1,0 +1,14 @@
+/* src/index.css — importe Tailwind + les polices du design system */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #F7F9FC;
+  color: #0F1923;
+}

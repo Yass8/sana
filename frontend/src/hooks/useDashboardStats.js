@@ -1,0 +1,11 @@
+// src/hooks/useDashboardStats.js
+import { useQuery } from '@tanstack/react-query'
+import { dashboardApi } from '../api/dashboard.api'
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn:  dashboardApi.getStats,
+    refetchInterval: 60_000, // rafraîchit toutes les 60s en fond
+  })
+}
