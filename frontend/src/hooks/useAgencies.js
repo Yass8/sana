@@ -6,7 +6,8 @@ export function useAgencies() {
   return useQuery({
     queryKey: ['agencies'],
     queryFn:  agenciesApi.getAll,
-    staleTime: 1000 * 60 * 10, // 10 min — les agences changent rarement
+    staleTime: 10 * 60 * 1000,
+    select: (d) => Array.isArray(d) ? d : [],
   })
 }
 

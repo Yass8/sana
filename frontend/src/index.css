@@ -1,14 +1,84 @@
-/* src/index.css — importe Tailwind + les polices du design system */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 :root {
-  --font-display: 'Syne', sans-serif;
-  --font-body:    'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-body:    'Nunito', sans-serif;
+
+  /* Palette */
+  --color-primary:     #7C3AED;
+  --color-primary-dk:  #5B21B6;
+  --color-primary-lt:  #EDE9FE;
+  --color-accent:      #34D399;
+  --color-accent-dk:   #059669;
+  --color-navy:        #0A1628;
+  --color-navy-2:      #162035;
+  --color-bg:          #F1F5F9;
+  --color-surface:     #FFFFFF;
+  --color-border:      #E2E8F0;
+  --color-text:        #0F172A;
+  --color-text-2:      #64748B;
+  --color-text-3:      #94A3B8;
+  --color-danger:      #EF4444;
+  --color-warning:     #F59E0B;
+  --color-success:     #10B981;
 }
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: var(--font-body);
-  background-color: #F7F9FC;
-  color: #0F1923;
+  font-family:      var(--font-body);
+  background-color: var(--color-bg);
+  color:            var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar fine */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #CBD5E1; border-radius: 4px; }
+
+/* Animations utilitaires */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes fadeIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+.animate-spin    { animation: spin 1s linear infinite; }
+.animate-pulse   { animation: pulse 2s ease-in-out infinite; }
+.animate-fadeIn  { animation: fadeIn .2s ease-out; }
+.animate-slideUp { animation: slideUp .25s ease-out; }
+
+/* Fix html5-qrcode — force l'affichage de la vidéo */
+#qr-reader-div {
+  border: none !important;
+  padding: 0 !important;
+}
+
+#qr-reader-div video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+}
+
+#qr-reader-div img {
+  display: none !important;
+}
+
+#qr-reader-div > div:first-child {
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Cache les boutons internes de html5-qrcode */
+#qr-reader-div__dashboard {
+  display: none !important;
+}
+
+#qr-reader-div__header_message {
+  display: none !important;
+}
+
+#qr-reader-div__status_span {
+  display: none !important;
 }

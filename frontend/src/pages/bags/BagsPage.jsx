@@ -1,12 +1,13 @@
 // src/pages/bags/BagsPage.jsx
-import { useState }    from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useQuery }    from '@tanstack/react-query'
+import { useState }      from 'react'
+import { useNavigate }   from 'react-router-dom'
+import { useQuery }      from '@tanstack/react-query'
 import { useBags, useCreateBag } from '../../hooks/useBags'
-import { agenciesApi } from '../../api/agencies.api' // à créer
-import StatusBadge     from '../../components/ui/StatusBadge'
+import { shipmentsApi }  from '../../api/shipments.api'
+import StatusBadge       from '../../components/ui/StatusBadge'
+import Card              from '../../components/ui/Card'
+import Spinner           from '../../components/ui/Spinner'
 
-// Filtres de statut
 const FILTERS = [
   { label: 'Tous',       value: '' },
   { label: 'Ouverts',    value: 'open' },
@@ -15,242 +16,161 @@ const FILTERS = [
   { label: 'Arrivés',    value: 'arrived' },
 ]
 
-const EMPTY_FORM = { shipmentId: '', destinationAgencyId: '' }
-
 export default function BagsPage() {
-  const navigate    = useNavigate()
-  const [filter,    setFilter]    = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [form,      setForm]      = useState(EMPTY_FORM)
-  const [formErr,   setFormErr]   = useState({})
+  const navigate     = useNavigate()
+  const [filter,     setFilter]    = useState('')
+  const [showModal,  setShowModal] = useState(false)
+  const [shipmentId, setShipmentId] = useState('')
+  const [err,        setErr]       = useState('')
 
   const bags      = useBags(filter ? { status: filter } : {})
   const createBag = useCreateBag()
 
-  // Shipments en cours de préparation (pour le select)
   const { data: shipments = [] } = useQuery({
     queryKey: ['shipments', { status: 'preparing' }],
-    queryFn:  () => api.get('/shipments', { params: { status: 'preparing' } }),
+    queryFn:  () => shipmentsApi.getAll({ status: 'preparing' }),
+    select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
     enabled:  showModal,
   })
 
-  const set = (field) => (e) =>
-    setForm(prev => ({ ...prev, [field]: e.target.value }))
-
   const handleCreate = async () => {
-    const errs = {}
-    if (!form.shipmentId) errs.shipmentId = 'Requis'
-    setFormErr(errs)
-    if (Object.keys(errs).length > 0) return
-
-    await createBag.mutateAsync(form)
-    setShowModal(false)
-    setForm(EMPTY_FORM)
+    if (!shipmentId) { setErr('Sélectionner un envoi'); return }
+    await createBag.mutateAsync({ shipmentId })
+    setShowModal(false); setShipmentId(''); setErr('')
   }
 
   const data = bags.data ?? []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5 animate-fadeIn">
 
-      {/* ── Header ──────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 style={{fontFamily:'var(--font-display)'}}
-              className="text-xl font-bold text-[#0F1923]">
-            Sacs
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {data.length} sac{data.length > 1 ? 's' : ''} au total
-          </p>
+              className="text-xl md:text-2xl font-bold text-slate-900">Sacs</h1>
+          <p className="text-xs text-slate-400 mt-0.5">{data.length} sacs</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-[#E8673C] hover:bg-[#D45A30] text-white
-                     text-sm font-medium px-4 py-2.5 rounded-lg
-                     transition-colors"
-        >
+        <button onClick={() => setShowModal(true)}
+                className="bg-violet-600 hover:bg-violet-700 text-white
+                           text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
           + Nouveau sac
         </button>
       </div>
 
-      {/* ── Filtres ─────────────────────────────────────── */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filtres */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
         {FILTERS.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-              filter === f.value
-                ? 'bg-[#0F1923] text-white border-[#0F1923]'
-                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-            }`}
-          >
+          <button key={f.value} onClick={() => setFilter(f.value)}
+                  className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-xl
+                              border-2 transition-all flex-shrink-0 font-semibold ${
+                    filter === f.value
+                      ? 'bg-[#0A1628] text-white border-[#0A1628]'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                  }`}>
             {f.label}
           </button>
         ))}
       </div>
 
-      {/* ── Grille de cartes ────────────────────────────── */}
-      {bags.isLoading && (
-        <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-[#E8673C]
-                          border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
-      {bags.isSuccess && data.length === 0 && (
-        <div className="text-center py-16 text-sm text-slate-400">
-          Aucun sac pour ce filtre.
-        </div>
-      )}
-
-      {bags.isSuccess && data.length > 0 && (
+      {bags.isLoading ? (
+        <div className="flex justify-center py-16"><Spinner/></div>
+      ) : data.length === 0 ? (
+        <p className="text-center text-sm text-slate-400 py-16">Aucun sac.</p>
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.map(bag => (
-            <div
-              key={bag.id}
-              onClick={() => navigate(`/bags/${bag.id}`)}
-              className="bg-white border border-slate-100 rounded-xl p-5
-                         hover:border-[#E8673C]/30 hover:shadow-sm
-                         cursor-pointer transition-all group"
-            >
-              {/* Ligne haut : code + badge */}
-              <div className="flex items-start justify-between gap-2 mb-4">
-                <p style={{fontFamily:'var(--font-display)'}}
-                   className="text-sm font-bold text-[#E8673C]">
-                  {bag.barcode}
-                </p>
-                <StatusBadge status={bag.status} />
-              </div>
-
-              {/* Route */}
-              <p className="text-xs text-slate-500 mb-3">
-                {bag.shipment?.originAgency?.city} →{' '}
-                <span className="font-medium text-[#0F1923]">
-                  {bag.shipment?.destinationAgency?.city}
-                </span>
-              </p>
-
-              {/* Stats internes */}
-              <div className="flex gap-3">
-                <div className="flex flex-col">
-                  <span style={{fontFamily:'var(--font-display)'}}
-                        className="text-lg font-bold text-[#0F1923]">
-                    {bag._count?.parcels ?? 0}
+            <Card key={bag.id} onClick={() => navigate(`/bags/${bag.id}`)}>
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <p style={{fontFamily:'var(--font-display)'}}
+                     className="text-sm font-bold text-violet-600">{bag.barcode}</p>
+                  <StatusBadge status={bag.status}/>
+                </div>
+                <p className="text-xs text-slate-500 mb-3">
+                  {bag.shipment?.originAgency?.city} →{' '}
+                  <span className="font-semibold text-slate-700">
+                    {bag.shipment?.destinationAgency?.city}
                   </span>
-                  <span className="text-[10px] text-slate-400 uppercase
-                                   tracking-wide">colis</span>
-                </div>
-                {bag.weight && (
-                  <>
-                    <div className="w-px bg-slate-100" />
-                    <div className="flex flex-col">
-                      <span style={{fontFamily:'var(--font-display)'}}
-                            className="text-lg font-bold text-[#0F1923]">
-                        {bag.weight}
-                      </span>
-                      <span className="text-[10px] text-slate-400 uppercase
-                                       tracking-wide">kg</span>
-                    </div>
-                  </>
-                )}
-                <div className="ml-auto self-end text-slate-300
-                                group-hover:text-[#E8673C] transition-colors">
-                  →
+                </p>
+                <div className="flex gap-4 border-t border-slate-100 pt-3">
+                  <div>
+                    <p style={{fontFamily:'var(--font-display)'}}
+                       className="text-lg font-bold text-slate-900">
+                      {bag._count?.parcels ?? 0}
+                    </p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">colis</p>
+                  </div>
+                  {bag.weight && (
+                    <>
+                      <div className="w-px bg-slate-100"/>
+                      <div>
+                        <p style={{fontFamily:'var(--font-display)'}}
+                           className="text-lg font-bold text-slate-900">{bag.weight}</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">kg</p>
+                      </div>
+                    </>
+                  )}
+                  <div className="ml-auto self-center text-slate-300 text-sm">→</div>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* ── Modal nouveau sac ───────────────────────────── */}
+      {/* Modal */}
       {showModal && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center
-                     justify-center z-50 p-4"
-          onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
-        >
+        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center
+                        justify-center z-50 p-4 animate-fadeIn"
+             onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm
-                          flex flex-col gap-5">
+                          flex flex-col gap-5 animate-slideUp md:animate-fadeIn">
             <div className="flex items-center justify-between">
               <h2 style={{fontFamily:'var(--font-display)'}}
-                  className="text-base font-bold text-[#0F1923]">
-                Nouveau sac
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-300 hover:text-slate-500
-                           transition-colors text-lg leading-none"
-              >
-                ✕
-              </button>
+                  className="font-bold text-slate-900 text-base">Nouveau sac</h2>
+              <button onClick={() => setShowModal(false)}
+                      className="text-slate-300 hover:text-slate-500 transition-colors text-lg">✕</button>
             </div>
-
-            {/* Sélection de l'envoi */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-slate-500
-                                uppercase tracking-wide">
-                Envoi <span className="text-[#E8673C]">*</span>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500
+                                uppercase tracking-wide mb-1.5">
+                Envoi <span className="text-violet-600">*</span>
               </label>
-              <select
-                value={form.shipmentId}
-                onChange={set('shipmentId')}
-                className={`px-3 py-2.5 border-[1.5px] rounded-lg text-sm
-                            outline-none bg-white transition-all
-                            ${formErr.shipmentId
-                              ? 'border-red-400'
-                              : 'border-slate-200 focus:border-[#E8673C]'}
-                            focus:ring-2 focus:ring-[#E8673C]/10`}
-              >
-                <option value="">— Sélectionner un envoi —</option>
+              <select value={shipmentId} onChange={e => setShipmentId(e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
+                                  transition-all ${
+                        err ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
+                      }`}>
+                <option value="">— Sélectionner —</option>
                 {shipments.map(s => (
                   <option key={s.id} value={s.id}>
                     {s.reference} · {s.destinationAgency?.city}
                   </option>
                 ))}
               </select>
-              {formErr.shipmentId && (
-                <p className="text-xs text-red-500">{formErr.shipmentId}</p>
-              )}
+              {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
             </div>
-
-            <p className="text-xs text-slate-400 bg-slate-50
-                          rounded-lg px-3 py-2.5">
-              Le code-barres du sac sera généré automatiquement
-              après la création.
+            <p className="text-xs text-slate-400 bg-slate-50 rounded-xl px-3 py-2.5">
+              Le code-barres sera généré automatiquement.
             </p>
-
-            {createBag.isError && (
-              <p className="text-xs text-red-500">
-                {createBag.error?.message ?? 'Erreur lors de la création.'}
-              </p>
-            )}
-
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 border border-slate-200 text-slate-500
-                           py-2.5 rounded-lg text-sm font-medium
-                           hover:border-slate-300 transition-colors"
-              >
+              <button onClick={() => setShowModal(false)}
+                      className="flex-1 border-2 border-slate-200 text-slate-500
+                                 py-3 rounded-xl text-sm font-semibold
+                                 hover:border-slate-300 transition-colors">
                 Annuler
               </button>
-              <button
-                onClick={handleCreate}
-                disabled={createBag.isPending}
-                className="flex-1 bg-[#E8673C] hover:bg-[#D45A30]
-                           disabled:opacity-60 text-white font-medium
-                           text-sm py-2.5 rounded-lg transition-colors"
-              >
-                {createBag.isPending ? 'Création…' : 'Créer le sac'}
+              <button onClick={handleCreate} disabled={createBag.isPending}
+                      className="flex-1 bg-violet-600 hover:bg-violet-700
+                                 disabled:opacity-60 text-white font-semibold
+                                 py-3 rounded-xl text-sm transition-colors
+                                 flex items-center justify-center gap-2">
+                {createBag.isPending ? <><Spinner size="sm" color="white"/> Création…</> : 'Créer'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

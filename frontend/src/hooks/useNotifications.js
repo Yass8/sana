@@ -6,26 +6,26 @@ export function useNotifications(filters = {}) {
   return useQuery({
     queryKey: ['notifications', filters],
     queryFn:  () => notificationsApi.getAll(filters),
-    keepPreviousData: true,
-    refetchInterval: 15_000, // actualise toutes les 15s — les pending peuvent changer
+    select:   (d) => Array.isArray(d) ? d : [],
+    refetchInterval: 15_000,
   })
 }
 
 export function useNotificationStats() {
   return useQuery({
-    queryKey: ['notification-stats'],
+    queryKey: ['notif-stats'],
     queryFn:  notificationsApi.getStats,
     refetchInterval: 15_000,
   })
 }
 
 export function useRetryNotification() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => notificationsApi.retry(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      queryClient.invalidateQueries({ queryKey: ['notification-stats'] })
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notif-stats'] })
     },
   })
 }

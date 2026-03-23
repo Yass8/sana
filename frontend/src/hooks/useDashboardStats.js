@@ -6,6 +6,6 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn:  dashboardApi.getStats,
-    refetchInterval: 60_000, // rafraîchit toutes les 60s en fond
+    refetchInterval: 60_000,
   })
 }

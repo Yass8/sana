@@ -6,15 +6,12 @@ export function useClients(search = '') {
   return useQuery({
     queryKey: ['clients', search],
     queryFn:  () => usersApi.getAll({ role: 'client', search: search || undefined }),
-    keepPreviousData: true,
-    // Extrait rows directement pour que data soit toujours un tableau
-    select: (res) => res?.rows ?? res ?? [],
+    select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
   })
 }
 
 export function useSendBulkMessage() {
   return useMutation({
-    mutationFn: ({ userIds, channel, message }) =>
-      usersApi.sendBulk({ userIds, channel, message }),
+    mutationFn: (data) => usersApi.sendBulk(data),
   })
 }

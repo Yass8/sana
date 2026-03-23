@@ -6,17 +6,14 @@ export function useShipments(filters = {}) {
   return useQuery({
     queryKey: ['shipments', filters],
     queryFn:  () => shipmentsApi.getAll(filters),
-    keepPreviousData: true,
+    select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
   })
 }
 
 export function useCreateShipment() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (data) => shipmentsApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-    },
+    onSuccess:  () => qc.invalidateQueries({ queryKey: ['shipments'] }),
   })
 }

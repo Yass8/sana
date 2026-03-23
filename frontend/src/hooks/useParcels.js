@@ -6,6 +6,7 @@ export function useParcels(filters = {}) {
   return useQuery({
     queryKey: ['parcels', filters],
     queryFn:  () => parcelsApi.getAll(filters),
+    select:   (d) => d,
     keepPreviousData: true,
   })
 }
@@ -19,13 +20,13 @@ export function useParcel(id) {
 }
 
 export function useUpdateParcelStatus() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...data }) => parcelsApi.updateStatus(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['parcels'] })
-      queryClient.invalidateQueries({ queryKey: ['parcel', id] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    onSuccess:  (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['parcels'] })
+      qc.invalidateQueries({ queryKey: ['parcel', id] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
   })
 }

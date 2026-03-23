@@ -6,17 +6,14 @@ export function useBags(filters = {}) {
   return useQuery({
     queryKey: ['bags', filters],
     queryFn:  () => bagsApi.getAll(filters),
-    keepPreviousData: true,
+    select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
   })
 }
 
 export function useCreateBag() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (data) => bagsApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bags'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-    },
+    onSuccess:  () => qc.invalidateQueries({ queryKey: ['bags'] }),
   })
 }
