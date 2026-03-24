@@ -64,14 +64,14 @@ export default function DashboardPage() {
             })}
           </p>
         </div>
-        <button
+        {/* <button
           onClick={() => navigate('/scan')}
           className="hidden md:flex items-center gap-2 bg-violet-600
                      hover:bg-violet-700 text-white text-sm font-semibold
                      px-4 py-2.5 rounded-xl transition-colors"
         >
           ⬡ Scanner
-        </button>
+        </button> */}
       </div>
 
       {/* Stats */}
@@ -84,8 +84,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Derniers colis */}
-      <Card>
-        <div className="flex items-center justify-between px-4 md:px-5 py-4
+      <Card className='mb-10 md:mb-24'>
+        <div className="flex items-center justify-between px-4 md:px-5 py-4 
                         border-b border-slate-100">
           <h2 style={{fontFamily:'var(--font-display)'}}
               className="font-bold text-slate-900">
@@ -112,7 +112,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between gap-2">
                 <p style={{fontFamily:'var(--font-display)'}}
                    className="text-sm font-bold text-violet-600">
-                  {p.barcode}
+                  {p.qrcode}
                 </p>
                 <StatusBadge status={p.status}/>
               </div>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-3.5">
                     <span style={{fontFamily:'var(--font-display)'}}
                           className="text-xs font-bold text-violet-600">
-                      {p.barcode}
+                      {p.qrcode}
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-slate-600">{p.sender?.name ?? '—'}</td>

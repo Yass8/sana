@@ -6,7 +6,7 @@ const INCLUDE_FULL = [
   { association: 'originAgency',      attributes: ['id','name','city','country'] },
   { association: 'destinationAgency', attributes: ['id','name','city','country'] },
   { association: 'creator',           attributes: ['id','name'] },
-  { association: 'bags', include: [{ association: 'parcels', attributes: ['id','barcode','status'] }] },
+  { association: 'bags', include: [{ association: 'parcels', attributes: ['id','qrcode','status'] }] },
 ]
 
 const getAll = async (req, res, next) => {

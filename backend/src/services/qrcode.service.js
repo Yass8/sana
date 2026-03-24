@@ -1,9 +1,9 @@
-// src/services/barcode.service.js
+// src/services/qrcode.service.js
 const QRCode = require('qrcode')
 const path   = require('path')
 const fs     = require('fs').promises
 
-const STORAGE_DIR = path.join(__dirname, '../storage/barcodes')
+const STORAGE_DIR = path.join(__dirname, '../storage/qrcodes')
 
 async function ensureDir() {
   await fs.mkdir(STORAGE_DIR, { recursive: true })

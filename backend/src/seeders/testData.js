@@ -2,12 +2,12 @@
 require('dotenv').config()
 const { sequelize, Agency, User, Shipment, Bag, Parcel } = require('../models')
 const { ROLES } = require('../constants')
+const { generateCode } = require('../services/codeGenerator.service')  // ← import
 
 async function seed() {
-  // ← Plus de sync ici — le serveur le fait au démarrage
   console.log('🌱 Création des données de test...')
 
-  // ── Agences ──────────────────────────────────────────
+  // Agences (inchangé)
   const [paris] = await Agency.findOrCreate({
     where:    { city: 'Paris' },
     defaults: { name: 'Agence Paris', country: 'FR', city: 'Paris', phone: '+33 1 00 00 00 00' },
@@ -22,7 +22,7 @@ async function seed() {
   })
   console.log('✅ Agences créées')
 
-  // ── Users ─────────────────────────────────────────────
+  // Users (inchangé)
   await User.findOrCreate({
     where:    { email: 'admin@colistrack.com' },
     defaults: { name: 'Admin ColisTrack', passwordHash: 'admin1234', role: ROLES.ADMIN, isActive: true },
@@ -49,7 +49,7 @@ async function seed() {
   })
   console.log('✅ Users créés')
 
-  // ── Shipment ──────────────────────────────────────────
+  // Shipment (inchangé)
   let shipment = await Shipment.findOne({
     where: { originAgencyId: paris.id, destinationAgencyId: dakar.id, status: 'preparing' },
   })
@@ -68,21 +68,19 @@ async function seed() {
   }
   console.log('✅ Envoi créé :', shipment.reference)
 
-  // ── Bag ───────────────────────────────────────────────
+  // Bag – génération du code via service
   let bag = await Bag.findOne({ where: { shipmentId: shipment.id } })
-
   if (!bag) {
-    const count = await Bag.count()
-    const year  = new Date().getFullYear()
+    const qrcode = await generateCode('bag')   // ← nouveau code
     bag = await Bag.create({
-      barcode:    `BAG-${year}-${String(count + 1).padStart(5, '0')}`,
+      qrcode,
       shipmentId: shipment.id,
       status:     'open',
     })
   }
-  console.log('✅ Sac créé :', bag.barcode)
+  console.log('✅ Sac créé :', bag.qrcode)
 
-  // ── Parcels ───────────────────────────────────────────
+  // Parcels – génération de chaque code via service
   const parcelsData = [
     { senderId: client1.id, recipientName: 'Fatou Diallo',   recipientEmail: 'fatou.diallo@email.com', recipientPhone: '+221 77 111 22 33', description: 'Vêtements et chaussures', weight: 2.4 },
     { senderId: client2.id, recipientName: 'Ibrahim Koné',   recipientEmail: 'ibrahim.kone@email.com', recipientPhone: '+221 77 444 55 66', description: 'Médicaments',             weight: 1.2 },
@@ -94,12 +92,11 @@ async function seed() {
       where: { senderId: data.senderId, recipientEmail: data.recipientEmail },
     })
     if (!existing) {
-      const count = await Parcel.count()
-      const year  = new Date().getFullYear()
+      const qrcode = await generateCode('parcel')   // ← nouveau code
       await Parcel.create({
         ...data,
         bagId:   bag.id,
-        barcode: `COL-${year}-${String(count + 1).padStart(5, '0')}`,
+        qrcode,
         status:  'received',
       })
     }

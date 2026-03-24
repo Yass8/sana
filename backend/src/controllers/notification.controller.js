@@ -17,7 +17,7 @@ const getAll = async (req, res, next) => {
     const notifications = await Notification.findAll({
       where,
       include: [
-        { association: 'parcel', attributes: ['id','barcode'] },
+        { association: 'parcel', attributes: ['id','qrcode'] },
         { association: 'user',   attributes: ['id','name']    },
       ],
       order: [['createdAt', 'DESC']],

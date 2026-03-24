@@ -13,7 +13,7 @@ export default defineConfig({
     // port: 5173,
     proxy: {
       '/api':      { target: 'http://localhost:3000', changeOrigin: true },
-      '/barcodes': { target: 'http://localhost:3000', changeOrigin: true },
+      '/qrcodes': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
 })

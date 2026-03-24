@@ -83,7 +83,7 @@ export default function BagsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <p style={{fontFamily:'var(--font-display)'}}
-                     className="text-sm font-bold text-violet-600">{bag.barcode}</p>
+                     className="text-sm font-bold text-violet-600">{bag.qrcode}</p>
                   <StatusBadge status={bag.status}/>
                 </div>
                 <p className="text-xs text-slate-500 mb-3">

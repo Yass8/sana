@@ -1,21 +1,32 @@
 // src/components/layout/Sidebar.jsx
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth }              from '../../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
+// Import des icônes Lucide
+import { 
+  LayoutDashboard, 
+  ScanLine, 
+  Package, 
+  ShoppingBag, 
+  Plane, 
+  Users, 
+  Bell,
+  LogOut 
+} from 'lucide-react'
 
 const NAV = [
-  { to: '/dashboard',    label: 'Dashboard',   icon: '⊞', roles: ['agent_fr','agent_af','admin','client'] },
-  { to: '/scan',         label: 'Scanner',     icon: '⬡', roles: ['agent_fr','agent_af','admin'] },
-  { to: '/parcels',      label: 'Colis',       icon: '📦', roles: ['agent_fr','agent_af','admin','client'] },
-  { to: '/bags',         label: 'Sacs',        icon: '🧳', roles: ['agent_fr','admin'] },
-  { to: '/shipments',    label: 'Envois',      icon: '✈️',  roles: ['agent_fr','agent_af','admin'] },
-  { to: '/clients',      label: 'Clients',     icon: '👥', roles: ['admin'] },
-  { to: '/notifications',label: 'Notifications',icon: '🔔', roles: ['admin'] },
+  { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin','client'] },
+  { to: '/scan',          label: 'Scanner',       icon: ScanLine,        roles: ['agent_fr','agent_af','admin'] },
+  { to: '/parcels',       label: 'Colis',         icon: Package,         roles: ['agent_fr','agent_af','admin','client'] },
+  { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','admin'] },
+  { to: '/shipments',     label: 'Envois',        icon: Plane,           roles: ['agent_fr','agent_af','admin'] },
+  { to: '/clients',       label: 'Clients',       icon: Users,           roles: ['admin'] },
+  { to: '/notifications', label: 'Notifications', icon: Bell,            roles: ['admin'] },
 ]
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate         = useNavigate()
-  const items            = NAV.filter(n => n.roles.includes(user?.role))
+  const items             = NAV.filter(n => n.roles.includes(user?.role))
 
   return (
     <aside className="w-60 bg-[#0A1628] flex flex-col h-full">
@@ -24,7 +35,7 @@ export default function Sidebar() {
       <div className="px-5 py-5 border-b border-white/5">
         <p style={{fontFamily:'var(--font-display)'}}
            className="text-white text-lg font-bold tracking-tight">
-          ColisTrack
+          SanaExpress
         </p>
         <p className="text-violet-400 text-[10px] font-semibold
                       tracking-widest uppercase mt-0.5">
@@ -47,7 +58,8 @@ export default function Sidebar() {
                }`
             }
           >
-            <span className="text-base">{item.icon}</span>
+            {/* Rendu de l'icône avec une taille fixe pour l'alignement */}
+            <item.icon size={18} strokeWidth={2.5} />
             {item.label}
           </NavLink>
         ))}
@@ -67,9 +79,9 @@ export default function Sidebar() {
           </div>
           <button
             onClick={() => { logout(); navigate('/login') }}
-            className="text-white/30 hover:text-red-400 transition-colors text-sm"
+            className="text-white/30 hover:text-red-400 transition-colors"
           >
-            ⇥
+            <LogOut size={16} />
           </button>
         </div>
       </div>

@@ -14,9 +14,7 @@ import BagDetailPage        from '../pages/bags/BagDetailPage'
 import ShipmentsPage        from '../pages/shipments/ShipmentsPage'
 import ClientsPage          from '../pages/clients/ClientsPage'
 import NotificationsPage    from '../pages/notifications/NotificationsPage'
-import Scan from '../pages/scan/Scan'
-import BarcodeScanner from '../pages/scan/Scan'
-import QRScanner from '../pages/scan/QRScanner'
+
 
 function ProtectedRoute({ allowedRoles }) {
   const { user } = useAuth()
@@ -28,7 +26,7 @@ function ProtectedRoute({ allowedRoles }) {
 
 const router = createBrowserRouter([
   { path: '/login',            element: <LoginPage /> },
-  { path: '/track/:barcode',   element: <PublicTrackingPage /> },
+  { path: '/track/:qrcode',   element: <PublicTrackingPage /> },
   { path: '/',                 element: <Navigate to="/dashboard" replace /> },
   {
     element: <ProtectedRoute />,
@@ -40,8 +38,6 @@ const router = createBrowserRouter([
         { path: '/parcels/new',  element: <NewParcelPage /> },
         { path: '/parcels/:id',  element: <ParcelDetailPage /> },
         { path: '/scan',         element: <ScanPage /> },
-        { path: '/scan2',         element: <Scan /> },
-        { path: '/qr',         element: <QRScanner /> },
         { path: '/bags',         element: <BagsPage /> },
         { path: '/bags/:id',     element: <BagDetailPage /> },
         { path: '/shipments',    element: <ShipmentsPage /> },

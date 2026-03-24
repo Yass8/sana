@@ -7,6 +7,8 @@ import TrackingTimeline       from '../../components/ui/TrackingTimeline'
 import StatusBadge            from '../../components/ui/StatusBadge'
 import Card                   from '../../components/ui/Card'
 import Spinner                from '../../components/ui/Spinner'
+// Import des icônes Lucide
+import { ArrowLeft, CheckCircle2, Plus, ChevronUp, Copy, Download } from 'lucide-react'
 
 const NEXT_STATUS = {
   agent_fr: { received: 'departed_agency', departed_agency: 'departed_airport' },
@@ -45,7 +47,9 @@ export default function ParcelDetailPage() {
     <div className="text-center py-20">
       <p className="text-slate-400 text-sm mb-4">Colis introuvable.</p>
       <button onClick={() => navigate('/parcels')}
-              className="text-violet-600 text-sm hover:underline">← Retour</button>
+              className="text-violet-600 text-sm hover:underline flex items-center justify-center gap-1 mx-auto">
+        <ArrowLeft size={14} /> Retour
+      </button>
     </div>
   )
 
@@ -58,7 +62,7 @@ export default function ParcelDetailPage() {
                 className="hover:text-violet-600 transition-colors">Colis</button>
         <span>/</span>
         <span style={{fontFamily:'var(--font-display)'}}
-              className="text-violet-600 font-bold">{parcel.barcode}</span>
+              className="text-violet-600 font-bold">{parcel.qrcode}</span>
       </div>
 
       {/* Toast */}
@@ -66,7 +70,7 @@ export default function ParcelDetailPage() {
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700
                         text-sm px-4 py-3 rounded-xl flex items-center gap-2
                         animate-fadeIn">
-          ✅ Statut mis à jour — notification envoyée.
+          <CheckCircle2 size={16} /> Statut mis à jour — notification envoyée.
         </div>
       )}
 
@@ -76,7 +80,7 @@ export default function ParcelDetailPage() {
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h1 style={{fontFamily:'var(--font-display)'}}
-                  className="text-2xl font-bold text-slate-900">{parcel.barcode}</h1>
+                  className=" font-bold text-slate-900">{parcel.qrcode}</h1>
               <p className="text-xs text-slate-400 mt-1">
                 Déposé le {new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'long', year: 'numeric'
@@ -87,34 +91,34 @@ export default function ParcelDetailPage() {
             <StatusBadge status={parcel.status} size="md"/>
           </div>
 
-          {/* Infos grid — 2 cols mobile, 3 cols desktop */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {[
               { label: 'Expéditeur',   value: parcel.sender?.name },
               { label: 'Destinataire', value: parcel.recipientName },
+              { label: 'Email exp.',  value: parcel.sender?.email ?? '—' },
               { label: 'Email dest.',  value: parcel.recipientEmail ?? '—' },
+              { label: 'Tél. exp.',   value: parcel.sender.phone ?? '—' },
               { label: 'Tél. dest.',   value: parcel.recipientPhone ?? '—' },
-              { label: 'Sac',          value: parcel.bag?.barcode ?? '—' },
+              { label: 'Sac',          value: parcel.bag?.qrcode ?? '—' },
               { label: 'Destination',  value: parcel.bag?.shipment?.destinationAgency?.city ?? '—' },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-slate-50 rounded-xl px-3 py-2.5">
+              <div key={label} className="bg-slate-50 rounded-xl px-0 lg:px-1 py-1 lg:py-2.5">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
-                <p className="text-sm text-slate-800 font-semibold mt-0.5 truncate">{value}</p>
+                <p className="text-xs lg:text-sm text-slate-800 font-semibold mt-0.5 truncate">{value}</p>
               </div>
             ))}
           </div>
 
           {parcel.description && (
-            <div className="mt-2 bg-slate-50 rounded-xl px-3 py-2.5">
+            <div className="mt-2 bg-slate-50 rounded-xl px-0 lg:px-3 py-2.5">
               <p className="text-[10px] text-slate-400 uppercase tracking-wide">Contenu</p>
-              <p className="text-sm text-slate-700 mt-0.5">{parcel.description}</p>
+              <p className="text-xs lg:text-sm text-slate-700 mt-0.5">{parcel.description}</p>
             </div>
           )}
         </div>
       </Card>
 
-      {/* Layout — stacked mobile, 2 cols desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10 md:mb-24 lg:mb-0">
 
         {/* Timeline */}
         <Card>
@@ -149,8 +153,8 @@ export default function ParcelDetailPage() {
                 </button>
                 <button onClick={() => setShowNotes(v => !v)}
                         className="text-xs text-slate-400 hover:text-slate-600
-                                   transition-colors w-full text-center">
-                  {showNotes ? '↑ Masquer les notes' : '+ Ajouter une note'}
+                                   transition-colors w-full text-center flex items-center justify-center gap-1">
+                  {showNotes ? <><ChevronUp size={14}/> Masquer les notes</> : <><Plus size={14}/> Ajouter une note</>}
                 </button>
                 {showNotes && (
                   <textarea value={notes} onChange={e => setNotes(e.target.value)}
@@ -168,16 +172,16 @@ export default function ParcelDetailPage() {
             <div className="p-5">
               <h2 style={{fontFamily:'var(--font-display)'}}
                   className="font-bold text-slate-900 mb-4">QR Code</h2>
-              {parcel.barcodeUrl ? (
+              {parcel.qrcodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
-                  <img src={parcel.barcodeUrl} alt={parcel.barcode}
+                  <img src={parcel.qrcodeUrl} alt={parcel.qrcode}
                        className="w-40 h-40"/>
                   <p className="text-[10px] text-slate-400 text-center">
                     Scannez pour suivre ce colis
                   </p>
-                  <a href={parcel.barcodeUrl} download={`${parcel.barcode}.png`}
-                     className="text-xs text-violet-600 hover:underline font-semibold">
-                    Télécharger PNG
+                  <a href={parcel.qrcodeUrl} download={`${parcel.qrcode}.png`}
+                     className="text-xs text-violet-600 hover:underline font-semibold flex items-center gap-1">
+                    <Download size={14} /> Télécharger PNG
                   </a>
                 </div>
               ) : (
@@ -196,13 +200,13 @@ export default function ParcelDetailPage() {
                 <p className="text-[10px] text-slate-400 mt-0.5">À partager avec le client</p>
               </div>
               <button onClick={() => navigator.clipboard?.writeText(
-                        `${window.location.origin}/track/${parcel.barcode}`
+                        `${window.location.origin}/track/${parcel.qrcode}`
                       )}
                       className="text-xs bg-slate-50 border-2 border-slate-200
                                  hover:border-violet-500 hover:text-violet-600
                                  text-slate-500 px-3 py-1.5 rounded-xl
-                                 transition-all font-semibold">
-                Copier
+                                 transition-all font-semibold flex items-center gap-1">
+                <Copy size={14} /> Copier
               </button>
             </div>
           </Card>

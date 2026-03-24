@@ -2,6 +2,7 @@
 import { useState }      from 'react'
 import { useNavigate }   from 'react-router-dom'
 import { useAuth }       from '../../context/AuthContext'
+import { ScanLine } from 'lucide-react'
 
 export default function Topbar() {
   const { user, logout } = useAuth()
@@ -16,7 +17,7 @@ export default function Topbar() {
       <div className="lg:hidden">
         <p style={{fontFamily:'var(--font-display)'}}
            className="text-[#0A1628] font-bold text-base">
-          ColisTrack
+          SanaExpress
         </p>
       </div>
 
@@ -31,7 +32,7 @@ export default function Topbar() {
                      text-white text-xs font-semibold px-3 py-2
                      rounded-xl transition-colors hover:bg-violet-700"
         >
-          ⬡ Scanner
+          <ScanLine size={16} /> Scanner
         </button>
 
         {/* Avatar + menu */}

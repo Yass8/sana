@@ -63,7 +63,7 @@ export default function BagDetailPage() {
         <span>/</span>
         <span style={{fontFamily:'var(--font-display)'}}
               className="text-[#E8673C] font-semibold">
-          {bag?.barcode}
+          {bag?.qrcode}
         </span>
       </div>
 
@@ -83,7 +83,7 @@ export default function BagDetailPage() {
           <div>
             <h1 style={{fontFamily:'var(--font-display)'}}
                 className="text-2xl font-bold text-[#0F1923]">
-              {bag?.barcode}
+              {bag?.qrcode}
             </h1>
             <p className="text-xs text-slate-400 mt-1">
               {bag?.shipment?.originAgency?.city} →{' '}
@@ -215,7 +215,7 @@ export default function BagDetailPage() {
                   <td className="px-5 py-3">
                     <span style={{fontFamily:'var(--font-display)'}}
                           className="text-xs font-semibold text-[#E8673C]">
-                      {p.barcode}
+                      {p.qrcode}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-slate-600 text-xs">

@@ -9,9 +9,9 @@ const app = express()
 app.use(cors({ origin: 'http://localhost:5173' }))
 app.use(express.json())
 
-// ── Fichiers statiques — codes-barres ──────────────────
-app.use('/barcodes', express.static(
-  path.join(__dirname, 'storage/barcodes')
+// ── Fichiers statiques — qrcodes ──────────────────
+app.use('/qrcodes', express.static(
+  path.join(__dirname, 'storage/qrcodes')
 ))
 
 // ── Routes ─────────────────────────────────────────────

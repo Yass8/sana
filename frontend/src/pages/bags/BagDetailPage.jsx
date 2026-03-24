@@ -53,7 +53,7 @@ export default function BagDetailPage() {
                 className="hover:text-violet-600 transition-colors">Sacs</button>
         <span>/</span>
         <span style={{fontFamily:'var(--font-display)'}}
-              className="text-violet-600 font-bold">{bag?.barcode}</span>
+              className="text-violet-600 font-bold">{bag?.qrcode}</span>
       </div>
 
       {toasted && (
@@ -69,7 +69,7 @@ export default function BagDetailPage() {
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h1 style={{fontFamily:'var(--font-display)'}}
-                  className="text-2xl font-bold text-slate-900">{bag?.barcode}</h1>
+                  className="text-2xl font-bold text-slate-900">{bag?.qrcode}</h1>
               <p className="text-xs text-slate-400 mt-1">
                 {bag?.shipment?.originAgency?.city} → {bag?.shipment?.destinationAgency?.city}
                 {bag?.weight ? ` · ${bag.weight} kg` : ''}
@@ -181,7 +181,7 @@ export default function BagDetailPage() {
                  className="px-4 py-3.5 cursor-pointer hover:bg-violet-50/50 transition-colors">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <p style={{fontFamily:'var(--font-display)'}}
-                   className="text-sm font-bold text-violet-600">{p.barcode}</p>
+                   className="text-sm font-bold text-violet-600">{p.qrcode}</p>
                 <StatusBadge status={p.status}/>
               </div>
               <p className="text-xs text-slate-500">{p.sender?.name} → {p.recipientName}</p>
@@ -207,7 +207,7 @@ export default function BagDetailPage() {
                                cursor-pointer transition-colors last:border-0">
                   <td className="px-5 py-3.5">
                     <span style={{fontFamily:'var(--font-display)'}}
-                          className="text-xs font-bold text-violet-600">{p.barcode}</span>
+                          className="text-xs font-bold text-violet-600">{p.qrcode}</span>
                   </td>
                   <td className="px-5 py-3.5 text-slate-600 text-xs">{p.sender?.name ?? '—'}</td>
                   <td className="px-5 py-3.5 text-slate-600 text-xs">{p.recipientName}</td>

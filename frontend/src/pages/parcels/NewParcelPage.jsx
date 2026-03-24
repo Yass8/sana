@@ -129,7 +129,7 @@ export default function NewParcelPage() {
                 <option value="">— Sélectionner —</option>
                 {bags.map(b => (
                   <option key={b.id} value={b.id}>
-                    {b.barcode} · {b.shipment?.destinationAgency?.city}
+                    {b.qrcode} · {b.shipment?.destinationAgency?.city}
                   </option>
                 ))}
               </select>

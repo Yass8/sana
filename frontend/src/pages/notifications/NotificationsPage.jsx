@@ -124,7 +124,7 @@ export default function NotificationsPage() {
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <p style={{fontFamily:'var(--font-display)'}}
                        className="text-sm font-bold text-violet-600">
-                      {n.parcel?.barcode ?? '—'}
+                      {n.parcel?.qrcode ?? '—'}
                     </p>
                     <span className={`inline-flex items-center gap-1.5 text-[10px]
                                       font-semibold px-2 py-0.5 rounded-full
@@ -185,7 +185,7 @@ export default function NotificationsPage() {
                       <td className="px-5 py-3.5">
                         <span style={{fontFamily:'var(--font-display)'}}
                               className="text-xs font-bold text-violet-600">
-                          {n.parcel?.barcode ?? '—'}
+                          {n.parcel?.qrcode ?? '—'}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-600">

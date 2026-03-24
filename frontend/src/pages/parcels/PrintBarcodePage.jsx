@@ -1,9 +1,9 @@
-// src/pages/parcels/PrintBarcodePage.jsx
+// src/pages/parcels/PrintQRCodePage.jsx
 import { useParams, useNavigate } from 'react-router-dom'
 import { useParcel }              from '../../hooks/useParcels'
 import { useRef }                 from 'react'
 
-export default function PrintBarcodePage() {
+export default function PrintQRCodePage() {
   const { id }    = useParams()
   const navigate  = useNavigate()
   const printRef  = useRef(null)
@@ -16,12 +16,12 @@ export default function PrintBarcodePage() {
     win.document.write(`
       <html>
         <head>
-          <title>Code-barres ${parcel?.barcode}</title>
+          <title>Code-barres ${parcel?.qrcode}</title>
           <style>
             body { margin: 0; display: flex; flex-direction: column;
                    align-items: center; justify-content: center;
                    min-height: 100vh; font-family: monospace; }
-            .label { text-align: center; padding: 20px;
+            .label { text-align: center; padding: 20px; }
                      border: 2px solid #000; border-radius: 8px; }
             img { max-width: 300px; display: block; margin: 0 auto; }
             p   { margin: 8px 0 0; font-size: 14px; font-weight: bold; }
@@ -67,10 +67,10 @@ export default function PrintBarcodePage() {
       <div ref={printRef}
            className="label bg-white border-2 border-slate-200
                       rounded-xl p-6 text-center">
-        {parcel.barcodeUrl ? (
+        {parcel.qrcodeUrl ? (
           <img
-            src={parcel.barcodeUrl}
-            alt={parcel.barcode}
+            src={parcel.qrcodeUrl}
+            alt={parcel.qrcode}
             className="w-full max-w-[260px] mx-auto"
           />
         ) : (
@@ -80,7 +80,7 @@ export default function PrintBarcodePage() {
         )}
         <p style={{fontFamily:'var(--font-display)'}}
            className="mt-3 text-sm font-bold text-[#0F1923]">
-          {parcel.barcode}
+          {parcel.qrcode}
         </p>
         <small className="text-xs text-slate-400 block mt-1">
           {parcel.recipientName} — {parcel.bag?.shipment?.destinationAgency?.city}

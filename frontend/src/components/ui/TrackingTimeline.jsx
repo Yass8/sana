@@ -1,12 +1,14 @@
 // src/components/ui/TrackingTimeline.jsx
 //import { getStatusCfg } from '../../constants'
 
+import { Building2, MapPinCheck, PackageCheck, PlaneTakeoff, Truck } from "lucide-react"
+
 const STEPS = [
-  { status: 'received',            label: 'Réceptionné',   icon: '📦' },
-  { status: 'departed_agency',     label: 'Parti agence',  icon: '🏢' },
-  { status: 'departed_airport',    label: 'En vol',        icon: '✈️'  },
-  { status: 'arrived_destination', label: 'Arrivé dest.',  icon: '📍' },
-  { status: 'collected',           label: 'Retiré',        icon: '✅' },
+  { status: 'received',            label: 'Réceptionné',   icon: Building2 },
+  { status: 'departed_agency',     label: 'Parti agence',  icon: Truck },
+  { status: 'departed_airport',    label: 'En vol',        icon: PlaneTakeoff  },
+  { status: 'arrived_destination', label: 'Arrivé dest.',  icon: MapPinCheck },
+  { status: 'collected',           label: 'Retiré',        icon: PackageCheck },
 ]
 
 function fmt(d) {
@@ -40,7 +42,7 @@ export default function TrackingTimeline({ events = [], currentStatus }) {
                 : active         ? 'bg-[#0A1628] text-white ring-4 ring-violet-200'
                 : 'bg-slate-100 text-slate-400'
               }`}>
-                {done && !active ? '✓' : step.icon}
+                {done && !active ? '✓' : <step.icon size={16} />}
               </div>
               {!isLast && (
                 <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${

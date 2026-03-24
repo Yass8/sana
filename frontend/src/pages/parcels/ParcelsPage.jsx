@@ -128,7 +128,7 @@ export default function ParcelsPage() {
                               transition-colors">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p style={{fontFamily:'var(--font-display)'}}
-                     className="text-sm font-bold text-violet-600">{p.barcode}</p>
+                     className="text-sm font-bold text-violet-600">{p.qrcode}</p>
                   <StatusBadge status={p.status}/>
                 </div>
                 <p className="text-xs text-slate-500">
@@ -147,11 +147,11 @@ export default function ParcelsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th onClick={() => handleSort('barcode')}
+                  <th onClick={() => handleSort('qrcode')}
                       className="text-left text-[10px] font-semibold text-slate-400
                                  uppercase tracking-wide px-5 py-3 cursor-pointer
                                  hover:text-slate-600 select-none">
-                    Code <SortIcon field="barcode"/>
+                    Code <SortIcon field="qrcode"/>
                   </th>
                   {['Expéditeur','Destinataire','Destination','Sac'].map(h => (
                     <th key={h} className="text-left text-[10px] font-semibold text-slate-400
@@ -180,7 +180,7 @@ export default function ParcelsPage() {
                                  cursor-pointer transition-colors last:border-0">
                     <td className="px-5 py-3.5">
                       <p style={{fontFamily:'var(--font-display)'}}
-                         className="text-xs font-bold text-violet-600">{p.barcode}</p>
+                         className="text-xs font-bold text-violet-600">{p.qrcode}</p>
                       <p className="text-[10px] text-slate-300 mt-0.5">
                         {new Date(p.createdAt).toLocaleDateString('fr-FR', { day:'numeric', month:'short' })}
                       </p>
@@ -191,7 +191,7 @@ export default function ParcelsPage() {
                       {p.bag?.shipment?.destinationAgency?.city ?? '—'}
                     </td>
                     <td className="px-5 py-3.5 font-mono text-xs text-slate-400">
-                      {p.bag?.barcode ?? '—'}
+                      {p.bag?.qrcode ?? '—'}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-slate-400">
                       {new Date(p.createdAt).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}

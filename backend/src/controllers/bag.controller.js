@@ -2,6 +2,8 @@
 const { Bag, Parcel, Shipment, Notification } = require('../models')
 const { BAG_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS } = require('../constants')
+const { generateBagCode, generateCode } = require('../services/codeGenerator.service')
+const { generateQRCode } = require('../services/qrcode.service')
 
 const INCLUDE_FULL = [
   {
@@ -58,9 +60,21 @@ const create = async (req, res, next) => {
       return res.status(400).json({ message: 'L\'envoi n\'est plus en préparation.' })
     }
 
-    const bag = await Bag.create({ shipmentId })
-    res.status(201).json(await Bag.findByPk(bag.id, { include: INCLUDE_FULL }))
-  } catch (err) { next(err) }
+    // Génération du code unique
+    const qrcode = await generateCode('bag')
+
+    // Création du sac
+    const bag = await Bag.create({ shipmentId, qrcode })
+
+    // Génération du QR code (image)
+    const qrCodeUrl = await generateQRCode(bag.qrcode, 'bag')
+    await bag.update({ qrCodeUrl })
+
+    const createdBag = await Bag.findByPk(bag.id, { include: INCLUDE_FULL })
+    res.status(201).json(createdBag)
+  } catch (err) {
+    next(err)
+  }
 }
 
 const close = async (req, res, next) => {

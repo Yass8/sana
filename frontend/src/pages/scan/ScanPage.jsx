@@ -1,5 +1,5 @@
 // src/pages/scan/ScanPage.jsx
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate }           from 'react-router-dom'
 import { BrowserMultiFormatReader } from '@zxing/library'
 import { useAuth }               from '../../context/AuthContext'
@@ -142,7 +142,7 @@ export default function ScanPage() {
     setPageState(STATE.LOADING)
 
     try {
-      const data = await parcelsApi.getByBarcode(code)
+      const data = await parcelsApi.getByQRCode(code)
       const next = NEXT_STATUS[user.role]?.[data.status]
 
       if (!next) {
@@ -309,7 +309,7 @@ export default function ScanPage() {
                 <div>
                   <p style={{fontFamily:'var(--font-display)'}}
                      className="text-xl font-bold text-violet-600">
-                    {parcel.barcode}
+                    {parcel.qrcode}
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {parcel.weight ? `${parcel.weight} kg` : 'Poids non renseigné'}
@@ -322,7 +322,7 @@ export default function ScanPage() {
                   { label: 'Expéditeur',   value: parcel.sender?.name },
                   { label: 'Destinataire', value: parcel.recipientName },
                   { label: 'Téléphone',    value: parcel.recipientPhone ?? '—' },
-                  { label: 'Sac',          value: parcel.bag?.barcode ?? '—' },
+                  { label: 'Sac',          value: parcel.bag?.qrcode ?? '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-slate-50 rounded-xl px-3 py-2.5">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide">
@@ -386,7 +386,7 @@ export default function ScanPage() {
               Statut mis à jour !
             </p>
             <p className="text-sm text-slate-400">
-              {parcel.barcode} →{' '}
+              {parcel.qrcode} →{' '}
               <span className="text-slate-700 font-semibold">
                 {NEXT_LABEL[parcel.nextStatus]}
               </span>

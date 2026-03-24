@@ -8,14 +8,14 @@ import StatusBadge      from '../../components/ui/StatusBadge'
 import Spinner          from '../../components/ui/Spinner'
 
 export default function PublicTrackingPage() {
-  const { barcode: paramBarcode } = useParams()
+  const { qrcode: paramQRCode } = useParams()
   const navigate = useNavigate()
-  const [input,  setInput]  = useState(paramBarcode ?? '')
-  const [search, setSearch] = useState(paramBarcode ?? '')
+  const [input,  setInput]  = useState(paramQRCode ?? '')
+  const [search, setSearch] = useState(paramQRCode ?? '')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['public-track', search],
-    queryFn:  () => parcelsApi.getByBarcode(search),
+    queryFn:  () => parcelsApi.getByQRCode(search),
     enabled:  !!search,
     retry:    false,
   })
@@ -100,7 +100,7 @@ export default function PublicTrackingPage() {
                 <div>
                   <p style={{fontFamily:'var(--font-display)'}}
                      className="text-xl font-bold text-violet-600">
-                    {data.barcode}
+                    {data.qrcode}
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
                     Paris, France → {data.bag?.shipment?.destinationAgency?.city},{' '}
@@ -135,11 +135,11 @@ export default function PublicTrackingPage() {
               </div>
 
               {/* QR Code */}
-              {data.barcodeUrl && (
+              {data.qrcodeUrl && (
                 <div className="px-5 py-5 border-t border-slate-100 flex flex-col
                                 items-center gap-3">
                   <p className="text-xs text-slate-400">QR code de suivi</p>
-                  <img src={data.barcodeUrl} alt={data.barcode} className="w-32 h-32"/>
+                  <img src={data.qrcodeUrl} alt={data.qrcode} className="w-32 h-32"/>
                 </div>
               )}
 

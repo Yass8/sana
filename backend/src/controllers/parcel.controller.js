@@ -4,8 +4,9 @@ const { Parcel, Bag, TrackingEvent,
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
         canTransition }               = require('../constants')
-const { generateBarcode }             = require('../services/barcode.service') // ← nouveau
+const { generateQRCode }             = require('../services/qrcode.service')
 const { Op }                          = require('sequelize')
+const { generateParcelCode } = require('../services/codeGenerator.service')
 
 const INCLUDE_FULL = [
   { association: 'sender',  attributes: ['id','name','email','phone'] },
@@ -31,7 +32,7 @@ const getAll = async (req, res, next) => {
     if (status) where.status = status
     if (bagId)  where.bagId  = bagId
     if (search) where[Op.or] = [
-      { barcode:       { [Op.like]: `%${search}%` } },
+      { qrcode:       { [Op.like]: `%${search}%` } },
       { recipientName: { [Op.like]: `%${search}%` } },
     ]
 
@@ -62,11 +63,11 @@ const getAll = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-// ─── GET /api/parcels/track/:barcode ─────────────────
-const trackByBarcode = async (req, res, next) => {
+// ─── GET /api/parcels/track/:qrcode ─────────────────
+const trackByQRCode = async (req, res, next) => {
   try {
     const parcel = await Parcel.findOne({
-      where:   { barcode: req.params.barcode },
+      where:   { qrcode: req.params.qrcode },
       include: INCLUDE_FULL,
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
@@ -90,11 +91,7 @@ const getById = async (req, res, next) => {
 // ─── POST /api/parcels ────────────────────────────────
 const create = async (req, res, next) => {
   try {
-    const {
-      bagId, senderId,
-      recipientName, recipientEmail, recipientPhone,
-      description, weight,
-    } = req.body
+    const { bagId, senderId, recipientName, recipientEmail, recipientPhone, description, weight } = req.body
 
     if (!bagId || !senderId || !recipientName) {
       return res.status(400).json({ message: 'bagId, senderId et recipientName requis.' })
@@ -107,52 +104,48 @@ const create = async (req, res, next) => {
     }
 
     const parcel = await sequelize.transaction(async (t) => {
+      // Génération du code unique
+      const qrcode = await generateCode('parcel')
 
-      // 1. Génère le barcode string
-      const count   = await Parcel.count({ transaction: t })
-      const year    = new Date().getFullYear()
-      const barcode = `COL-${year}-${String(count + 1).padStart(5, '0')}`
-
-      // 2. Crée le colis
       const p = await Parcel.create({
         bagId, senderId,
         recipientName,
         recipientEmail: recipientEmail ?? null,
         recipientPhone: recipientPhone ?? null,
-        description:    description    ?? null,
-        weight:         weight         ?? null,
-        barcode,
+        description: description ?? null,
+        weight: weight ?? null,
+        qrcode,
         status: PARCEL_STATUS.RECEIVED,
       }, { transaction: t })
 
-      // 3. Tracking event initial
       await TrackingEvent.create({
-        parcelId:   p.id,
-        agentId:    req.user.id,
-        status:     PARCEL_STATUS.RECEIVED,
+        parcelId: p.id,
+        agentId: req.user.id,
+        status: PARCEL_STATUS.RECEIVED,
         occurredAt: new Date(),
-        notes:      'Colis réceptionné en agence.',
+        notes: 'Colis réceptionné en agence.',
       }, { transaction: t })
 
-      // 4. Notification pending
       await Notification.create({
-        parcelId:       p.id,
-        userId:         senderId,
+        parcelId: p.id,
+        userId: senderId,
         recipientEmail: recipientEmail ?? null,
-        channel:        NOTIF_CHANNEL.EMAIL,
-        type:           NOTIF_TYPE.STATUS_UPDATE,
-        status:         NOTIF_STATUS.PENDING,
+        channel: NOTIF_CHANNEL.EMAIL,
+        type: NOTIF_TYPE.STATUS_UPDATE,
+        status: NOTIF_STATUS.PENDING,
       }, { transaction: t })
 
       return p
     })
 
-    // 5. Génère le PNG code-barres APRÈS la transaction
-    const barcodeUrl = await generateBarcode(parcel.barcode, 'parcel')
-    await parcel.update({ barcodeUrl })
+    // Génération du QR code après la transaction
+    const qrCodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
+    await parcel.update({ qrcodeUrl })
 
     res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 }
 
 // ─── PATCH /api/parcels/:id/status ────────────────────
@@ -199,23 +192,23 @@ const updateStatus = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-// ─── GET /api/parcels/:id/barcode ────────────────────
-const getBarcode = async (req, res, next) => {
+// ─── GET /api/parcels/:id/qrcode ────────────────────
+const getQRCode = async (req, res, next) => {
   try {
     const parcel = await Parcel.findByPk(req.params.id, {
-      attributes: ['id', 'barcode', 'barcodeUrl'],
+      attributes: ['id', 'qrcode', 'qrCodeUrl'],
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
 
     // Régénère si manquant
-    if (!parcel.barcodeUrl) {
-      const url = await generateBarcode(parcel.barcode, 'parcel')
-      await parcel.update({ barcodeUrl: url })
-      return res.json({ barcode: parcel.barcode, url })
+    if (!parcel.qrCodeUrl) {
+      const url = await generateQRCode(parcel.qrcode, 'parcel')
+      await parcel.update({ qrCodeUrl: url })
+      return res.json({ qrcode: parcel.qrcode, url })
     }
 
-    res.json({ barcode: parcel.barcode, url: parcel.barcodeUrl })
+    res.json({ qrcode: parcel.qrcode, url: parcel.qrCodeUrl })
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, trackByBarcode, getById, create, updateStatus, getBarcode }
+module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode }
