@@ -1,11 +1,11 @@
 // src/pages/parcels/NewParcelPage.jsx
-import { useState }      from 'react'
-import { useNavigate }   from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { parcelsApi }    from '../../api/parcels.api'
-import { bagsApi }       from '../../api/bags.api'
-import Card              from '../../components/ui/Card'
-import Spinner           from '../../components/ui/Spinner'
+import { parcelsApi } from '../../api/parcels.api'
+import { bagsApi } from '../../api/bags.api'
+import Card from '../../components/ui/Card'
+import Spinner from '../../components/ui/Spinner'
 
 const EMPTY = {
   senderName: '', senderEmail: '', senderPhone: '',
@@ -13,16 +13,38 @@ const EMPTY = {
   description: '', weight: '', bagId: '',
 }
 
+// Composant Field déplacé en dehors du composant principal
+const Field = ({ label, name, type = 'text', placeholder, required, full, value, onChange, error }) => (
+  <div className={full ? 'col-span-2 md:col-span-2' : ''}>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+      {label}{required && <span className="text-violet-600 ml-0.5">*</span>}
+    </label>
+    <input
+      type={type}
+      value={value}
+      name={name}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none transition-all ${
+        error
+          ? 'border-red-400 focus:ring-4 focus:ring-red-100'
+          : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
+      }`}
+    />
+    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+  </div>
+)
+
 export default function NewParcelPage() {
-  const navigate    = useNavigate()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [form, setForm] = useState(EMPTY)
   const [errs, setErrs] = useState({})
 
   const { data: bags = [] } = useQuery({
     queryKey: ['bags', { status: 'open' }],
-    queryFn:  () => bagsApi.getAll({ status: 'open' }),
-    select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
+    queryFn: () => bagsApi.getAll({ status: 'open' }),
+    select: (d) => Array.isArray(d) ? d : (d?.rows ?? []),
   })
 
   const create = useMutation({
@@ -34,14 +56,28 @@ export default function NewParcelPage() {
     },
   })
 
-  const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
+  const set = (k) => (e) => {
+    let value = e.target.value
+    // Empêcher les valeurs négatives pour le poids
+    if (k === 'weight' && value !== '') {
+      const num = parseFloat(value)
+      if (!isNaN(num) && num < 0) {
+        value = '0'
+      }
+    }
+    setForm(p => ({ ...p, [k]: value }))
+  }
 
   const validate = () => {
     const e = {}
     if (!form.senderName.trim())    e.senderName    = 'Requis'
     if (!form.recipientName.trim()) e.recipientName = 'Requis'
     if (!form.bagId)                e.bagId         = 'Requis'
-    if (form.weight && isNaN(parseFloat(form.weight))) e.weight = 'Nombre invalide'
+    if (form.weight !== '') {
+      const weightNum = parseFloat(form.weight)
+      if (isNaN(weightNum)) e.weight = 'Nombre invalide'
+      else if (weightNum < 0) e.weight = 'Le poids ne peut pas être négatif'
+    }
     setErrs(e); return Object.keys(e).length === 0
   }
 
@@ -50,24 +86,6 @@ export default function NewParcelPage() {
     if (!validate()) return
     create.mutate({ ...form, weight: form.weight ? parseFloat(form.weight) : null })
   }
-
-  const Field = ({ label, name, type = 'text', placeholder, required, full }) => (
-    <div className={full ? 'col-span-2 md:col-span-2' : ''}>
-      <label className="block text-xs font-semibold text-slate-500
-                        uppercase tracking-wide mb-1.5">
-        {label}{required && <span className="text-violet-600 ml-0.5">*</span>}
-      </label>
-      <input type={type} value={form[name]} onChange={set(name)}
-             placeholder={placeholder}
-             className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
-                         transition-all ${
-               errs[name]
-                 ? 'border-red-400 focus:ring-4 focus:ring-red-100'
-                 : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
-             }`}/>
-      {errs[name] && <p className="text-xs text-red-500 mt-1">{errs[name]}</p>}
-    </div>
-  )
 
   return (
     <div className="max-w-2xl mx-auto animate-fadeIn">
@@ -89,9 +107,12 @@ export default function NewParcelPage() {
                 className="font-bold text-slate-900">Expéditeur</h2>
           </div>
           <div className="p-5 grid grid-cols-2 gap-4">
-            <Field label="Nom complet" name="senderName" placeholder="Mamadou Diallo" required/>
-            <Field label="Email" name="senderEmail" type="email" placeholder="mamadou@email.com"/>
-            <Field label="Téléphone" name="senderPhone" placeholder="+33 6 00 00 00 00"/>
+            <Field label="Nom complet" name="senderName" placeholder="Mamadou Diallo" required
+                   value={form.senderName} onChange={set('senderName')} error={errs.senderName} />
+            <Field label="Email" name="senderEmail" type="email" placeholder="mamadou@email.com"
+                   value={form.senderEmail} onChange={set('senderEmail')} error={errs.senderEmail} />
+            <Field label="Téléphone" name="senderPhone" placeholder="+33 6 00 00 00 00"
+                   value={form.senderPhone} onChange={set('senderPhone')} error={errs.senderPhone} />
           </div>
         </Card>
 
@@ -101,9 +122,12 @@ export default function NewParcelPage() {
                 className="font-bold text-slate-900">Destinataire</h2>
           </div>
           <div className="p-5 grid grid-cols-2 gap-4">
-            <Field label="Nom complet" name="recipientName" placeholder="Fatou Diallo" required/>
-            <Field label="Email" name="recipientEmail" type="email" placeholder="fatou@email.com"/>
-            <Field label="Téléphone" name="recipientPhone" placeholder="+221 77 000 00 00"/>
+            <Field label="Nom complet" name="recipientName" placeholder="Fatou Diallo" required
+                   value={form.recipientName} onChange={set('recipientName')} error={errs.recipientName} />
+            <Field label="Email" name="recipientEmail" type="email" placeholder="fatou@email.com"
+                   value={form.recipientEmail} onChange={set('recipientEmail')} error={errs.recipientEmail} />
+            <Field label="Téléphone" name="recipientPhone" placeholder="+221 77 000 00 00"
+                   value={form.recipientPhone} onChange={set('recipientPhone')} error={errs.recipientPhone} />
           </div>
         </Card>
 
@@ -113,7 +137,8 @@ export default function NewParcelPage() {
                 className="font-bold text-slate-900">Détails du colis</h2>
           </div>
           <div className="p-5 grid grid-cols-2 gap-4">
-            <Field label="Poids (kg)" name="weight" type="number" placeholder="2.5"/>
+            <Field label="Poids (kg)" name="weight" type="number" placeholder="2.5"
+                   value={form.weight} onChange={set('weight')} error={errs.weight} />
             <div>
               <label className="block text-xs font-semibold text-slate-500
                                 uppercase tracking-wide mb-1.5">

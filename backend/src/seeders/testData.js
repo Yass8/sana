@@ -12,9 +12,9 @@ async function seed() {
     where:    { city: 'Paris' },
     defaults: { name: 'Agence Paris', country: 'FR', city: 'Paris', phone: '+33 1 00 00 00 00' },
   })
-  const [dakar] = await Agency.findOrCreate({
-    where:    { city: 'Dakar' },
-    defaults: { name: 'Agence Dakar', country: 'SN', city: 'Dakar', phone: '+221 33 00 00 00' },
+  const [moroni] = await Agency.findOrCreate({
+    where:    { city: 'Moroni' },
+    defaults: { name: 'Agence Moroni', country: 'KM', city: 'Moroni', phone: '+269 411 11 11' },
   })
   await Agency.findOrCreate({
     where:    { city: 'Abidjan' },
@@ -34,24 +34,24 @@ async function seed() {
   })
 
   await User.findOrCreate({
-    where:    { email: 'agent.af@colistrack.com' },
-    defaults: { name: 'Fatou Ndiaye', passwordHash: 'agent1234', role: ROLES.AGENT_AF, agencyId: dakar.id, isActive: true },
+    where:    { email: 'agent.km@colistrack.com' },
+    defaults: { name: 'Fatima Yssf', passwordHash: 'agent1234', role: ROLES.AGENT_AF, agencyId: moroni.id, isActive: true },
   })
 
   const [client1] = await User.findOrCreate({
-    where:    { email: 'mamadou@test.com' },
-    defaults: { name: 'Mamadou Diallo', passwordHash: 'client1234', role: ROLES.CLIENT, phone: '+33 6 11 22 33 44', isActive: true },
+    where:    { email: 'aliyassir859@gmail.com' },
+    defaults: { name: 'Ali YASSIR', passwordHash: 'client1234', role: ROLES.CLIENT, phone: '+33 6 11 22 33 44', isActive: true },
   })
 
-  const [client2] = await User.findOrCreate({
-    where:    { email: 'aicha@test.com' },
-    defaults: { name: 'Aïcha Koné', passwordHash: 'client1234', role: ROLES.CLIENT, phone: '+33 7 55 66 77 88', isActive: true },
-  })
+  // const [client2] = await User.findOrCreate({
+  //   where:    { email: 'aicha@test.com' },
+  //   defaults: { name: 'Aïcha Koné', passwordHash: 'client1234', role: ROLES.CLIENT, phone: '+33 7 55 66 77 88', isActive: true },
+  // })
   console.log('✅ Users créés')
 
   // Shipment (inchangé)
   let shipment = await Shipment.findOne({
-    where: { originAgencyId: paris.id, destinationAgencyId: dakar.id, status: 'preparing' },
+    where: { originAgencyId: paris.id, destinationAgencyId: moroni.id, status: 'preparing' },
   })
 
   if (!shipment) {
@@ -60,7 +60,7 @@ async function seed() {
     shipment = await Shipment.create({
       reference:           `SHP-${year}-${String(count + 1).padStart(5, '0')}`,
       originAgencyId:      paris.id,
-      destinationAgencyId: dakar.id,
+      destinationAgencyId: moroni.id,
       departureDate:       new Date(),
       createdBy:           agentFR.id,
       status:              'preparing',
@@ -82,9 +82,10 @@ async function seed() {
 
   // Parcels – génération de chaque code via service
   const parcelsData = [
-    { senderId: client1.id, recipientName: 'Fatou Diallo',   recipientEmail: 'fatou.diallo@email.com', recipientPhone: '+221 77 111 22 33', description: 'Vêtements et chaussures', weight: 2.4 },
-    { senderId: client2.id, recipientName: 'Ibrahim Koné',   recipientEmail: 'ibrahim.kone@email.com', recipientPhone: '+221 77 444 55 66', description: 'Médicaments',             weight: 1.2 },
-    { senderId: client1.id, recipientName: 'Boubacar Sy',    recipientEmail: 'boubacar@email.com',     recipientPhone: '+221 77 777 88 99', description: 'Électronique',            weight: 3.5 },
+    // { senderId: client1.id, recipientName: 'Fatou Diallo',   recipientEmail: 'fatou.diallo@email.com', recipientPhone: '+221 77 111 22 33', description: 'Vêtements et chaussures', weight: 2.4 },
+    // { senderId: client2.id, recipientName: 'Ibrahim Koné',   recipientEmail: 'ibrahim.kone@email.com', recipientPhone: '+221 77 444 55 66', description: 'Médicaments',             weight: 1.2 },
+    // { senderId: client1.id, recipientName: 'Boubacar Sy',    recipientEmail: 'boubacar@email.com',     recipientPhone: '+221 77 777 88 99', description: 'Électronique',            weight: 3.5 },
+    { senderId: client1.id, recipientName: 'Med Moussa',    recipientEmail: 'aliyassir131@outlook.fr',     recipientPhone: '+269 321 11 11', description: 'Téléphone',            weight: 3.5 },
   ]
 
   for (const data of parcelsData) {

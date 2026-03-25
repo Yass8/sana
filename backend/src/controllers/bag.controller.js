@@ -2,8 +2,9 @@
 const { Bag, Parcel, Shipment, Notification } = require('../models')
 const { BAG_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS } = require('../constants')
-const { generateBagCode, generateCode } = require('../services/codeGenerator.service')
+const { generateCode } = require('../services/codeGenerator.service')
 const { generateQRCode } = require('../services/qrcode.service')
+const { sendBulkAlertEmail } = require('../services/email.service')
 
 const INCLUDE_FULL = [
   {
@@ -105,41 +106,99 @@ const sendAlert = async (req, res, next) => {
     })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
 
-    // Crée une notification pending pour chaque colis
     const notifications = []
+    const errors = []
+
+    // Pour chaque colis, envoyer les alertes
     for (const parcel of bag.parcels) {
+      // Envoi à l'expéditeur si email
       if (parcel.sender?.email) {
-        notifications.push({
-          parcelId:       parcel.id,
-          userId:         parcel.sender.id,
-          recipientEmail: parcel.sender.email,
-          channel:        NOTIF_CHANNEL.EMAIL,
-          type:           NOTIF_TYPE.BULK_ALERT,
-          status:         NOTIF_STATUS.PENDING,
-        })
+        try {
+          await sendBulkAlertEmail({
+            to: parcel.sender.email,
+            parcelCode: parcel.qrcode,
+            message: message,
+            senderName: parcel.sender.name,
+            recipientName: parcel.recipientName,
+            date: new Date(),
+          })
+          notifications.push({
+            parcelId: parcel.id,
+            userId: parcel.sender.id,
+            recipientEmail: parcel.sender.email,
+            channel: NOTIF_CHANNEL.EMAIL,
+            type: NOTIF_TYPE.BULK_ALERT,
+            status: NOTIF_STATUS.SENT,
+            sentAt: new Date(),
+          })
+        } catch (err) {
+          console.error(`Erreur envoi alerte à ${parcel.sender.email}:`, err)
+          errors.push({ email: parcel.sender.email, error: err.message })
+          notifications.push({
+            parcelId: parcel.id,
+            userId: parcel.sender.id,
+            recipientEmail: parcel.sender.email,
+            channel: NOTIF_CHANNEL.EMAIL,
+            type: NOTIF_TYPE.BULK_ALERT,
+            status: NOTIF_STATUS.FAILED,
+            errorMessage: err.message,
+          })
+        }
       }
-      if (parcel.recipientPhone) {
-        notifications.push({
-          parcelId:       parcel.id,
-          recipientPhone: parcel.recipientPhone,
-          channel:        NOTIF_CHANNEL.SMS,
-          type:           NOTIF_TYPE.BULK_ALERT,
-          status:         NOTIF_STATUS.PENDING,
-        })
+
+      // Envoi au destinataire si email
+      if (parcel.recipientEmail) {
+        try {
+          await sendBulkAlertEmail({
+            to: parcel.recipientEmail,
+            parcelCode: parcel.qrcode,
+            message: message,
+            senderName: parcel.sender?.name || 'Expéditeur',
+            recipientName: parcel.recipientName,
+            date: new Date(),
+          })
+          notifications.push({
+            parcelId: parcel.id,
+            recipientEmail: parcel.recipientEmail,
+            channel: NOTIF_CHANNEL.EMAIL,
+            type: NOTIF_TYPE.BULK_ALERT,
+            status: NOTIF_STATUS.SENT,
+            sentAt: new Date(),
+          })
+        } catch (err) {
+          console.error(`Erreur envoi alerte à ${parcel.recipientEmail}:`, err)
+          errors.push({ email: parcel.recipientEmail, error: err.message })
+          notifications.push({
+            parcelId: parcel.id,
+            recipientEmail: parcel.recipientEmail,
+            channel: NOTIF_CHANNEL.EMAIL,
+            type: NOTIF_TYPE.BULK_ALERT,
+            status: NOTIF_STATUS.FAILED,
+            errorMessage: err.message,
+          })
+        }
       }
+
+      // SMS (à implémenter plus tard)
+      // ...
     }
 
-    await Notification.bulkCreate(notifications)
+    // Sauvegarder toutes les notifications en base
+    if (notifications.length) {
+      await Notification.bulkCreate(notifications)
+    }
 
-    // TODO: déclencher BullMQ quand on l'intégrera
-    // Pour l'instant on marque directement comme sent
-    await Notification.update(
-      { status: NOTIF_STATUS.SENT, sentAt: new Date() },
-      { where: { status: NOTIF_STATUS.PENDING, type: NOTIF_TYPE.BULK_ALERT } }
-    )
+    if (errors.length) {
+      return res.status(207).json({
+        message: `Alerte envoyée partiellement. ${notifications.length - errors.length} succès, ${errors.length} échecs.`,
+        errors,
+      })
+    }
 
     res.json({ message: `Alerte envoyée à ${notifications.length} destinataire(s).` })
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 }
 
 module.exports = { getAll, getById, create, close, sendAlert }

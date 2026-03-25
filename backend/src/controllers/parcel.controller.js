@@ -1,12 +1,13 @@
 // src/controllers/parcel.controller.js
 const { Parcel, Bag, TrackingEvent,
-        Notification, sequelize }     = require('../models')
+        Notification, sequelize } = require('../models')
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
-        canTransition }               = require('../constants')
-const { generateQRCode }             = require('../services/qrcode.service')
-const { Op }                          = require('sequelize')
-const { generateParcelCode } = require('../services/codeGenerator.service')
+        canTransition } = require('../constants')
+const { generateQRCode } = require('../services/qrcode.service')
+const { Op } = require('sequelize')
+const { generateCode } = require('../services/codeGenerator.service')
+const { sendStatusEmail } = require('../services/email.service');
 
 const INCLUDE_FULL = [
   { association: 'sender',  attributes: ['id','name','email','phone'] },
@@ -103,11 +104,14 @@ const create = async (req, res, next) => {
       return res.status(400).json({ message: 'Ce sac est fermé.' })
     }
 
-    const parcel = await sequelize.transaction(async (t) => {
-      // Génération du code unique
+    // Récupérer l'expéditeur pour ses coordonnées
+    const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone'] })
+
+    let parcel
+    await sequelize.transaction(async (t) => {
       const qrcode = await generateCode('parcel')
 
-      const p = await Parcel.create({
+      parcel = await Parcel.create({
         bagId, senderId,
         recipientName,
         recipientEmail: recipientEmail ?? null,
@@ -119,28 +123,87 @@ const create = async (req, res, next) => {
       }, { transaction: t })
 
       await TrackingEvent.create({
-        parcelId: p.id,
+        parcelId: parcel.id,
         agentId: req.user.id,
         status: PARCEL_STATUS.RECEIVED,
         occurredAt: new Date(),
         notes: 'Colis réceptionné en agence.',
       }, { transaction: t })
 
+      // Notification pour l'expéditeur (email)
       await Notification.create({
-        parcelId: p.id,
+        parcelId: parcel.id,
         userId: senderId,
-        recipientEmail: recipientEmail ?? null,
+        recipientEmail: sender.email,
         channel: NOTIF_CHANNEL.EMAIL,
         type: NOTIF_TYPE.STATUS_UPDATE,
         status: NOTIF_STATUS.PENDING,
       }, { transaction: t })
 
-      return p
+      // Optionnel : notification pour le destinataire s'il a un email
+      if (recipientEmail) {
+        await Notification.create({
+          parcelId: parcel.id,
+          recipientEmail: recipientEmail,
+          channel: NOTIF_CHANNEL.EMAIL,
+          type: NOTIF_TYPE.STATUS_UPDATE,
+          status: NOTIF_STATUS.PENDING,
+        }, { transaction: t })
+      }
     })
 
-    // Génération du QR code après la transaction
+    // Génération du QR
     const qrCodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
-    await parcel.update({ qrcodeUrl })
+    await parcel.update({ qrCodeUrl })
+
+    // Envoi de l'email de confirmation
+    try {
+      await sendStatusEmail({
+        to: sender.email,
+        parcelCode: parcel.qrcode,
+        status: PARCEL_STATUS.RECEIVED,
+        recipientName: recipientName,
+        senderName: sender.name,
+        notes: 'Colis réceptionné en agence.',
+        date: new Date(),
+      })
+      // Mettre à jour la notification de l'expéditeur comme SENT
+      await Notification.update(
+        { status: NOTIF_STATUS.SENT, sentAt: new Date() },
+        { where: { parcelId: parcel.id, userId: senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
+      )
+    } catch (emailErr) {
+      console.error('Erreur envoi email:', emailErr)
+      // Marquer la notification comme FAILED
+      await Notification.update(
+        { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
+        { where: { parcelId: parcel.id, userId: senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
+      )
+    }
+
+    // Si destinataire a un email, envoyer aussi
+    if (recipientEmail) {
+      try {
+        await sendStatusEmail({
+          to: recipientEmail,
+          parcelCode: parcel.qrcode,
+          status: PARCEL_STATUS.RECEIVED,
+          recipientName: recipientName,
+          senderName: sender.name,
+          notes: 'Votre colis a été réceptionné en agence.',
+          date: new Date(),
+        })
+        await Notification.update(
+          { status: NOTIF_STATUS.SENT, sentAt: new Date() },
+          { where: { parcelId: parcel.id, recipientEmail: recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
+        )
+      } catch (emailErr) {
+        await Notification.update(
+          { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
+          { where: { parcelId: parcel.id, recipientEmail: recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
+        )
+      }
+    }
 
     res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
   } catch (err) {
@@ -154,7 +217,9 @@ const updateStatus = async (req, res, next) => {
     const { notes, location } = req.body
 
     const parcel = await Parcel.findByPk(req.params.id, {
-      include: [{ association: 'sender', attributes: ['id','email','phone'] }],
+      include: [
+        { association: 'sender', attributes: ['id','name','email','phone'] },
+      ],
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
 
@@ -177,19 +242,79 @@ const updateStatus = async (req, res, next) => {
         occurredAt: new Date(),
       }, { transaction: t })
 
+      // Notification pour l'expéditeur
       await Notification.create({
         parcelId:       parcel.id,
         userId:         parcel.senderId,
         recipientEmail: parcel.sender?.email  ?? null,
-        recipientPhone: parcel.recipientPhone ?? null,
         channel:        NOTIF_CHANNEL.EMAIL,
         type:           NOTIF_TYPE.STATUS_UPDATE,
         status:         NOTIF_STATUS.PENDING,
       }, { transaction: t })
+
+      // Notification pour le destinataire s'il a un email
+      if (parcel.recipientEmail) {
+        await Notification.create({
+          parcelId:       parcel.id,
+          recipientEmail: parcel.recipientEmail,
+          channel:        NOTIF_CHANNEL.EMAIL,
+          type:           NOTIF_TYPE.STATUS_UPDATE,
+          status:         NOTIF_STATUS.PENDING,
+        }, { transaction: t })
+      }
     })
 
+    // Envoi des emails après la transaction
+    // 1. Envoyer à l'expéditeur
+    try {
+      await sendStatusEmail({
+        to: parcel.sender.email,
+        parcelCode: parcel.qrcode,
+        status: nextStatus,
+        recipientName: parcel.recipientName,
+        senderName: parcel.sender.name,
+        notes: notes || '',
+        date: new Date(),
+      })
+      await Notification.update(
+        { status: NOTIF_STATUS.SENT, sentAt: new Date() },
+        { where: { parcelId: parcel.id, userId: parcel.senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
+      )
+    } catch (emailErr) {
+      await Notification.update(
+        { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
+        { where: { parcelId: parcel.id, userId: parcel.senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
+      )
+    }
+
+    // 2. Envoyer au destinataire si email renseigné
+    if (parcel.recipientEmail) {
+      try {
+        await sendStatusEmail({
+          to: parcel.recipientEmail,
+          parcelCode: parcel.qrcode,
+          status: nextStatus,
+          recipientName: parcel.recipientName,
+          senderName: parcel.sender.name,
+          notes: notes || '',
+          date: new Date(),
+        })
+        await Notification.update(
+          { status: NOTIF_STATUS.SENT, sentAt: new Date() },
+          { where: { parcelId: parcel.id, recipientEmail: parcel.recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
+        )
+      } catch (emailErr) {
+        await Notification.update(
+          { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
+          { where: { parcelId: parcel.id, recipientEmail: parcel.recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
+        )
+      }
+    }
+
     res.json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 }
 
 // ─── GET /api/parcels/:id/qrcode ────────────────────
