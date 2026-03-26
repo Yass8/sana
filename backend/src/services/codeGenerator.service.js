@@ -37,4 +37,10 @@ async function generateCode(type, maxRetries = 3) {
   return fallback
 }
 
+function generateQRCodeUrl(type, code){
+  if(type === 'bag'){
+    return ``;
+  }
+}
+
 module.exports = { generateCode }

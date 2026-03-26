@@ -1,6 +1,6 @@
 // src/controllers/parcel.controller.js
 const { Parcel, Bag, TrackingEvent,
-        Notification, sequelize } = require('../models')
+        Notification, User, sequelize } = require('../models')
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
         canTransition } = require('../constants')
@@ -93,10 +93,14 @@ const getById = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const { bagId, senderId, recipientName, recipientEmail, recipientPhone, description, weight } = req.body
+    console.log('les données : ',req.body);
 
     if (!bagId || !senderId || !recipientName) {
       return res.status(400).json({ message: 'bagId, senderId et recipientName requis.' })
     }
+
+    
+    
 
     const bag = await Bag.findByPk(bagId)
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
@@ -106,6 +110,10 @@ const create = async (req, res, next) => {
 
     // Récupérer l'expéditeur pour ses coordonnées
     const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone'] })
+
+    if (!sender) {
+      throw new Error('Expéditeur introuvable')
+    }
 
     let parcel
     await sequelize.transaction(async (t) => {
@@ -153,8 +161,8 @@ const create = async (req, res, next) => {
     })
 
     // Génération du QR
-    const qrCodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
-    await parcel.update({ qrCodeUrl })
+    const qrcodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
+    await parcel.update({ qrcodeUrl })
 
     // Envoi de l'email de confirmation
     try {

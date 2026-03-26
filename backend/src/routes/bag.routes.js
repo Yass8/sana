@@ -8,9 +8,11 @@ const agentsAndAdmin = authorize(ROLES.AGENT_FR, ROLES.AGENT_AF, ROLES.ADMIN)
 const frAndAdmin     = authorize(ROLES.AGENT_FR, ROLES.ADMIN)
 
 router.get(   '/',           authenticate, agentsAndAdmin, ctrl.getAll)
+router.get(   '/track/:qrcode', authenticate, agentsAndAdmin, ctrl.trackByQRCode)
 router.get(   '/:id',        authenticate, agentsAndAdmin, ctrl.getById)
 router.post(  '/',           authenticate, frAndAdmin,     ctrl.create)
 router.patch( '/:id/close',  authenticate, frAndAdmin,     ctrl.close)
+router.patch( '/:id/status', authenticate, agentsAndAdmin, ctrl.updateStatus)
 router.post(  '/:id/alert',  authenticate, frAndAdmin,     ctrl.sendAlert)
 
 module.exports = router

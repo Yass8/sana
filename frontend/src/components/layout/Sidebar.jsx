@@ -20,6 +20,7 @@ const NAV = [
   { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','admin'] },
   { to: '/shipments',     label: 'Envois',        icon: Plane,           roles: ['agent_fr','agent_af','admin'] },
   { to: '/clients',       label: 'Clients',       icon: Users,           roles: ['admin'] },
+  { to: '/users',       label: 'Utilisateurs',    icon: Users,           roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,            roles: ['admin'] },
 ]
 

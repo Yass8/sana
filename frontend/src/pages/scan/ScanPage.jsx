@@ -5,6 +5,7 @@ import { BrowserMultiFormatReader } from '@zxing/library'
 import { useAuth }               from '../../context/AuthContext'
 import { useUpdateParcelStatus } from '../../hooks/useParcels'
 import { parcelsApi }            from '../../api/parcels.api'
+import { bagsApi }               from '../../api/bags.api'
 import StatusBadge               from '../../components/ui/StatusBadge'
 import Spinner                   from '../../components/ui/Spinner'
 import Card                      from '../../components/ui/Card'
@@ -141,6 +142,7 @@ export default function ScanPage() {
     scanningRef.current = false // pause le scan
     setPageState(STATE.LOADING)
 
+    // Première recherche : colis
     try {
       const data = await parcelsApi.getByQRCode(code)
       const next = NEXT_STATUS[user.role]?.[data.status]
@@ -157,8 +159,26 @@ export default function ScanPage() {
 
       setParcel({ ...data, nextStatus: next })
       setPageState(STATE.CONFIRM)
-    } catch {
-      setErrorMsg('Colis introuvable pour ce code.')
+      return
+    } catch (err) {
+      if (!(err?.response?.status === 404)) {
+        setErrorMsg('Erreur recherche colis. Réessayez.')
+        setPageState(STATE.ERROR)
+        return
+      }
+    }
+
+    // Deuxième recherche : sac
+    try {
+      const bag = await bagsApi.getByQRCode(code)
+      navigate(`/bags/${bag.data.id}`)
+      return
+    } catch (err) {
+      if (err?.response?.status === 404) {
+        setErrorMsg('Colis ou sac introuvable pour ce code.')
+      } else {
+        setErrorMsg('Erreur recherche sac. Réessayez.')
+      }
       setPageState(STATE.ERROR)
     }
   }
@@ -203,7 +223,7 @@ export default function ScanPage() {
         <div>
           <h1 style={{fontFamily:'var(--font-display)'}}
               className="text-xl font-bold text-slate-900">
-            Scanner un colis
+            Scanner un colis ou un sac
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
             {user.role === 'agent_fr'
@@ -283,7 +303,7 @@ export default function ScanPage() {
             value={manual}
             onChange={e => setManual(e.target.value.toUpperCase())}
             onKeyDown={e => e.key === 'Enter' && handleManual()}
-            placeholder="Saisie manuelle — COL-2026-…"
+            placeholder="Saisie manuelle — COL-2026-… ou BAG-12345"
             className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl
                        text-sm font-mono outline-none transition-all
                        focus:border-violet-500 focus:ring-4 focus:ring-violet-100"

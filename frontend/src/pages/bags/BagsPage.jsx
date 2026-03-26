@@ -7,6 +7,7 @@ import { shipmentsApi }  from '../../api/shipments.api'
 import StatusBadge       from '../../components/ui/StatusBadge'
 import Card              from '../../components/ui/Card'
 import Spinner           from '../../components/ui/Spinner'
+import { showSuccessAlert } from '../../components/ui/SweetsAlert'
 
 const FILTERS = [
   { label: 'Tous',       value: '' },
@@ -36,6 +37,7 @@ export default function BagsPage() {
   const handleCreate = async () => {
     if (!shipmentId) { setErr('Sélectionner un envoi'); return }
     await createBag.mutateAsync({ shipmentId })
+    await showSuccessAlert({ text: 'Sac ajouté.' })
     setShowModal(false); setShipmentId(''); setErr('')
   }
 

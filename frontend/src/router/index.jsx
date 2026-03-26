@@ -14,6 +14,9 @@ import BagDetailPage        from '../pages/bags/BagDetailPage'
 import ShipmentsPage        from '../pages/shipments/ShipmentsPage'
 import ClientsPage          from '../pages/clients/ClientsPage'
 import NotificationsPage    from '../pages/notifications/NotificationsPage'
+import UsersPage from '../pages/users/UsersPage'
+import UsersForm from '../pages/users/UsersForm'
+import UserDetail from '../pages/users/UserDetail'
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -43,6 +46,11 @@ const router = createBrowserRouter([
         { path: '/shipments',    element: <ShipmentsPage /> },
         { path: '/clients',      element: <ClientsPage /> },
         { path: '/notifications',element: <NotificationsPage /> },
+
+        { path: '/users',        element: <UsersPage /> },
+        { path: '/users/new',    element: <UsersForm /> },
+        { path: '/users/:id',    element: <UserDetail /> },
+        { path: '/users/:id/edit', element: <UsersForm /> }
       ],
     }],
   },

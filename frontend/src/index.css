@@ -82,3 +82,38 @@ body {
 #qr-reader-div__status_span {
   display: none !important;
 }
+
+/* SweetAlert2 - theme aligné sur l'app */
+.swal2-popup {
+  border-radius: 16px !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.12) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.swal2-title {
+  font-family: var(--font-display) !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+}
+
+.swal2-html-container,
+.swal2-content {
+  color: var(--color-text) !important;
+  font-size: 0.875rem !important;
+}
+
+.swal2-actions {
+  margin-top: 1rem !important;
+}
+
+.swal2-styled {
+  border-radius: 12px !important;
+  padding: 0.7rem 1.1rem !important;
+  font-weight: 800 !important;
+}
+
+.swal2-confirm:focus,
+.swal2-cancel:focus {
+  box-shadow: none !important;
+}
