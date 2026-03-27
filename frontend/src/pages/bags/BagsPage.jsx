@@ -122,7 +122,7 @@ export default function BagsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end md:items-center
+        <div className="fixed inset-0 bg-black/50 flex items-start md:items-center
                         justify-center z-50 p-4 animate-fadeIn"
              onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm

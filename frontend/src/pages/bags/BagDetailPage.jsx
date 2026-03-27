@@ -263,9 +263,9 @@ export default function BagDetailPage() {
         <div className="flex items-center justify-between px-5 py-4
                         border-b border-slate-100">
           <h2 style={{ fontFamily: 'var(--font-display)' }}
-              className="font-bold text-slate-900">Colis dans ce sac</h2>
+              className="font-bold text-slate-900">Colis dans ce sac </h2>
           <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
-            {parcels.length} colis
+            {parcels.length} colis {bag.weight ? ` | ${bag.weight} kg` : ''} 
           </span>
         </div>
 
@@ -279,7 +279,7 @@ export default function BagDetailPage() {
                    className="text-sm font-bold text-violet-600">{p.qrcode}</p>
                 <StatusBadge status={p.status} />
               </div>
-              <p className="text-xs text-slate-500">{p.sender?.name} → {p.recipientName}</p>
+              <p className="text-xs text-slate-500">{p.sender?.name} → {p.recipientName}. <span className='text-black'>{p.weight ? `${p.weight} kg` : ''}</span></p>
             </div>
           ))}
         </div>

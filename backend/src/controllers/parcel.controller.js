@@ -93,14 +93,10 @@ const getById = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const { bagId, senderId, recipientName, recipientEmail, recipientPhone, description, weight } = req.body
-    console.log('les données : ',req.body);
 
     if (!bagId || !senderId || !recipientName) {
       return res.status(400).json({ message: 'bagId, senderId et recipientName requis.' })
     }
-
-    
-    
 
     const bag = await Bag.findByPk(bagId)
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
@@ -158,6 +154,21 @@ const create = async (req, res, next) => {
           status: NOTIF_STATUS.PENDING,
         }, { transaction: t })
       }
+
+      // mettre à jour le poids du sac
+      // Récupérer tous les colis du sac (avec le nouveau colis inclus)
+      const allParcels = await Parcel.findAll({
+        where: { bagId },
+        attributes: ['weight'],
+        transaction: t,
+      })
+      // Calculer la somme des poids (les poids null sont ignorés)
+      const totalWeight = allParcels.reduce((sum, p) => {
+        const w = p.weight ? parseFloat(p.weight) : 0
+        return sum + w
+      }, 0)
+      // Mettre à jour le sac
+      await bag.update({ weight: totalWeight }, { transaction: t })
     })
 
     // Génération du QR
