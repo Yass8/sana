@@ -79,7 +79,7 @@ export default function BagsPage() {
       ) : data.length === 0 ? (
         <p className="text-center text-sm text-slate-400 py-16">Aucun sac.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 md:mb-0 lg:mb-0">
           {data.map(bag => (
             <Card key={bag.id} onClick={() => navigate(`/bags/${bag.id}`)}>
               <div className="p-5">

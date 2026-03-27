@@ -105,7 +105,7 @@ export default function ParcelsPage() {
       {parcels.isLoading ? (
         <div className="flex justify-center py-16"><Spinner/></div>
       ) : (
-        <Card>
+        <Card className='mb-10 md:mb-0 lg:mb-0'>
           <div className="flex items-center gap-3 px-4 md:px-5 py-3.5
                           border-b border-slate-100">
             <p style={{fontFamily:'var(--font-display)'}}

@@ -294,7 +294,7 @@ export default function NewParcelPage() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 mb-10 md:mb-0 lg:mb-0">
           <button type="button" onClick={() => navigate('/parcels')}
                   className="flex-1 border-2 border-slate-200 text-slate-500
                              py-3.5 rounded-xl text-sm font-semibold

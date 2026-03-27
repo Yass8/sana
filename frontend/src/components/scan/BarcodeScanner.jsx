@@ -41,7 +41,7 @@ export default function BarcodeScanner({ onDetected, enabled = true }) {
                             animate-scan-line" />
           </div>
           <p className="absolute bottom-4 text-white/60 text-xs">
-            Placez le code-barres dans le cadre
+            Placez le qr code dans le cadre
           </p>
         </div>
       )}

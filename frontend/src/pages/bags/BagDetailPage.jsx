@@ -259,7 +259,7 @@ export default function BagDetailPage() {
       </div>
 
       {/* Liste colis */}
-      <Card>
+      <Card className='mb-10 md:mb-0 lg:mb-0'>
         <div className="flex items-center justify-between px-5 py-4
                         border-b border-slate-100">
           <h2 style={{ fontFamily: 'var(--font-display)' }}
