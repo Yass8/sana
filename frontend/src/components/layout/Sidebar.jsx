@@ -36,7 +36,7 @@ export default function Sidebar() {
       <div className="px-5 py-5 border-b border-white/5">
         <p style={{fontFamily:'var(--font-display)'}}
            className="text-white text-lg font-bold tracking-tight">
-          SanaExpress
+          SanaService
         </p>
         <p className="text-violet-400 text-[10px] font-semibold
                       tracking-widest uppercase mt-0.5">

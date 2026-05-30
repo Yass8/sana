@@ -105,7 +105,9 @@ const updateStatus = async (req, res, next) => {
   try {
     const { action } = req.body
     const bag = await Bag.findByPk(req.params.id, {
-      include: [{ association: 'parcels', include: [{ association: 'sender' }] }],
+      include: [
+        { association: 'shipment', include: [{ association: 'destinationAgency' } ]},
+        { association: 'parcels', include: [{ association: 'sender' }] }],
     })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
 
@@ -138,6 +140,9 @@ const updateStatus = async (req, res, next) => {
     }[targetParcelStatus] || []
 
     const eligibleParcels = bag.parcels.filter((p) => updatableParcelStatus.includes(p.status))
+
+    // destination 
+    const destinationName = bag.shipment?.destinationAgency?.name || 'Destination inconnue'
 
     await Bag.sequelize.transaction(async (t) => {
       await bag.update({ status: targetBagStatus }, { transaction: t })
@@ -193,9 +198,13 @@ const updateStatus = async (req, res, next) => {
             status: targetParcelStatus,
             recipientName: parcel.recipientName,
             senderName: parcel.sender.name,
+            destination: destinationName,
             notes: `Mise à jour via sac (${action}).`,
             date: new Date(),
           })
+
+          console.log('destination : ',  destinationName);
+          
           await Notification.update(
             { status: NOTIF_STATUS.SENT, sentAt: new Date() },
             {
@@ -228,6 +237,7 @@ const updateStatus = async (req, res, next) => {
             status: targetParcelStatus,
             recipientName: parcel.recipientName,
             senderName: parcel.sender?.name || 'Expéditeur',
+            destination: destinationName,
             notes: `Mise à jour via sac (${action}).`,
             date: new Date(),
           })

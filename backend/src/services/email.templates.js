@@ -55,7 +55,7 @@ const baseLayout = (content) => `
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:#0A1628;padding:32px 40px;">
-              <p style="margin:0;color:#fff;font-size:22px;font-weight:700;">SanaExpress</p>
+              <p style="margin:0;color:#fff;font-size:22px;font-weight:700;">SanaService</p>
               <p style="margin:4px 0 0;color:#818CF8;font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;">France — Afrique</p>
             </td>
           </tr>
@@ -63,7 +63,7 @@ const baseLayout = (content) => `
           <tr>
             <td style="background:#F8FAFC;padding:24px 40px;border-top:1px solid #E2E8F0;">
               <p style="margin:0;color:#94A3B8;font-size:12px;text-align:center;">
-                ColisTrack · Service de transport France — Afrique
+                SanaService · Service de transport France — Afrique
               </p>
             </td>
           </tr>
@@ -79,6 +79,9 @@ const baseLayout = (content) => `
  * Template de mise à jour de statut
  */
 const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, destination, trackingUrl, notes }) => {
+  
+  console.log('🎨 Template - destination:', destination);
+  
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.received;
 
   const content = `
@@ -98,6 +101,9 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, d
               <p style="margin:0;color:#94A3B8;font-size:11px;font-weight:600;text-transform:uppercase;">Code suivi</p>
               <p style="margin:4px 0 16px;color:#7C3AED;font-size:18px;font-weight:700;">${parcelCode}</p>
               
+              <p style="margin:0;color:#94A3B8;font-size:11px;font-weight:600;text-transform:uppercase;">Expéditeur</p>
+              <p style="margin:4px 0 0;color:#0F172A;font-size:15px;font-weight:600;">${senderName}</p>
+
               <p style="margin:0;color:#94A3B8;font-size:11px;font-weight:600;text-transform:uppercase;">Destination</p>
               <p style="margin:4px 0 0;color:#0F172A;font-size:15px;font-weight:600;">${destination}</p>
             </td>

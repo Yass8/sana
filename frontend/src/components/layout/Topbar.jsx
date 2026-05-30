@@ -17,7 +17,7 @@ export default function Topbar() {
       <div className="lg:hidden">
         <p style={{fontFamily:'var(--font-display)'}}
            className="text-[#0A1628] font-bold text-base">
-          SanaExpress
+          SanaService
         </p>
       </div>
 

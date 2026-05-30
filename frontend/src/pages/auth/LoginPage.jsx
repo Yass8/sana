@@ -23,7 +23,7 @@ export default function LoginPage() {
         <div>
           <p style={{fontFamily:'var(--font-display)'}}
              className="text-white text-2xl lg:text-3xl font-bold">
-            SanaExpress
+            SanaService
           </p>
           <p className="text-violet-400 text-xs font-semibold
                         tracking-widest uppercase mt-1">

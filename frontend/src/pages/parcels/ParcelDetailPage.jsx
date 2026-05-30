@@ -7,6 +7,7 @@ import TrackingTimeline       from '../../components/ui/TrackingTimeline'
 import StatusBadge            from '../../components/ui/StatusBadge'
 import Card                   from '../../components/ui/Card'
 import Spinner                from '../../components/ui/Spinner'
+import LabelPrinter           from '../../components/ui/LabelPrinter'
 // Import des icônes Lucide
 import { ArrowLeft, CheckCircle2, Plus, ChevronUp, Copy, Download } from 'lucide-react'
 
@@ -176,6 +177,14 @@ export default function ParcelDetailPage() {
                 <div className="flex flex-col items-center gap-3">
                   <img src={parcel.qrcodeUrl} alt={parcel.qrcode}
                        className="w-40 h-40"/>
+                  <LabelPrinter
+                    type="parcel"
+                    code={parcel.qrcode}
+                    qrcodeUrl={parcel.qrcodeUrl}
+                    weight={parcel.weight}
+                    destination={parcel.bag?.shipment?.destinationAgency?.city}
+                    className="w-full max-w-xs"
+                  />
                   <p className="text-[10px] text-slate-400 text-center">
                     Scannez pour suivre ce colis
                   </p>

@@ -17,13 +17,16 @@ const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
  * Envoi de statut
  */
 async function sendStatusEmail(params) {
+  
+  console.log('📧 sendStatusEmail - destination reçue:', params.destination);
+
   const trackingUrl = `${APP_URL}/track/${params.parcelCode}`;
   const config = STATUS_CONFIG[params.status] || STATUS_CONFIG.received;
   
   const html = statusUpdateTemplate({ ...params, trackingUrl });
 
   const mailOptions = {
-    from: `"SanaExpress" <${process.env.GMAIL_USER}>`,
+    from: `"SanaService" <${process.env.GMAIL_USER}>`,
     to: params.to,
     subject: `📦 ${params.parcelCode} : ${config.label}`,
     html: html,
@@ -46,7 +49,7 @@ async function sendBulkAlertEmail(params) {
   const html = bulkAlertTemplate({ ...params, trackingUrl });
 
   const mailOptions = {
-    from: `"SanaExpress" <${process.env.GMAIL_USER}>`,
+    from: `"SanaService" <${process.env.GMAIL_USER}>`,
     to: params.to,
     subject: `⚠️ Information importante — ${params.parcelCode}`,
     html: html,

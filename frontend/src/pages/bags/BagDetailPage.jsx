@@ -6,6 +6,7 @@ import { bagsApi } from '../../api/bags.api'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
+import LabelPrinter from '../../components/ui/LabelPrinter'
 import { Download } from 'lucide-react'
 
 export default function BagDetailPage() {
@@ -223,6 +224,14 @@ export default function BagDetailPage() {
             <div className="flex flex-col items-center gap-3">
               <img src={bag.qrcodeUrl} alt={bag.qrcode}
                    className="w-40 h-40" />
+              <LabelPrinter
+                type="bag"
+                code={bag.qrcode}
+                qrcodeUrl={bag.qrcodeUrl}
+                weight={bag.weight}
+                destination={bag.shipment?.destinationAgency?.city}
+                className="w-full max-w-xs"
+              />
               <p className="text-[10px] text-slate-400 text-center">
                 Scannez pour avoir les détails de ce sac
               </p>
