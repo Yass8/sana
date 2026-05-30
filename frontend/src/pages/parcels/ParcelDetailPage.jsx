@@ -7,9 +7,11 @@ import TrackingTimeline       from '../../components/ui/TrackingTimeline'
 import StatusBadge            from '../../components/ui/StatusBadge'
 import Card                   from '../../components/ui/Card'
 import Spinner                from '../../components/ui/Spinner'
+import Skeleton               from '../../components/ui/Skeleton'
 import LabelPrinter           from '../../components/ui/LabelPrinter'
+import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 // Import des icônes Lucide
-import { ArrowLeft, CheckCircle2, Plus, ChevronUp, Copy, Download } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronUp, Copy, Download } from 'lucide-react'
 
 const NEXT_STATUS = {
   agent_fr: { received: 'departed_agency', departed_agency: 'departed_airport' },
@@ -31,19 +33,70 @@ export default function ParcelDetailPage() {
   const updateStatus = useUpdateParcelStatus()
   const [notes,      setNotes]     = useState('')
   const [showNotes,  setShowNotes] = useState(false)
-  const [toasted,    setToasted]   = useState(false)
 
   const { data: parcel, isLoading, isError } = useParcel(id)
   const nextStatus = NEXT_STATUS[user?.role]?.[parcel?.status]
 
   const handleUpdate = async () => {
     if (!nextStatus) return
-    await updateStatus.mutateAsync({ id, status: nextStatus, notes: notes || undefined })
-    setNotes(''); setShowNotes(false); setToasted(true)
-    setTimeout(() => setToasted(false), 3000)
+
+    const confirmed = await confirmActionAlert({
+      message: 'Voulez-vous vraiment appliquer cette étape au colis ?'
+    })
+    if (!confirmed) return
+
+    try {
+      await updateStatus.mutateAsync({ id, status: nextStatus, notes: notes || undefined })
+      setNotes('')
+      setShowNotes(false)
+      await showSuccessAlert({ text: 'Statut du colis mis à jour avec succès.' })
+    } catch (err) {
+      await showErrorAlert({ text: err?.message || 'Impossible de mettre à jour le statut.' })
+    }
   }
 
-  if (isLoading) return <div className="flex justify-center py-20"><Spinner size="lg"/></div>
+  if (isLoading) return (
+    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Skeleton className="h-5 w-28" />
+      </div>
+
+      <Card>
+        <div className="p-5 space-y-4">
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="p-5 space-y-3">
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Card>
+          <div className="p-5 space-y-3">
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-5 space-y-3">
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-40 mx-auto w-40" />
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
   if (isError)   return (
     <div className="text-center py-20">
       <p className="text-slate-400 text-sm mb-4">Colis introuvable.</p>
@@ -66,15 +119,6 @@ export default function ParcelDetailPage() {
               className="text-violet-600 font-bold">{parcel.qrcode}</span>
       </div>
 
-      {/* Toast */}
-      {toasted && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700
-                        text-sm px-4 py-3 rounded-xl flex items-center gap-2
-                        animate-fadeIn">
-          <CheckCircle2 size={16} /> Statut mis à jour — notification envoyée.
-        </div>
-      )}
-
       {/* Header */}
       <Card>
         <div className="p-5">
@@ -89,7 +133,7 @@ export default function ParcelDetailPage() {
                 {parcel.weight ? ` · ${parcel.weight} kg` : ''}
               </p>
             </div>
-            <StatusBadge status={parcel.status} size="md"/>
+            <StatusBadge status={parcel.status} size="md" updatedAt={parcel.updatedAt} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">

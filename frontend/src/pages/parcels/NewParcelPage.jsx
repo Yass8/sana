@@ -173,7 +173,7 @@ export default function NewParcelPage() {
   const submitDisabled = isCreating || !form.senderEmail || !form.senderName || !form.bagId || !form.recipientName
 
   return (
-    <div className="max-w-2xl mx-auto animate-fadeIn">
+    <div className="max-w-2xl mx-auto animate-fadeIn mb-2 md:mb-25 lg:mb-0">
 
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/parcels')}

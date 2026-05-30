@@ -40,6 +40,35 @@ export async function confirmDeleteAlert({
   return result.isConfirmed
 }
 
+export async function confirmActionAlert({
+  title = 'Confirmer',
+  message,
+  confirmButtonText = 'Oui',
+  cancelButtonText = 'Annuler',
+} = {}) {
+  const result = await Swal.fire({
+    icon: 'question',
+    title,
+    text: message ?? '',
+    background: '#FFFFFF',
+    color: '#0F172A',
+    confirmButtonText,
+    cancelButtonText,
+    reverseButtons: true,
+    showCancelButton: true,
+    buttonsStyling: false,
+    customClass: {
+      confirmButton: buttonClasses.success,
+      cancelButton: buttonClasses.cancel,
+      popup: 'rounded-2xl shadow-xl',
+      title: 'text-lg font-bold',
+      htmlContainer: 'text-sm text-gray-600'
+    }
+  })
+
+  return result.isConfirmed
+}
+
 export async function showSuccessAlert({ title = 'Succès', text = 'Opération réussie.' } = {}) {
   await Swal.fire({
     icon: 'success',

@@ -6,7 +6,9 @@ import { bagsApi } from '../../api/bags.api'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
+import Skeleton from '../../components/ui/Skeleton'
 import LabelPrinter from '../../components/ui/LabelPrinter'
+import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 import { Download } from 'lucide-react'
 
 export default function BagDetailPage() {
@@ -15,7 +17,6 @@ export default function BagDetailPage() {
   const queryClient = useQueryClient()
   const [alertMsg, setAlertMsg] = useState('')
   const [showAlert, setShowAlert] = useState(false)
-  const [toasted, setToasted] = useState('')
   const [airportDone, setAirportDone] = useState(() => {
     // récupérer l'état depuis localStorage (clé unique par sac)
     const saved = localStorage.getItem(`bag_airport_${id}`)
@@ -34,35 +35,67 @@ export default function BagDetailPage() {
 
   const closeBag = useMutation({
     mutationFn: () => bagsApi.close(id),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['bag', id] })
       queryClient.invalidateQueries({ queryKey: ['bags'] })
-      setToasted('Sac fermé avec succès.')
-      setTimeout(() => setToasted(''), 3000)
+      await showSuccessAlert({ text: 'Sac fermé avec succès.' })
+    },
+    onError: async (err) => {
+      await showErrorAlert({ text: err?.message || 'Impossible de fermer le sac.' })
     },
   })
 
   const sendAlert = useMutation({
     mutationFn: (message) => bagsApi.sendAlert(id, { message }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setShowAlert(false)
       setAlertMsg('')
-      setToasted(`Message envoyé aux clients du sac.`)
-      setTimeout(() => setToasted(''), 3000)
+      await showSuccessAlert({ text: `Message envoyé aux clients du sac.` })
+    },
+    onError: async (err) => {
+      await showErrorAlert({ text: err?.message || 'Impossible d’envoyer l’alerte.' })
     },
   })
 
   const updateBagStatus = useMutation({
     mutationFn: ({ action }) => bagsApi.updateStatus(id, action),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['bag', id] })
       queryClient.invalidateQueries({ queryKey: ['bags'] })
-      setToasted(data?.message || 'Statut du sac mis à jour.')
-      setTimeout(() => setToasted(''), 3000)
+      await showSuccessAlert({ text: data?.message || 'Statut du sac mis à jour.' })
+    },
+    onError: async (err) => {
+      await showErrorAlert({ text: err?.message || 'Impossible de mettre à jour le statut.' })
     },
   })
 
-  if (isLoading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+  if (isLoading) return (
+    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Skeleton className="h-5 w-28" />
+      </div>
+      <Card>
+        <div className="p-5 space-y-4">
+          <Skeleton className="h-8 w-2/3" />
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </Card>
+      <Card>
+        <div className="p-5 space-y-3">
+          <Skeleton className="h-5 w-1/2 mx-auto" />
+          <Skeleton className="h-40 mx-auto w-40" />
+          <Skeleton className="h-5 w-40 mx-auto" />
+        </div>
+      </Card>
+    </div>
+  )
 
   const parcels = bag?.parcels ?? []
   const status = bag?.status
@@ -74,13 +107,18 @@ export default function BagDetailPage() {
   const canMarkArrived = status === 'in_transit' && airportDone
   const canAlert = ['closed', 'in_transit', 'arrived'].includes(status)
 
-  const handleDepartAirport = () => {
-    // Simuler l'étape aéroport sans changer le statut
-    // Si l'API supporte une action 'airport', on pourrait l'appeler ici
+  const handleCloseBag = async () => {
+    const confirmed = await confirmDeleteAlert({
+      message: 'Voulez-vous vraiment fermer ce sac ? Cette action est définitive.',
+      confirmButtonText: 'Fermer',
+    })
+    if (!confirmed) return
+    closeBag.mutate()
+  }
+
+  const handleDepartAirport = async () => {
     setAirportDone(true)
-    setToasted('Étape "Parti aéroport" enregistrée.')
-    setTimeout(() => setToasted(''), 3000)
-    // On invalide la query pour rafraîchir les données (si l'API a modifié quelque chose)
+    await showSuccessAlert({ text: 'Étape "Parti aéroport" enregistrée.' })
     queryClient.invalidateQueries({ queryKey: ['bag', id] })
   }
 
@@ -95,13 +133,6 @@ export default function BagDetailPage() {
               className="text-violet-600 font-bold">{bag?.qrcode}</span>
       </div>
 
-      {toasted && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700
-                        text-sm px-4 py-3 rounded-xl animate-fadeIn">
-          ✅ {toasted}
-        </div>
-      )}
-
       {/* Header sac */}
       <Card>
         <div className="p-5">
@@ -114,7 +145,7 @@ export default function BagDetailPage() {
                 {bag?.weight ? ` · ${bag.weight} kg` : ''}
               </p>
             </div>
-            <StatusBadge status={bag?.status} size="md" />
+            <StatusBadge status={bag?.status} size="md" updatedAt={bag?.updatedAt} />
           </div>
 
           {/* Stats */}
@@ -138,7 +169,7 @@ export default function BagDetailPage() {
           {/* Actions */}
           <div className="grid grid-cols-1 gap-3 mt-5">
             {canClose && (
-              <button onClick={() => closeBag.mutate()} disabled={closeBag.isPending || updateBagStatus.isPending}
+              <button onClick={handleCloseBag} disabled={closeBag.isPending || updateBagStatus.isPending}
                       className="w-full bg-[#0A1628] hover:bg-slate-800
                                  disabled:opacity-60 text-white font-semibold
                                  py-2.5 rounded-xl text-sm transition-colors
@@ -268,7 +299,7 @@ export default function BagDetailPage() {
       </div>
 
       {/* Liste colis */}
-      <Card className='mb-10 md:mb-0 lg:mb-0'>
+      <Card className='mb-10 md:mb-20 lg:mb-0'>
         <div className="flex items-center justify-between px-5 py-4
                         border-b border-slate-100">
           <h2 style={{ fontFamily: 'var(--font-display)' }}
@@ -286,7 +317,7 @@ export default function BagDetailPage() {
               <div className="flex items-center justify-between gap-2 mb-1">
                 <p style={{ fontFamily: 'var(--font-display)' }}
                    className="text-sm font-bold text-violet-600">{p.qrcode}</p>
-                <StatusBadge status={p.status} />
+                <StatusBadge status={p.status} updatedAt={p.updatedAt} />
               </div>
               <p className="text-xs text-slate-500">{p.sender?.name} → {p.recipientName}. <span className='text-black'>{p.weight ? `${p.weight} kg` : ''}</span></p>
             </div>
@@ -318,7 +349,7 @@ export default function BagDetailPage() {
                   <td className="px-5 py-3.5 text-slate-400 text-xs">
                     {p.weight ? `${p.weight} kg` : '—'}
                   </td>
-                  <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
+                  <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
                 </tr>
               ))}
             </tbody>

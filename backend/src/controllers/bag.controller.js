@@ -29,16 +29,30 @@ const getAll = async (req, res, next) => {
 
     const bags = await Bag.findAll({
       where,
-      include: [{
-        association: 'shipment',
-        include: [
-          { association: 'originAgency',      attributes: ['id','name','city'] },
-          { association: 'destinationAgency', attributes: ['id','name','city'] },
-        ],
-      }],
+      include: [
+        {
+          association: 'shipment',
+          include: [
+            { association: 'originAgency',      attributes: ['id','name','city'] },
+            { association: 'destinationAgency', attributes: ['id','name','city'] },
+          ],
+        },
+        {
+          association: 'parcels',
+          attributes: ['id'], // on charge uniquement l'id pour compter
+        },
+      ],
       order: [['createdAt', 'DESC']],
     })
-    res.json(bags)
+
+    // Ajoute manuellement _count.parcels pour que le front l'affiche
+    const result = bags.map(bag => {
+      const json = bag.toJSON()
+      json.countColis = { parcels: bag.parcels?.length ?? 0 }
+      return json
+    })
+
+    res.json(result)
   } catch (err) { next(err) }
 }
 

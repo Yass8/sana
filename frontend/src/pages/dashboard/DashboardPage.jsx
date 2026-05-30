@@ -114,7 +114,7 @@ export default function DashboardPage() {
                    className="text-sm font-bold text-violet-600">
                   {p.qrcode}
                 </p>
-                <StatusBadge status={p.status}/>
+                <StatusBadge status={p.status} updatedAt={p.updatedAt} />
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 {p.sender?.name} → {p.recipientName}
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-3.5 text-xs text-slate-400">
                     {p.bag?.shipment?.destinationAgency?.city ?? '—'}
                   </td>
-                  <td className="px-5 py-3.5"><StatusBadge status={p.status}/></td>
+                  <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
                 </tr>
               ))}
             </tbody>

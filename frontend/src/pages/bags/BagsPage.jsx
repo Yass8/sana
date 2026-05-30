@@ -7,6 +7,7 @@ import { shipmentsApi }  from '../../api/shipments.api'
 import StatusBadge       from '../../components/ui/StatusBadge'
 import Card              from '../../components/ui/Card'
 import Spinner           from '../../components/ui/Spinner'
+import Skeleton          from '../../components/ui/Skeleton'
 import { showSuccessAlert } from '../../components/ui/SweetsAlert'
 
 const FILTERS = [
@@ -44,7 +45,7 @@ export default function BagsPage() {
   const data = bags.data ?? []
 
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn">
+    <div className="flex flex-col gap-5 animate-fadeIn mb:2 md:mb-25 lg:mb-0">
 
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -64,7 +65,7 @@ export default function BagsPage() {
         {FILTERS.map(f => (
           <button key={f.value} onClick={() => setFilter(f.value)}
                   className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-xl
-                              border-2 transition-all flex-shrink-0 font-semibold ${
+                              border-2 transition-all shrink-0 font-semibold ${
                     filter === f.value
                       ? 'bg-[#0A1628] text-white border-[#0A1628]'
                       : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
@@ -75,7 +76,20 @@ export default function BagsPage() {
       </div>
 
       {bags.isLoading ? (
-        <div className="flex justify-center py-16"><Spinner/></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="p-5">
+              <div className="space-y-4">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-4/5" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : data.length === 0 ? (
         <p className="text-center text-sm text-slate-400 py-16">Aucun sac.</p>
       ) : (
@@ -86,7 +100,7 @@ export default function BagsPage() {
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <p style={{fontFamily:'var(--font-display)'}}
                      className="text-sm font-bold text-violet-600">{bag.qrcode}</p>
-                  <StatusBadge status={bag.status}/>
+                  <StatusBadge status={bag.status} updatedAt={bag.updatedAt} />
                 </div>
                 <p className="text-xs text-slate-500 mb-3">
                   {bag.shipment?.originAgency?.city} →{' '}
@@ -98,7 +112,7 @@ export default function BagsPage() {
                   <div>
                     <p style={{fontFamily:'var(--font-display)'}}
                        className="text-lg font-bold text-slate-900">
-                      {bag._count?.parcels ?? 0}
+                      {bag.countColis?.parcels ?? 0}
                     </p>
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide">colis</p>
                   </div>

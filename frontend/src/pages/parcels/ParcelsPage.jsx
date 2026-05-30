@@ -6,6 +6,7 @@ import { useParcels }    from '../../hooks/useParcels'
 import StatusBadge       from '../../components/ui/StatusBadge'
 import Card              from '../../components/ui/Card'
 import Spinner           from '../../components/ui/Spinner'
+import Skeleton          from '../../components/ui/Skeleton'
 
 const FILTERS = [
   { label: 'Tous',         value: '' },
@@ -18,6 +19,12 @@ const FILTERS = [
 ]
 
 const PAGE_SIZE = 15
+
+function SortIcon({ field, sortField, sortDir }) {
+  return sortField !== field
+    ? <span className="text-slate-300 ml-1">↕</span>
+    : <span className="text-violet-600 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+}
 
 export default function ParcelsPage() {
   const navigate    = useNavigate()
@@ -45,12 +52,8 @@ export default function ParcelsPage() {
     setPage(1)
   }
 
-  const SortIcon = ({ field }) => sort.field !== field
-    ? <span className="text-slate-300 ml-1">↕</span>
-    : <span className="text-violet-600 ml-1">{sort.dir === 'asc' ? '↑' : '↓'}</span>
-
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn">
+    <div className="flex flex-col gap-5 animate-fadeIn mb:2 md:mb-25 lg:mb-0">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
@@ -91,7 +94,7 @@ export default function ParcelsPage() {
         {FILTERS.map(f => (
           <button key={f.value} onClick={() => { setStatus(f.value); setPage(1) }}
                   className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-xl
-                              border-2 transition-all flex-shrink-0 font-semibold ${
+                              border-2 transition-all shrink-0 font-semibold ${
                     status === f.value
                       ? 'bg-[#0A1628] text-white border-[#0A1628]'
                       : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
@@ -103,7 +106,20 @@ export default function ParcelsPage() {
 
       {/* Contenu */}
       {parcels.isLoading ? (
-        <div className="flex justify-center py-16"><Spinner/></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="p-5">
+              <div className="space-y-4">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-4/5" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Card className='mb-10 md:mb-0 lg:mb-0'>
           <div className="flex items-center gap-3 px-4 md:px-5 py-3.5
@@ -129,13 +145,12 @@ export default function ParcelsPage() {
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p style={{fontFamily:'var(--font-display)'}}
                      className="text-sm font-bold text-violet-600">{p.qrcode}</p>
-                  <StatusBadge status={p.status}/>
+                  <StatusBadge status={p.status} updatedAt={p.updatedAt} />
                 </div>
                 <p className="text-xs text-slate-500">
                   {p.sender?.name} → {p.recipientName}
                 </p>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  {p.bag?.shipment?.destinationAgency?.city ?? '—'} ·{' '}
                   {new Date(p.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                 </p>
               </div>
@@ -151,18 +166,12 @@ export default function ParcelsPage() {
                       className="text-left text-[10px] font-semibold text-slate-400
                                  uppercase tracking-wide px-5 py-3 cursor-pointer
                                  hover:text-slate-600 select-none">
-                    Code <SortIcon field="qrcode"/>
+                    Code <SortIcon field="qrcode" sortField={sort.field} sortDir={sort.dir} />
                   </th>
                   {['Expéditeur','Destinataire','Destination','Sac'].map(h => (
                     <th key={h} className="text-left text-[10px] font-semibold text-slate-400
                                            uppercase tracking-wide px-5 py-3">{h}</th>
                   ))}
-                  <th onClick={() => handleSort('createdAt')}
-                      className="text-left text-[10px] font-semibold text-slate-400
-                                 uppercase tracking-wide px-5 py-3 cursor-pointer
-                                 hover:text-slate-600 select-none">
-                    Date <SortIcon field="createdAt"/>
-                  </th>
                   <th className="text-left text-[10px] font-semibold text-slate-400
                                  uppercase tracking-wide px-5 py-3">Statut</th>
                 </tr>
@@ -193,10 +202,7 @@ export default function ParcelsPage() {
                     <td className="px-5 py-3.5 font-mono text-xs text-slate-400">
                       {p.bag?.qrcode ?? '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-400">
-                      {new Date(p.createdAt).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}
-                    </td>
-                    <td className="px-5 py-3.5"><StatusBadge status={p.status}/></td>
+                    <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
                   </tr>
                 ))}
               </tbody>
