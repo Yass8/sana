@@ -9,7 +9,8 @@ import Spinner from '../../components/ui/Spinner'
 import Skeleton from '../../components/ui/Skeleton'
 import LabelPrinter from '../../components/ui/LabelPrinter'
 import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
-import { Download } from 'lucide-react'
+import { Copy, Download } from 'lucide-react'
+import DeleteButton from '../../components/ui/DeleteButton'
 
 export default function BagDetailPage() {
   const { id } = useParams()
@@ -279,6 +280,21 @@ export default function BagDetailPage() {
         </div>
       </Card>
 
+      
+      <div className="flex flex-wrap gap-4 bg-white border border-slate-100
+                      rounded-2xl px-5 py-3.5 shadow-sm">
+        <div className="mt-4 flex items-center gap-3">
+            <button onClick={() => navigate(`/bags/${id}/edit`)}
+                    className="text-xs bg-slate-50 border-2 border-slate-200
+                               hover:border-violet-500 hover:text-violet-600
+                               text-slate-500 px-3 py-1.5 rounded-xl
+                               transition-all font-semibold flex items-center gap-1">
+              <Copy size={14} /> Modifier
+            </button>
+            <DeleteButton type="bag" id={id} />
+
+          </div>
+      </div>
       {/* Bandeau envoi */}
       <div className="flex flex-wrap gap-4 bg-white border border-slate-100
                       rounded-2xl px-5 py-3.5 shadow-sm">

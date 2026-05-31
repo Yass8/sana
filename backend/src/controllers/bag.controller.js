@@ -410,4 +410,15 @@ const sendAlert = async (req, res, next) => {
   }
 }
 
-module.exports = { getAll, getById, create, close, updateStatus, sendAlert, trackByQRCode }
+const deleteBag = async (req, res, next) => {
+  try {
+    const bag = await Bag.findByPk(req.params.id)
+    if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
+    await bag.destroy()
+    res.json({ message: 'Sac supprimé avec succès.' })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { getAll, getById, create, close, updateStatus, sendAlert, trackByQRCode, deleteBag }

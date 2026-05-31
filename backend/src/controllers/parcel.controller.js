@@ -355,4 +355,18 @@ const getQRCode = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode }
+// ─── DELETE /api/parcels/:id ─────────────────────────
+const deleteParcel = async (req, res, next) => {
+  try {
+    const parcel = await Parcel.findByPk(req.params.id)
+    if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
+    if (parcel.status === PARCEL_STATUS.COLLECTED) {
+      return res.status(400).json({ message: 'Impossible de supprimer un colis déjà collecté.' })
+    }
+    
+    await parcel.destroy()
+    res.json({ message: 'Colis supprimé avec succès.' })
+  } catch (err) { next(err) }
+}
+
+module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel }

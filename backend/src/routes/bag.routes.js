@@ -14,5 +14,6 @@ router.post(  '/',           authenticate, frAndAdmin,     ctrl.create)
 router.patch( '/:id/close',  authenticate, frAndAdmin,     ctrl.close)
 router.patch( '/:id/status', authenticate, agentsAndAdmin, ctrl.updateStatus)
 router.post(  '/:id/alert',  authenticate, frAndAdmin,     ctrl.sendAlert)
+router.delete('/:id',        authenticate, frAndAdmin,     ctrl.deleteBag)
 
 module.exports = router

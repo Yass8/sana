@@ -11,7 +11,8 @@ import Skeleton               from '../../components/ui/Skeleton'
 import LabelPrinter           from '../../components/ui/LabelPrinter'
 import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 // Import des icônes Lucide
-import { ArrowLeft, Plus, ChevronUp, Copy, Download } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronUp, Copy, Download, Trash2 } from 'lucide-react'
+import DeleteButton from '../../components/ui/DeleteButton'
 
 const NEXT_STATUS = {
   agent_fr: { received: 'departed_agency', departed_agency: 'departed_airport' },
@@ -160,6 +161,18 @@ export default function ParcelDetailPage() {
               <p className="text-xs lg:text-sm text-slate-700 mt-0.5">{parcel.description}</p>
             </div>
           )}
+          {/* Bouton modifier et supprimer en sm */}
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={() => navigate(`/parcels/${id}/edit`)}
+                    className="text-xs bg-slate-50 border-2 border-slate-200
+                               hover:border-violet-500 hover:text-violet-600
+                               text-slate-500 px-3 py-1.5 rounded-xl
+                               transition-all font-semibold flex items-center gap-1">
+              <Copy size={14} /> Modifier
+            </button>
+            <DeleteButton type="parcel" id={id} />
+
+          </div>
         </div>
       </Card>
 

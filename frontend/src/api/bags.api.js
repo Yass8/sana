@@ -8,4 +8,5 @@ export const bagsApi = {
   close:       (id)   => api.patch(`/bags/${id}/close`),
   updateStatus:(id, action) => api.patch(`/bags/${id}/status`, { action }),
   sendAlert:   (id, data) => api.post(`/bags/${id}/alert`, data),
+  delete:      (id)   => api.delete(`/bags/${id}`),
 }
