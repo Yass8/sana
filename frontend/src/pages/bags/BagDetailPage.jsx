@@ -102,10 +102,10 @@ export default function BagDetailPage() {
   const status = bag?.status
 
   // Déterminer quels boutons afficher selon la logique séquentielle
-  const canClose = status === 'open'
-  const canMarkDepartAirport = (status === 'closed' || status === 'in_transit') && !airportDone
-  const canMarkArrived = status === 'in_transit' && airportDone
-  const canAlert = ['closed', 'in_transit', 'arrived'].includes(status)
+  const canClose = status === 'ouvert'
+  const canMarkDepartAirport = (status === 'fermé' || status === 'en_transit') && !airportDone
+  const canMarkArrived = status === 'en_transit' && airportDone
+  const canAlert = ['fermé', 'en_transit', 'arrivé'].includes(status)
 
   const handleCloseBag = async () => {
     const confirmed = await confirmDeleteAlert({

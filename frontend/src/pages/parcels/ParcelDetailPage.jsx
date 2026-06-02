@@ -11,48 +11,54 @@ import Skeleton               from '../../components/ui/Skeleton'
 import LabelPrinter           from '../../components/ui/LabelPrinter'
 import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 // Import des icônes Lucide
-import { ArrowLeft, Plus, ChevronUp, Copy, Download, Trash2 } from 'lucide-react'
+import { ArrowLeft, Copy, Download, AlertTriangle, ChevronUp, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
-
-const NEXT_STATUS = {
-  agent_fr: { received: 'departed_airport' },
-  agent_af: { departed_airport: 'arrived_destination', arrived_destination: 'collected' },
-  admin:    { received: 'departed_airport', departed_airport: 'arrived_destination', arrived_destination: 'collected' },
-}
-const NEXT_LABEL = {
-  departed_airport: 'Confirmer embarquement',
-  arrived_destination: 'Confirmer arrivée',
-  collected: 'Confirmer retrait',
-}
 
 export default function ParcelDetailPage() {
   const { id }       = useParams()
   const { user }     = useAuth()
   const navigate     = useNavigate()
   const updateStatus = useUpdateParcelStatus()
-  const [notes,      setNotes]     = useState('')
-  const [showNotes,  setShowNotes] = useState(false)
+  const [alertReason, setAlertReason] = useState('')
+  const [showAlert,  setShowAlert]    = useState(false)
 
   const { data: parcel, isLoading, isError } = useParcel(id)
-  const nextStatus = NEXT_STATUS[user?.role]?.[parcel?.status]
 
-  const handleUpdate = async () => {
-    if (!nextStatus) return
-
+  const handleReportIssue = async () => {
     const confirmed = await confirmActionAlert({
-      message: 'Voulez-vous vraiment appliquer cette étape au colis ?'
+      message: 'Voulez-vous marquer ce colis comme problématique ?',
+      confirmButtonText: 'Oui, signaler'
     })
     if (!confirmed) return
 
     try {
-      await updateStatus.mutateAsync({ id, status: nextStatus, notes: notes || undefined })
-      setNotes('')
-      setShowNotes(false)
-      await showSuccessAlert({ text: 'Statut du colis mis à jour avec succès.' })
+      await updateStatus.mutateAsync({ id, status: 'issue', notes: alertReason || undefined })
+      setAlertReason('')
+      setShowAlert(false)
+      await showSuccessAlert({ text: 'Colis marqué comme problématique.' })
     } catch (err) {
-      await showErrorAlert({ text: err?.message || 'Impossible de mettre à jour le statut.' })
+      await showErrorAlert({ text: err?.message || 'Impossible de signaler le problème.' })
     }
   }
+
+  const handleConfirmCollection = async () => {
+    const confirmed = await confirmActionAlert({
+      message: 'Voulez-vous confirmer le retrait de ce colis ?',
+      confirmButtonText: 'Oui, confirmer'
+    })
+    if (!confirmed) return
+
+    try {
+      await updateStatus.mutateAsync({ id, status: 'collected', notes: undefined })
+      await showSuccessAlert({ text: 'Retrait confirmé avec succès.' })
+    } catch (err) {
+      await showErrorAlert({ text: err?.message || 'Impossible de confirmer le retrait.' })
+    }
+  }
+
+  const canConfirmCollection = parcel?.status === 'arrived_destination' && 
+                               (user?.role === 'agent_af' || user?.role === 'admin')
+
 
   if (isLoading) return (
     <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
@@ -192,33 +198,100 @@ export default function ParcelDetailPage() {
 
         <div className="flex flex-col gap-4">
 
-          {/* Action */}
-          {nextStatus && (
+          {/* Info importante */}
+          <Card>
+            <div className="p-5 bg-blue-50 border border-blue-100 rounded-xl">
+              <p className="text-xs text-blue-700 font-semibold">
+                💡 Les transitions de statut se font via le sac (page Sacs)
+              </p>
+              <p className="text-[11px] text-blue-600 mt-1">
+                Tous les colis d'un même sac avancent ensemble. Vous pouvez uniquement confirmer le retrait ou signaler un problème sur ce colis.
+              </p>
+            </div>
+          </Card>
+
+          {/* Confirmer retrait */}
+          {canConfirmCollection && (
             <Card>
               <div className="p-5">
                 <h2 style={{fontFamily:'var(--font-display)'}}
-                    className="font-bold text-slate-900 mb-4">Prochaine étape</h2>
-                <button onClick={handleUpdate} disabled={updateStatus.isPending}
-                        className="w-full bg-violet-600 hover:bg-violet-700
+                    className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  📦 Confirmer le retrait
+                </h2>
+                <button onClick={handleConfirmCollection} disabled={updateStatus.isPending}
+                        className="w-full bg-green-500 hover:bg-green-600
                                    disabled:opacity-60 text-white font-semibold
-                                   py-3 rounded-xl text-sm transition-colors
-                                   flex items-center justify-center gap-2 mb-3">
+                                   py-2.5 rounded-xl text-sm transition-colors
+                                   flex items-center justify-center gap-2">
+                  {updateStatus.isPending
+                    ? <><Spinner size="sm" color="white"/> Confirmation…</>
+                    : <>
+                        ✓ Confirmer le retrait du colis
+                      </>
+                  }
+                </button>
+              </div>
+            </Card>
+          )}
+
+          {/* Signaler un problème */}
+          {parcel.status !== 'issue' && (
+            <Card>
+              <div className="p-5">
+                <h2 style={{fontFamily:'var(--font-display)'}}
+                    className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-red-500" />
+                  Signaler un problème
+                </h2>
+                <button onClick={() => setShowAlert(v => !v)}
+                        className="w-full bg-red-500 hover:bg-red-600
+                                   disabled:opacity-60 text-white font-semibold
+                                   py-2.5 rounded-xl text-sm transition-colors
+                                   flex items-center justify-center gap-2 mb-3"
+                        disabled={updateStatus.isPending}>
                   {updateStatus.isPending
                     ? <><Spinner size="sm" color="white"/> Mise à jour…</>
-                    : NEXT_LABEL[nextStatus]}
+                    : <>
+                        <AlertTriangle size={16} />
+                        Marquer comme problématique
+                      </>
+                  }
                 </button>
-                <button onClick={() => setShowNotes(v => !v)}
-                        className="text-xs text-slate-400 hover:text-slate-600
-                                   transition-colors w-full text-center flex items-center justify-center gap-1">
-                  {showNotes ? <><ChevronUp size={14}/> Masquer les notes</> : <><Plus size={14}/> Ajouter une note</>}
-                </button>
-                {showNotes && (
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                            placeholder="Notes pour cette étape…" rows={2}
-                            className="mt-3 w-full px-3 py-2.5 border-2 border-slate-200
-                                       rounded-xl text-sm outline-none resize-none
-                                       focus:border-violet-500 transition-all"/>
+                {showAlert && (
+                  <div className="mt-3 space-y-2 animate-fadeIn">
+                    <textarea value={alertReason} onChange={e => setAlertReason(e.target.value)}
+                              placeholder="Décrivez le problème (endommagé, adresse incorrecte, etc.)…" rows={2}
+                              className="w-full px-3 py-2.5 border-2 border-red-200
+                                         rounded-xl text-sm outline-none resize-none
+                                         bg-white focus:border-red-400 transition-all"/>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowAlert(false)}
+                              className="flex-1 border-2 border-slate-200 text-slate-500
+                                         py-2 rounded-xl text-xs font-semibold transition-colors">
+                        Annuler
+                      </button>
+                      <button onClick={handleReportIssue}
+                              disabled={updateStatus.isPending}
+                              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50
+                                         text-white font-semibold py-2 rounded-xl text-xs transition-colors">
+                        Confirmer
+                      </button>
+                    </div>
+                  </div>
                 )}
+              </div>
+            </Card>
+          )}
+
+          {parcel.status === 'issue' && (
+            <Card>
+              <div className="p-5 bg-red-50 border border-red-100 rounded-xl">
+                <p className="text-xs text-red-700 font-semibold flex items-center gap-2">
+                  <AlertTriangle size={14} /> Problème signalé
+                </p>
+                <p className="text-[11px] text-red-600 mt-1">
+                  Ce colis est marqué comme problématique et ne suivra pas le flux normal.
+                </p>
               </div>
             </Card>
           )}

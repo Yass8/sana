@@ -4,7 +4,7 @@ const { Parcel, Bag, TrackingEvent,
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
         canTransition } = require('../constants')
-const { generateQRCode } = require('../services/qrcode.service')
+const { generateQRCode, deleteQRCode } = require('../services/qrcode.service')
 const { Op } = require('sequelize')
 const { generateCode } = require('../services/codeGenerator.service')
 const { sendStatusEmail } = require('../services/email.service');
@@ -245,26 +245,28 @@ const create = async (req, res, next) => {
 // ─── PATCH /api/parcels/:id/status ────────────────────
 const updateStatus = async (req, res, next) => {
   try {
-    const { notes, location } = req.body
+    const { status, notes, location } = req.body
 
-    // Récupérer le colis avec son sac et les agences
     const parcel = await Parcel.findByPk(req.params.id, {
       include: [
         { association: 'sender', attributes: ['id','name','email','phone'] },
-        { association: 'bag', include: [
-            { association: 'originAgency', attributes: ['city', 'address', 'phone'] },
-            { association: 'destinationAgency', attributes: ['city', 'address', 'phone'] },
-          ]},
       ],
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
 
-    const nextStatus = canTransition(parcel.status, req.user.role)
-    if (!nextStatus) {
-      return res.status(400).json({
-        message: `Transition impossible : statut "${parcel.status}" avec rôle "${req.user.role}".`,
+    // Check if status transition is allowed on individual parcel
+    const isIssueReport = status === PARCEL_STATUS.ISSUE
+    const isCollectionConfirm = status === PARCEL_STATUS.COLLECTED && 
+                                parcel.status === PARCEL_STATUS.ARRIVED_DESTINATION &&
+                                (req.user.role === ROLES.AGENT_AF || req.user.role === ROLES.ADMIN)
+    
+    if (!isIssueReport && !isCollectionConfirm) {
+      return res.status(403).json({
+        message: 'Les transitions de statut individuelles ne sont pas autorisées. Modifiez le statut via le sac (page Sacs).',
       })
     }
+
+    const nextStatus = status === PARCEL_STATUS.ISSUE ? PARCEL_STATUS.ISSUE : PARCEL_STATUS.COLLECTED
 
     await sequelize.transaction(async (t) => {
       await parcel.update({ status: nextStatus }, { transaction: t })
@@ -311,9 +313,6 @@ const updateStatus = async (req, res, next) => {
         senderName: parcel.sender.name,
         notes: notes || '',
         date: new Date(),
-        origin: parcel.bag?.originAgency ? { city: parcel.bag.originAgency.city, adresse: parcel.bag.originAgency.address, phone: parcel.bag.originAgency.phone } : null,
-        destination: parcel.bag?.destinationAgency ? { city: parcel.bag.destinationAgency.city, adresse: parcel.bag.destinationAgency.address, phone: parcel.bag.destinationAgency.phone } : null,
-        colis: { weight: parcel.weight, description: parcel.description }
       })
       await Notification.update(
         { status: NOTIF_STATUS.SENT, sentAt: new Date() },
@@ -332,7 +331,7 @@ const updateStatus = async (req, res, next) => {
         await sendStatusEmail({
           to: parcel.recipientEmail,
           parcelCode: parcel.qrcode,
-          status: nextStatus,
+          status: PARCEL_STATUS.ISSUE,
           recipientName: parcel.recipientName,
           senderName: parcel.sender.name,
           notes: notes || '',
@@ -350,7 +349,7 @@ const updateStatus = async (req, res, next) => {
       }
     }
 
-    res.json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
+    res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
   } catch (err) {
     next(err)
   }
@@ -385,6 +384,8 @@ const deleteParcel = async (req, res, next) => {
     }
     
     await parcel.destroy()
+    await deleteQRCode(parcel.qrcode)
+
     res.json({ message: 'Colis supprimé avec succès.' })
   } catch (err) { next(err) }
 }

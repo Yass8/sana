@@ -1,9 +1,9 @@
 // src/controllers/bag.controller.js
-const { Bag, Parcel, Agency, TrackingEvent, Notification, User } = require('../models')
+const { Bag, Parcel, Agency, TrackingEvent, Notification, User, sequelize } = require('../models')
 const { BAG_STATUS, PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS } = require('../constants')
 const { generateCode } = require('../services/codeGenerator.service')
-const { generateQRCode } = require('../services/qrcode.service')
+const { generateQRCode, deleteQRCode } = require('../services/qrcode.service')
 const { sendStatusEmail, sendBulkAlertEmail } = require('../services/email.service')
 
 const INCLUDE_FULL = [
@@ -406,9 +406,23 @@ const sendAlert = async (req, res, next) => {
 
 const deleteBag = async (req, res, next) => {
   try {
-    const bag = await Bag.findByPk(req.params.id)
+    const bag = await Bag.findByPk(req.params.id, {
+      include: [{ association: 'parcels', attributes: ['qrcode'] }],
+    })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
-    await bag.destroy()
+
+    const parcelQrcodes = bag.parcels?.map(p => p.qrcode) ?? []
+
+    await sequelize.transaction(async (t) => {
+      await Parcel.destroy({ where: { bagId: bag.id }, transaction: t })
+      await bag.destroy({ transaction: t })
+    })
+
+    await deleteQRCode(bag.qrcode)
+    if (parcelQrcodes.length > 0) {
+      await Promise.all(parcelQrcodes.map(code => deleteQRCode(code)))
+    }
+
     res.json({ message: 'Sac supprimé avec succès.' })
   } catch (err) {
     next(err)
