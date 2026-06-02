@@ -18,8 +18,6 @@ const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
  */
 async function sendStatusEmail(params) {
   
-  console.log('📧 sendStatusEmail - destination reçue:', params.destination);
-
   const trackingUrl = `${APP_URL}/track/${params.parcelCode}`;
   const config = STATUS_CONFIG[params.status] || STATUS_CONFIG.received;
   

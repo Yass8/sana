@@ -1,5 +1,5 @@
 // src/pages/bags/BagDetailPage.jsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bagsApi } from '../../api/bags.api'
@@ -18,11 +18,6 @@ export default function BagDetailPage() {
   const queryClient = useQueryClient()
   const [alertMsg, setAlertMsg] = useState('')
   const [showAlert, setShowAlert] = useState(false)
-  const [airportDone, setAirportDone] = useState(() => {
-    // récupérer l'état depuis localStorage (clé unique par sac)
-    const saved = localStorage.getItem(`bag_airport_${id}`)
-    return saved === 'true'
-  })
 
   const { data: bag, isLoading } = useQuery({
     queryKey: ['bag', id],
@@ -30,10 +25,6 @@ export default function BagDetailPage() {
   })
 
   // Mettre à jour localStorage quand airportDone change
-  useEffect(() => {
-    localStorage.setItem(`bag_airport_${id}`, airportDone)
-  }, [id, airportDone])
-
   const closeBag = useMutation({
     mutationFn: () => bagsApi.close(id),
     onSuccess: async () => {
@@ -103,8 +94,8 @@ export default function BagDetailPage() {
 
   // Déterminer quels boutons afficher selon la logique séquentielle
   const canClose = status === 'ouvert'
-  const canMarkDepartAirport = (status === 'fermé' || status === 'en_transit') && !airportDone
-  const canMarkArrived = status === 'en_transit' && airportDone
+  const canMarkDepartAirport = status === 'fermé'
+  const canMarkArrived = status === 'en_transit'
   const canAlert = ['fermé', 'en_transit', 'arrivé'].includes(status)
 
   const handleCloseBag = async () => {
@@ -117,9 +108,7 @@ export default function BagDetailPage() {
   }
 
   const handleDepartAirport = async () => {
-    setAirportDone(true)
-    await showSuccessAlert({ text: 'Étape "Parti aéroport" enregistrée.' })
-    queryClient.invalidateQueries({ queryKey: ['bag', id] })
+    updateBagStatus.mutate({ action: 'airport' })
   }
 
   return (
@@ -149,10 +138,9 @@ export default function BagDetailPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-2 gap-3 mb-5">
             {[
               { num: parcels.length, label: 'Colis' },
-              { num: bag?.reference, label: 'Référence' },
               {
                 num: new Date(bag?.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
                 label: 'Créé le'
@@ -183,7 +171,7 @@ export default function BagDetailPage() {
                       className="w-full bg-[#7C3AED] hover:bg-[#5B21B6]
                                  disabled:opacity-60 text-white font-semibold
                                  py-2.5 rounded-xl text-sm transition-colors">
-                Parti aéroport
+                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Parti aéroport'}
               </button>
             )}
             {canMarkArrived && (
@@ -192,7 +180,7 @@ export default function BagDetailPage() {
                       className="w-full bg-[#34D399] hover:bg-[#059669]
                                  disabled:opacity-60 text-white font-semibold
                                  py-2.5 rounded-xl text-sm transition-colors">
-                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Arrivé destination'}
+                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Confirmé arrivé'}
               </button>
             )}
             {canAlert && (
@@ -284,24 +272,6 @@ export default function BagDetailPage() {
             <DeleteButton type="bag" id={id} />
 
           </div>
-      </div>
-      {/* Bandeau envoi */}
-      <div className="flex flex-wrap gap-4 bg-white border border-slate-100
-                      rounded-2xl px-5 py-3.5 shadow-sm">
-        {[
-          { label: 'Référence', value: bag?.reference },
-          { label: 'Destination', value: bag?.destinationAgency?.city },
-          {
-            label: 'Départ', value: bag?.departureDate
-              ? new Date(bag.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-              : '—'
-          },
-        ].map(({ label, value }) => (
-          <div key={label}>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
-            <p className="text-sm font-semibold text-slate-800 mt-0.5">{value ?? '—'}</p>
-          </div>
-        ))}
       </div>
 
       {/* Liste colis */}

@@ -3,7 +3,7 @@ const { Parcel, Bag, TrackingEvent,
         Notification, User, sequelize } = require('../models')
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
-        canTransition } = require('../constants')
+        ROLES, canTransition } = require('../constants')
 const { generateQRCode, deleteQRCode } = require('../services/qrcode.service')
 const { Op } = require('sequelize')
 const { generateCode } = require('../services/codeGenerator.service')

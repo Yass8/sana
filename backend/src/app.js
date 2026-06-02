@@ -18,7 +18,6 @@ app.use('/qrcodes', express.static(
 app.use('/api/auth',          require('./routes/auth.routes'))
 app.use('/api/users',         require('./routes/user.routes'))
 app.use('/api/agencies',      require('./routes/agency.routes'))
-// app.use('/api/shipments',     require('./routes/shipment.routes'))
 app.use('/api/bags',          require('./routes/bag.routes'))
 app.use('/api/parcels',       require('./routes/parcel.routes'))
 app.use('/api/dashboard',     require('./routes/dashboard.routes'))

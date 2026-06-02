@@ -120,36 +120,43 @@ const updateStatus = async (req, res, next) => {
     const { action } = req.body
     const bag = await Bag.findByPk(req.params.id, {
       include: [
-        { association: 'destinationAgency' },
+        { association: 'originAgency', attributes: ['name','city','address','phone'] },
+        { association: 'destinationAgency',  attributes: ['name','city','address','phone']},
         { association: 'parcels', include: [{ association: 'sender' }] }],
     })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
 
     const actionToBagStatus = {
-      agency: BAG_STATUS.IN_TRANSIT,
       airport: BAG_STATUS.IN_TRANSIT,
       destination: BAG_STATUS.ARRIVED,
       issue: BAG_STATUS.ISSUE,
     }
 
     const actionToParcelStatus = {
-      agency: PARCEL_STATUS.DEPARTED_AIRPORT,
       airport: PARCEL_STATUS.DEPARTED_AIRPORT,
       destination: PARCEL_STATUS.ARRIVED_DESTINATION,
       issue: PARCEL_STATUS.ISSUE,
     }
 
     if (!action || !actionToBagStatus[action]) {
-      return res.status(400).json({ message: 'Action invalide (agency|airport|destination|issue).' })
+      return res.status(400).json({ message: 'Action invalide (airport|destination|issue).' })
+    }
+
+    if (action === 'airport' && bag.status !== BAG_STATUS.CLOSED) {
+      return res.status(400).json({ message: 'Le sac doit être fermé avant de partir à l\'aéroport.' })
+    }
+
+    if (action === 'destination' && bag.status !== BAG_STATUS.IN_TRANSIT) {
+      return res.status(400).json({ message: 'Le sac doit être en transit avant de confirmer l\'arrivée.' })
     }
 
     const targetBagStatus = actionToBagStatus[action]
     const targetParcelStatus = actionToParcelStatus[action]
 
     const updatableParcelStatus = {
-      [PARCEL_STATUS.DEPARTED_AIRPORT]:     [PARCEL_STATUS.RECEIVED],
-      [PARCEL_STATUS.ARRIVED_DESTINATION]:  [PARCEL_STATUS.RECEIVED, PARCEL_STATUS.DEPARTED_AIRPORT],
-      [PARCEL_STATUS.ISSUE]:                [PARCEL_STATUS.RECEIVED, PARCEL_STATUS.DEPARTED_AIRPORT, PARCEL_STATUS.ARRIVED_DESTINATION],
+      [PARCEL_STATUS.DEPARTED_AIRPORT]:    [PARCEL_STATUS.RECEIVED],
+      [PARCEL_STATUS.ARRIVED_DESTINATION]: [PARCEL_STATUS.RECEIVED, PARCEL_STATUS.DEPARTED_AIRPORT],
+      [PARCEL_STATUS.ISSUE]:               [PARCEL_STATUS.RECEIVED, PARCEL_STATUS.DEPARTED_AIRPORT, PARCEL_STATUS.ARRIVED_DESTINATION],
     }[targetParcelStatus] || []
 
     const eligibleParcels = bag.parcels.filter((p) => updatableParcelStatus.includes(p.status))
@@ -211,12 +218,12 @@ const updateStatus = async (req, res, next) => {
             status: targetParcelStatus,
             recipientName: parcel.recipientName,
             senderName: parcel.sender.name,
-            destination: destinationName,
             notes: `Mise à jour via sac (${action}).`,
             date: new Date(),
+            origin: bag.originAgency ? { city: bag.originAgency.city, address: bag.originAgency.address, phone: bag.originAgency.phone } : null,
+            destination: bag.destinationAgency ? { city: bag.destinationAgency.city, address: bag.destinationAgency.address, phone: bag.destinationAgency.phone } : null,
+            colis: { weight: parcel.weight, description: parcel.description }           
           })
-
-          console.log('destination : ',  destinationName);
           
           await Notification.update(
             { status: NOTIF_STATUS.SENT, sentAt: new Date() },
@@ -250,9 +257,11 @@ const updateStatus = async (req, res, next) => {
             status: targetParcelStatus,
             recipientName: parcel.recipientName,
             senderName: parcel.sender?.name || 'Expéditeur',
-            destination: destinationName,
             notes: `Mise à jour via sac (${action}).`,
             date: new Date(),
+            origin: bag.originAgency ? { city: bag.originAgency.city, address: bag.originAgency.address, phone: bag.originAgency.phone } : null,
+            destination: bag.destinationAgency ? { city: bag.destinationAgency.city, address: bag.destinationAgency.address, phone: bag.destinationAgency.phone } : null,
+            colis: { weight: parcel.weight, description: parcel.description },
           })
           await Notification.update(
             { status: NOTIF_STATUS.SENT, sentAt: new Date() },

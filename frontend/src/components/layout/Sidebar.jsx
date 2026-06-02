@@ -7,17 +7,16 @@ import {
   ScanLine, 
   Package, 
   ShoppingBag, 
-  Plane, 
   Users, 
   Bell,
   LogOut 
 } from 'lucide-react'
 
 const NAV = [
-  { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin','client'] },
+  { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin'] },
   { to: '/scan',          label: 'Scanner',       icon: ScanLine,        roles: ['agent_fr','agent_af','admin'] },
-  { to: '/parcels',       label: 'Colis',         icon: Package,         roles: ['agent_fr','agent_af','admin','client'] },
-  { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','admin'] },
+  { to: '/parcels',       label: 'Colis',         icon: Package,         roles: ['agent_fr','agent_af','admin'] },
+  { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','agent_af','admin'] },
   { to: '/clients',       label: 'Clients',       icon: Users,           roles: ['admin'] },
   { to: '/users',       label: 'Utilisateurs',    icon: Users,           roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,            roles: ['admin'] },

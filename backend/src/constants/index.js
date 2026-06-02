@@ -22,13 +22,6 @@ const BAG_STATUS = {
   ISSUE:      'problème',
 }
 
-// const SHIPMENT_STATUS = {
-//   PREPARING:  'preparing',
-//   IN_TRANSIT: 'in_transit',
-//   ARRIVED:    'arrived',
-//   ISSUE:      'issue',
-// }
-
 const NOTIF_CHANNEL = { EMAIL: 'email', SMS: 'sms' }
 const NOTIF_TYPE    = { STATUS_UPDATE: 'status_update', ISSUE: 'issue', BULK_ALERT: 'bulk_alert' }
 const NOTIF_STATUS  = { PENDING: 'pending', SENT: 'sent', FAILED: 'failed' }
@@ -57,7 +50,6 @@ module.exports = {
   ROLES,
   PARCEL_STATUS,
   BAG_STATUS,
-  // SHIPMENT_STATUS,
   NOTIF_CHANNEL,
   NOTIF_TYPE,
   NOTIF_STATUS,

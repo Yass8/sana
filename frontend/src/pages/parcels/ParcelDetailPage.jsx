@@ -216,10 +216,10 @@ export default function ParcelDetailPage() {
               <div className="p-5">
                 <h2 style={{fontFamily:'var(--font-display)'}}
                     className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  📦 Confirmer le retrait
+                  Confirmer le retrait
                 </h2>
                 <button onClick={handleConfirmCollection} disabled={updateStatus.isPending}
-                        className="w-full bg-green-500 hover:bg-green-600
+                        className="w-full bg-green-600 hover:bg-green-500
                                    disabled:opacity-60 text-white font-semibold
                                    py-2.5 rounded-xl text-sm transition-colors
                                    flex items-center justify-center gap-2">

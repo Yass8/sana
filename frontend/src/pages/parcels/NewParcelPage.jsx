@@ -165,7 +165,6 @@ export default function NewParcelPage() {
       description: form.description || null,
       weight: form.weight ? parseFloat(form.weight) : null,
     }
-    console.log('Payload envoyé à l’API :', payload)
     createParcel.mutate(payload)
   }
 
