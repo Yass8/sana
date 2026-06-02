@@ -81,8 +81,8 @@ export default function NewParcelPage() {
   }, [searchResult, searchingClient, searchError, debouncedEmail])
 
   const { data: bags = [] } = useQuery({
-    queryKey: ['bags', { status: 'open' }],
-    queryFn: () => bagsApi.getAll({ status: 'open' }),
+    queryKey: ['bags', { status: 'ouvert' }],
+    queryFn: () => bagsApi.getAll({ status: 'ouvert' }),
     select: (d) => Array.isArray(d) ? d : (d?.rows ?? []),
   })
 

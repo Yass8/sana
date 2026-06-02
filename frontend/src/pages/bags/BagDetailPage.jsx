@@ -103,8 +103,7 @@ export default function BagDetailPage() {
 
   // Déterminer quels boutons afficher selon la logique séquentielle
   const canClose = status === 'open'
-  const canMarkDepartAgency = status === 'closed'
-  const canMarkDepartAirport = status === 'in_transit' && !airportDone
+  const canMarkDepartAirport = (status === 'closed' || status === 'in_transit') && !airportDone
   const canMarkArrived = status === 'in_transit' && airportDone
   const canAlert = ['closed', 'in_transit', 'arrived'].includes(status)
 
@@ -176,15 +175,6 @@ export default function BagDetailPage() {
                                  py-2.5 rounded-xl text-sm transition-colors
                                  flex items-center justify-center gap-2">
                 {closeBag.isPending ? <><Spinner size="sm" color="white" /> Fermeture…</> : 'Fermer le sac'}
-              </button>
-            )}
-            {canMarkDepartAgency && (
-              <button onClick={() => updateBagStatus.mutate({ action: 'agency' })}
-                      disabled={updateBagStatus.isPending}
-                      className="w-full bg-[#7C3AED] hover:bg-[#5B21B6]
-                                 disabled:opacity-60 text-white font-semibold
-                                 py-2.5 rounded-xl text-sm transition-colors">
-                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Parti agence'}
               </button>
             )}
             {canMarkDepartAirport && (

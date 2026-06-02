@@ -75,7 +75,7 @@ async function seed() {
     bag = await Bag.create({
       qrcode,
       shipmentId: shipment.id,
-      status:     'open',
+      status:     'ouvert',
     })
   }
   console.log('✅ Sac créé :', bag.qrcode)

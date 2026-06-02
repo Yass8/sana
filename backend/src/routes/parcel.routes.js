@@ -18,5 +18,6 @@ router.get( '/:id',        authenticate, allAuth,     ctrl.getById)
 router.patch('/:id/status',authenticate, allAgents,   ctrl.updateStatus)
 router.get( '/:id/qrcode',authenticate, allAuth,     ctrl.getQRCode)
 router.delete('/:id',      authenticate, allAgents,  ctrl.deleteParcel)
+router.put('/:id',         authenticate, frAndAdmin, ctrl.update)
 
 module.exports = router

@@ -5,7 +5,6 @@ import { Building2, MapPinCheck, PackageCheck, PlaneTakeoff, Truck } from "lucid
 
 const STEPS = [
   { status: 'received',            label: 'Réceptionné',   icon: Building2 },
-  { status: 'departed_agency',     label: 'Parti agence',  icon: Truck },
   { status: 'departed_airport',    label: 'En vol',        icon: PlaneTakeoff  },
   { status: 'arrived_destination', label: 'Arrivé dest.',  icon: MapPinCheck },
   { status: 'collected',           label: 'Retiré',        icon: PackageCheck },

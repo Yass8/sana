@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const { enumType } = require('./utils');
 
 const STATUSES = [
-  'received', 'departed_agency', 'departed_airport',
+  'received', 'departed_airport',
   'arrived_destination', 'collected', 'issue',
 ];
 

@@ -15,13 +15,11 @@ import { ArrowLeft, Plus, ChevronUp, Copy, Download, Trash2 } from 'lucide-react
 import DeleteButton from '../../components/ui/DeleteButton'
 
 const NEXT_STATUS = {
-  agent_fr: { received: 'departed_agency', departed_agency: 'departed_airport' },
+  agent_fr: { received: 'departed_airport' },
   agent_af: { departed_airport: 'arrived_destination', arrived_destination: 'collected' },
-  admin:    { received: 'departed_agency', departed_agency: 'departed_airport',
-              departed_airport: 'arrived_destination', arrived_destination: 'collected' },
+  admin:    { received: 'departed_airport', departed_airport: 'arrived_destination', arrived_destination: 'collected' },
 }
 const NEXT_LABEL = {
-  departed_agency: 'Confirmer départ agence',
   departed_airport: 'Confirmer embarquement',
   arrived_destination: 'Confirmer arrivée',
   collected: 'Confirmer retrait',

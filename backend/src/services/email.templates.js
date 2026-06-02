@@ -9,11 +9,6 @@ const STATUS_CONFIG = {
     color: '#7C3AED',
     icon: 'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/package.svg'
   },
-  departed_agency: {
-    label: "Votre colis a quitté l'agence",
-    color: '#D97706',
-    icon: 'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/building-2.svg'
-  },
   departed_airport: {
     label: 'Votre colis est en vol',
     color: '#7C3AED',

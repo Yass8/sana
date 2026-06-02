@@ -4,17 +4,13 @@ export const STATUS_CONFIG = {
     label: 'Réceptionné',
     bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', step: 0,
   },
-  departed_agency: {
-    label: 'Parti agence',
-    bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', step: 1,
-  },
   departed_airport: {
     label: 'En vol',
-    bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500', step: 2,
+    bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500', step: 1,
   },
   arrived_destination: {
     label: 'Arrivé destination',
-    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', step: 3,
+    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', step: 2,
   },
   collected: {
     label: 'Retiré',

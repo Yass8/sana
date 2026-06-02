@@ -6,7 +6,6 @@ const { sendStatusEmail, sendBulkAlertEmail } = require('../services/email.servi
 // Liste des statuts à tester
 const STATUSES_TO_TEST = [
   'received',
-  'departed_agency',
   'departed_airport',
   'arrived_destination',
   'collected',

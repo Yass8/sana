@@ -11,7 +11,6 @@ import Skeleton          from '../../components/ui/Skeleton'
 const FILTERS = [
   { label: 'Tous',         value: '' },
   { label: 'Réceptionné',  value: 'received' },
-  { label: 'Parti agence', value: 'departed_agency' },
   { label: 'En vol',       value: 'departed_airport' },
   { label: 'Arrivé',       value: 'arrived_destination' },
   { label: 'Retiré',       value: 'collected' },

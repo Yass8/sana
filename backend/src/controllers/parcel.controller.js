@@ -98,7 +98,7 @@ const create = async (req, res, next) => {
 
     const bag = await Bag.findByPk(bagId)
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
-    if (bag.status !== 'open') {
+    if (bag.status !== 'ouvert') {
       return res.status(400).json({ message: 'Ce sac est fermé.' })
     }
 
@@ -367,4 +367,30 @@ const deleteParcel = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel }
+// ─── PUT /api/parcels/:id ─────────────────────────────
+const update = async (req, res, next) => {
+  try {
+    const { description, weight, recipientName, recipientEmail, recipientPhone } = req.body
+    
+    const parcel = await Parcel.findByPk(req.params.id)
+    if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
+    if (parcel.status === PARCEL_STATUS.COLLECTED) {
+      return res.status(400).json({ message: 'Impossible de modifier un colis déjà collecté.' })
+    }
+    
+    await parcel.update({
+      description,
+      weight,
+      recipientName,
+      recipientEmail,
+      recipientPhone
+    })
+
+    res.json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
+  } catch (err) {
+    next(err)
+  }
+}
+
+
+module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel, update }

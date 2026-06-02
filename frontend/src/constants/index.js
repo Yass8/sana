@@ -1,9 +1,8 @@
 export const PARCEL_STATUS = {
   received:            { label: 'Réceptionné',     color: 'blue',   step: 0 },
-  departed_agency:     { label: 'Parti agence',    color: 'amber',  step: 1 },
-  departed_airport:    { label: 'En vol',           color: 'violet', step: 2 },
-  arrived_destination: { label: 'Arrivé dest.',    color: 'teal',   step: 3 },
-  collected:           { label: 'Retiré',           color: 'green',  step: 4 },
+  departed_airport:    { label: 'En vol',           color: 'violet', step: 1 },
+  arrived_destination: { label: 'Arrivé dest.',    color: 'teal',   step: 2 },
+  collected:           { label: 'Retiré',           color: 'green',  step: 3 },
   issue:               { label: 'Problème',         color: 'red',    step: -1 },
 }
 
