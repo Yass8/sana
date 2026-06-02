@@ -22,8 +22,6 @@ module.exports = (sequelize) => {
 
   Agency.associate = (models) => {
     Agency.hasMany(models.User,     { foreignKey: 'agencyId',             as: 'users'             })
-    Agency.hasMany(models.Shipment, { foreignKey: 'originAgencyId',       as: 'outgoingShipments' })
-    Agency.hasMany(models.Shipment, { foreignKey: 'destinationAgencyId',  as: 'incomingShipments' })
   }
 
   return Agency

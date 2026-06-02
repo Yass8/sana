@@ -11,11 +11,10 @@ const { sendStatusEmail } = require('../services/email.service');
 
 const INCLUDE_FULL = [
   { association: 'sender',  attributes: ['id','name','email','phone'] },
-  { association: 'bag', include: [{
-      association: 'shipment', include: [
-        { association: 'destinationAgency', attributes: ['id','name','city','country'] },
-      ],
-  }]},
+  { association: 'bag', include: [
+      { association: 'originAgency', attributes: ['id','name','city','country'] },
+      { association: 'destinationAgency', attributes: ['id','name','city','country'] },
+    ]},
   { association: 'trackingEvents', include: [
       { association: 'agent', attributes: ['id','name'] },
     ],
@@ -48,11 +47,10 @@ const getAll = async (req, res, next) => {
       where,
       include: [
         { association: 'sender', attributes: ['id','name'] },
-        { association: 'bag', include: [{
-            association: 'shipment', include: [
-              { association: 'destinationAgency', attributes: ['id','name','city'] },
-            ],
-        }]},
+        { association: 'bag', include: [
+            { association: 'originAgency', attributes: ['id','name','city'] },
+            { association: 'destinationAgency', attributes: ['id','name','city'] },
+          ]},
       ],
       order,
       limit:    parseInt(limit),

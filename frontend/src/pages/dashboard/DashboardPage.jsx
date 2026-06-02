@@ -151,7 +151,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-3.5 text-slate-600">{p.sender?.name ?? '—'}</td>
                   <td className="px-5 py-3.5 text-slate-600">{p.recipientName}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-400">
-                    {p.bag?.shipment?.destinationAgency?.city ?? '—'}
+                    {p.bag?.destinationAgency?.city ?? '—'}
                   </td>
                   <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
                 </tr>

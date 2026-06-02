@@ -1,5 +1,5 @@
 // src/controllers/bag.controller.js
-const { Bag, Parcel, Shipment, TrackingEvent, Notification, User } = require('../models')
+const { Bag, Parcel, Agency, TrackingEvent, Notification, User } = require('../models')
 const { BAG_STATUS, PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS } = require('../constants')
 const { generateCode } = require('../services/codeGenerator.service')
@@ -8,11 +8,12 @@ const { sendStatusEmail, sendBulkAlertEmail } = require('../services/email.servi
 
 const INCLUDE_FULL = [
   {
-    association: 'shipment',
-    include: [
-      { association: 'originAgency',      attributes: ['id','name','city'] },
-      { association: 'destinationAgency', attributes: ['id','name','city'] },
-    ],
+    association: 'originAgency',
+    attributes: ['id','name','city'],
+  },
+  {
+    association: 'destinationAgency',
+    attributes: ['id','name','city'],
   },
   {
     association: 'parcels',
@@ -22,25 +23,16 @@ const INCLUDE_FULL = [
 
 const getAll = async (req, res, next) => {
   try {
-    const { status, shipmentId } = req.query
+    const { status } = req.query
     const where = {}
-    if (status)     where.status     = status
-    if (shipmentId) where.shipmentId = shipmentId
+    if (status) where.status = status
 
     const bags = await Bag.findAll({
       where,
       include: [
-        {
-          association: 'shipment',
-          include: [
-            { association: 'originAgency',      attributes: ['id','name','city'] },
-            { association: 'destinationAgency', attributes: ['id','name','city'] },
-          ],
-        },
-        {
-          association: 'parcels',
-          attributes: ['id'], // on charge uniquement l'id pour compter
-        },
+        { association: 'originAgency', attributes: ['id','name','city'] },
+        { association: 'destinationAgency', attributes: ['id','name','city'] },
+        { association: 'parcels', attributes: ['id'] },
       ],
       order: [['createdAt', 'DESC']],
     })
@@ -77,31 +69,39 @@ const trackByQRCode = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const { shipmentId } = req.body
-    if (!shipmentId) return res.status(400).json({ message: 'shipmentId requis.' })
+    const { originAgencyId, destinationAgencyId, departureDate, weight } = req.body;
+    if (!originAgencyId || !destinationAgencyId) {
+      return res.status(400).json({ message: 'originAgencyId et destinationAgencyId requis.' });
+    }
 
-    const shipment = await Shipment.findByPk(shipmentId)
-    if (!shipment) return res.status(404).json({ message: 'Envoi introuvable.' })
-    if (shipment.status !== 'preparing') {
-      return res.status(400).json({ message: 'L\'envoi n\'est plus en préparation.' })
+    const originAgency = await Agency.findByPk(originAgencyId);
+    const destinationAgency = await Agency.findByPk(destinationAgencyId);
+    if (!originAgency || !destinationAgency) {
+      return res.status(404).json({ message: 'Agence d\'origine ou de destination introuvable.' });
     }
 
     // Génération du code unique
-    const qrcode = await generateCode('bag')
+    const qrcode = await generateCode('bag');
 
-    // Création du sac
-    const bag = await Bag.create({ shipmentId, qrcode })
+    // Création du sac – plus besoin de référence
+    const bag = await Bag.create({
+      originAgencyId,
+      destinationAgencyId,
+      departureDate,
+      weight,
+      qrcode,
+    });
 
     // Génération du QR code (image)
-    const qrcodeUrl = await generateQRCode(bag.qrcode, 'bag')
-    await bag.update({ qrcodeUrl })
+    const qrcodeUrl = await generateQRCode(bag.qrcode, 'bag');
+    await bag.update({ qrcodeUrl });
 
-    const createdBag = await Bag.findByPk(bag.id, { include: INCLUDE_FULL })
-    res.status(201).json(createdBag)
+    const createdBag = await Bag.findByPk(bag.id, { include: INCLUDE_FULL });
+    res.status(201).json(createdBag);
   } catch (err) {
-    next(err)
+    next(err);
   }
-}
+};
 
 const close = async (req, res, next) => {
   try {
@@ -120,7 +120,7 @@ const updateStatus = async (req, res, next) => {
     const { action } = req.body
     const bag = await Bag.findByPk(req.params.id, {
       include: [
-        { association: 'shipment', include: [{ association: 'destinationAgency' } ]},
+        { association: 'destinationAgency' },
         { association: 'parcels', include: [{ association: 'sender' }] }],
     })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
@@ -156,7 +156,7 @@ const updateStatus = async (req, res, next) => {
     const eligibleParcels = bag.parcels.filter((p) => updatableParcelStatus.includes(p.status))
 
     // destination 
-    const destinationName = bag.shipment?.destinationAgency?.name || 'Destination inconnue'
+    const destinationName = bag.destinationAgency?.name || 'Destination inconnue'
 
     await Bag.sequelize.transaction(async (t) => {
       await bag.update({ status: targetBagStatus }, { transaction: t })
@@ -282,13 +282,8 @@ const updateStatus = async (req, res, next) => {
 
     const updatedBag = await Bag.findByPk(bag.id, {
       include: [
-        {
-          association: 'shipment',
-          include: [
-            { association: 'originAgency',      attributes: ['id','name','city'] },
-            { association: 'destinationAgency', attributes: ['id','name','city'] },
-          ],
-        },
+        { association: 'originAgency',      attributes: ['id','name','city'] },
+        { association: 'destinationAgency', attributes: ['id','name','city'] },
         { association: 'parcels', include: [{ association: 'sender', attributes: ['id','name','email','phone'] }] },
       ],
     })

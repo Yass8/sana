@@ -83,7 +83,7 @@ export default function PrintQRCodePage() {
           {parcel.qrcode}
         </p>
         <small className="text-xs text-slate-400 block mt-1">
-          {parcel.recipientName} — {parcel.bag?.shipment?.destinationAgency?.city}
+          {parcel.recipientName} — {parcel.bag?.destinationAgency?.city}
         </small>
       </div>
 

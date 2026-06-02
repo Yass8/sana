@@ -75,7 +75,6 @@ module.exports = (sequelize) => {
     User.hasMany(models.Parcel,         { foreignKey: 'senderId',  as: 'parcels'           })
     User.hasMany(models.TrackingEvent,  { foreignKey: 'agentId',   as: 'trackingEvents'    })
     User.hasMany(models.Notification,   { foreignKey: 'userId',    as: 'notifications'     })
-    User.hasMany(models.Shipment,       { foreignKey: 'createdBy', as: 'createdShipments'  })
   }
 
   return User

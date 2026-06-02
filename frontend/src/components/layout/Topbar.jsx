@@ -2,12 +2,21 @@
 import { useState }      from 'react'
 import { useNavigate }   from 'react-router-dom'
 import { useAuth }       from '../../context/AuthContext'
-import { ScanLine } from 'lucide-react'
+import { ScanLine, User, Users, Bell, LogOut } from 'lucide-react'
+
+const MENU_ITEMS = [
+  { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin','client'] },
+  { to: '/users',         label: 'Utilisateurs',  icon: Users, roles: ['admin'] },
+  { to: '/clients',       label: 'Clients',       icon: Users, roles: ['admin'] },
+  { to: '/notifications', label: 'Notifications', icon: Bell,  roles: ['admin'] },
+]
 
 export default function Topbar() {
   const { user, logout } = useAuth()
   const navigate         = useNavigate()
   const [open, setOpen]  = useState(false)
+
+  const menuItems = MENU_ITEMS.filter(m => m.roles.includes(user?.role))
 
   return (
     <header className="bg-white border-b border-slate-100 px-4 md:px-6
@@ -49,9 +58,11 @@ export default function Topbar() {
           {open && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-              <div className="absolute right-0 top-full mt-2 w-52 bg-white
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white
                               border border-slate-100 rounded-2xl shadow-xl
                               z-20 overflow-hidden animate-fadeIn">
+                
+                {/* Header profil */}
                 <div className="px-4 py-3 border-b border-slate-100">
                   <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{user?.email}</p>
@@ -61,12 +72,32 @@ export default function Topbar() {
                     {user?.role}
                   </span>
                 </div>
+
+                {/* Liens de navigation */}
                 <div className="py-1">
+                  {menuItems.map(item => (
+                    <button
+                      key={item.to}
+                      onClick={() => { navigate(item.to); setOpen(false) }}
+                      className="w-full text-left px-4 py-2.5 text-sm
+                                 text-slate-600 hover:bg-violet-50 hover:text-violet-700
+                                 transition-colors flex items-center gap-2"
+                    >
+                      <item.icon size={16} strokeWidth={2} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Séparateur + déconnexion */}
+                <div className="border-t border-slate-100 py-1">
                   <button
                     onClick={() => { logout(); navigate('/login'); setOpen(false) }}
                     className="w-full text-left px-4 py-2.5 text-sm
-                               text-red-500 hover:bg-red-50 transition-colors"
+                               text-red-500 hover:bg-red-50 transition-colors
+                               flex items-center gap-2"
                   >
+                    <LogOut size={16} strokeWidth={2} />
                     Se déconnecter
                   </button>
                 </div>

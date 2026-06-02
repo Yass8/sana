@@ -3,7 +3,7 @@ import { useState }      from 'react'
 import { useNavigate }   from 'react-router-dom'
 import { useQuery }      from '@tanstack/react-query'
 import { useBags, useCreateBag } from '../../hooks/useBags'
-import { shipmentsApi }  from '../../api/shipments.api'
+import { agenciesApi }   from '../../api/agencies.api'
 import StatusBadge       from '../../components/ui/StatusBadge'
 import Card              from '../../components/ui/Card'
 import Spinner           from '../../components/ui/Spinner'
@@ -20,26 +20,40 @@ const FILTERS = [
 
 export default function BagsPage() {
   const navigate     = useNavigate()
-  const [filter,     setFilter]    = useState('')
-  const [showModal,  setShowModal] = useState(false)
-  const [shipmentId, setShipmentId] = useState('')
-  const [err,        setErr]       = useState('')
+  const [filter,             setFilter]           = useState('')
+  const [showModal,          setShowModal]        = useState(false)
+  const [originAgencyId,     setOriginAgencyId]   = useState('')
+  const [destinationAgencyId,setDestinationAgencyId] = useState('')
+  const [departureDate,      setDepartureDate]    = useState('')
+  const [err,                setErr]              = useState('')
 
   const bags      = useBags(filter ? { status: filter } : {})
   const createBag = useCreateBag()
 
-  const { data: shipments = [] } = useQuery({
-    queryKey: ['shipments', { status: 'preparing' }],
-    queryFn:  () => shipmentsApi.getAll({ status: 'preparing' }),
+  const { data: agencies = [] } = useQuery({
+    queryKey: ['agencies'],
+    queryFn:  () => agenciesApi.getAll(),
     select:   (d) => Array.isArray(d) ? d : (d?.rows ?? []),
     enabled:  showModal,
   })
 
   const handleCreate = async () => {
-    if (!shipmentId) { setErr('Sélectionner un envoi'); return }
-    await createBag.mutateAsync({ shipmentId })
+    if (!originAgencyId || !destinationAgencyId) {
+      setErr('Sélectionner origine et destination');
+      return
+    }
+
+    await createBag.mutateAsync({
+      originAgencyId,
+      destinationAgencyId,
+      departureDate: departureDate || undefined,
+    })
     await showSuccessAlert({ text: 'Sac ajouté.' })
-    setShowModal(false); setShipmentId(''); setErr('')
+    setShowModal(false)
+    setOriginAgencyId('')
+    setDestinationAgencyId('')
+    setDepartureDate('')
+    setErr('')
   }
 
   const data = bags.data ?? []
@@ -103,9 +117,9 @@ export default function BagsPage() {
                   <StatusBadge status={bag.status} updatedAt={bag.updatedAt} />
                 </div>
                 <p className="text-xs text-slate-500 mb-3">
-                  {bag.shipment?.originAgency?.city} →{' '}
+                  {bag.originAgency?.city} →{' '}
                   <span className="font-semibold text-slate-700">
-                    {bag.shipment?.destinationAgency?.city}
+                    {bag.destinationAgency?.city}
                   </span>
                 </p>
                 <div className="flex gap-4 border-t border-slate-100 pt-3">
@@ -147,23 +161,51 @@ export default function BagsPage() {
               <button onClick={() => setShowModal(false)}
                       className="text-slate-300 hover:text-slate-500 transition-colors text-lg">✕</button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500
-                                uppercase tracking-wide mb-1.5">
-                Envoi <span className="text-violet-600">*</span>
-              </label>
-              <select value={shipmentId} onChange={e => setShipmentId(e.target.value)}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
-                                  transition-all ${
-                        err ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
-                      }`}>
-                <option value="">— Sélectionner —</option>
-                {shipments.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.reference} · {s.destinationAgency?.city}
-                  </option>
-                ))}
-              </select>
+            <div className="grid gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500
+                                  uppercase tracking-wide mb-1.5">
+                  Origine <span className="text-violet-600">*</span>
+                </label>
+                <select value={originAgencyId} onChange={e => setOriginAgencyId(e.target.value)}
+                        className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
+                                    transition-all ${
+                          err ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
+                        }`}>
+                  <option value="">— Sélectionner —</option>
+                  {agencies.map(a => (
+                    <option key={a.id} value={a.id}>{a.city} · {a.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500
+                                  uppercase tracking-wide mb-1.5">
+                  Destination <span className="text-violet-600">*</span>
+                </label>
+                <select value={destinationAgencyId} onChange={e => setDestinationAgencyId(e.target.value)}
+                        className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
+                                    transition-all ${
+                          err ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
+                        }`}>
+                  <option value="">— Sélectionner —</option>
+                  {agencies.map(a => (
+                    <option key={a.id} value={a.id}>{a.city} · {a.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500
+                                  uppercase tracking-wide mb-1.5">
+                  Date de départ
+                </label>
+                <input type="date" value={departureDate} onChange={e => setDepartureDate(e.target.value)}
+                       className="w-full px-4 py-3 border-2 rounded-xl text-sm outline-none
+                                  border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all" />
+              </div>
+
               {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
             </div>
             <p className="text-xs text-slate-400 bg-slate-50 rounded-xl px-3 py-2.5">

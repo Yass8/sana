@@ -4,7 +4,6 @@ const sequelize = require('../config/database')
 const models = {
   Agency:        require('./Agency')(sequelize),
   User:          require('./User')(sequelize),
-  Shipment:      require('./Shipment')(sequelize),
   Bag:           require('./Bag')(sequelize),
   Parcel:        require('./Parcel')(sequelize),
   TrackingEvent: require('./TrackingEvent')(sequelize),

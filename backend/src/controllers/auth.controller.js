@@ -53,6 +53,8 @@ const register = async (req, res, next) => {
 // ─── POST /api/auth/login ─────────────────────────────
 const login = async (req, res, next) => {
   try {
+    console.log("looogin");
+    
     const { email, password } = req.body
 
     if (!email || !password) {

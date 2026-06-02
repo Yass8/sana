@@ -142,7 +142,7 @@ export default function BagDetailPage() {
               <h1 style={{ fontFamily: 'var(--font-display)' }}
                   className="text-2xl font-bold text-slate-900">{bag?.qrcode}</h1>
               <p className="text-xs text-slate-400 mt-1">
-                {bag?.shipment?.originAgency?.city} → {bag?.shipment?.destinationAgency?.city}
+                {bag?.originAgency?.city} → {bag?.destinationAgency?.city}
                 {bag?.weight ? ` · ${bag.weight} kg` : ''}
               </p>
             </div>
@@ -153,7 +153,7 @@ export default function BagDetailPage() {
           <div className="grid grid-cols-3 gap-3 mb-5">
             {[
               { num: parcels.length, label: 'Colis' },
-              { num: bag?.shipment?.reference, label: 'Envoi' },
+              { num: bag?.reference, label: 'Référence' },
               {
                 num: new Date(bag?.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
                 label: 'Créé le'
@@ -261,7 +261,7 @@ export default function BagDetailPage() {
                 code={bag.qrcode}
                 qrcodeUrl={bag.qrcodeUrl}
                 weight={bag.weight}
-                destination={bag.shipment?.destinationAgency?.city}
+                destination={bag.destinationAgency?.city}
                 className="w-full max-w-xs"
               />
               <p className="text-[10px] text-slate-400 text-center">
@@ -299,11 +299,11 @@ export default function BagDetailPage() {
       <div className="flex flex-wrap gap-4 bg-white border border-slate-100
                       rounded-2xl px-5 py-3.5 shadow-sm">
         {[
-          { label: 'Envoi', value: bag?.shipment?.reference },
-          { label: 'Destination', value: bag?.shipment?.destinationAgency?.city },
+          { label: 'Référence', value: bag?.reference },
+          { label: 'Destination', value: bag?.destinationAgency?.city },
           {
-            label: 'Départ', value: bag?.shipment?.departureDate
-              ? new Date(bag.shipment.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            label: 'Départ', value: bag?.departureDate
+              ? new Date(bag.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
               : '—'
           },
         ].map(({ label, value }) => (

@@ -11,7 +11,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res.data,
   (err) => {
-    if (err.response?.status === 401) {
+    // 🔥 Ne redirige pas si la 401 vient de la tentative de connexion
+    const isLoginAttempt = err.config?.url?.includes('/auth/login')
+    if (err.response?.status === 401 && !isLoginAttempt) {
       localStorage.clear()
       window.location.href = '/login'
     }

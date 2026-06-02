@@ -8,7 +8,6 @@ const NAV = [
   { to: '/parcels',   label: 'Colis',   icon: Package, roles: ['agent_fr','agent_af','admin','client'] },
   { to: '/scan',      label: 'Scanner', icon: ScanLine,  roles: ['agent_fr','agent_af','admin'] },
   { to: '/bags',      label: 'Sacs',    icon: ShoppingBag, roles: ['agent_fr','admin'] },
-  { to: '/shipments', label: 'Envois',  icon: Plane,  roles: ['agent_fr','agent_af','admin'] },
 ]
 
 export default function BottomNav() {

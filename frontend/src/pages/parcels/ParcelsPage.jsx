@@ -197,7 +197,7 @@ export default function ParcelsPage() {
                     <td className="px-5 py-3.5 text-slate-600">{p.sender?.name ?? '—'}</td>
                     <td className="px-5 py-3.5 text-slate-600">{p.recipientName}</td>
                     <td className="px-5 py-3.5 text-xs text-slate-400">
-                      {p.bag?.shipment?.destinationAgency?.city ?? '—'}
+                      {p.bag?.destinationAgency?.city ?? '—'}
                     </td>
                     <td className="px-5 py-3.5 font-mono text-xs text-slate-400">
                       {p.bag?.qrcode ?? '—'}

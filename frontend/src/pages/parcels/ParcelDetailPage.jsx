@@ -146,7 +146,7 @@ export default function ParcelDetailPage() {
               { label: 'Tél. exp.',   value: parcel.sender.phone ?? '—' },
               { label: 'Tél. dest.',   value: parcel.recipientPhone ?? '—' },
               { label: 'Sac',          value: parcel.bag?.qrcode ?? '—' },
-              { label: 'Destination',  value: parcel.bag?.shipment?.destinationAgency?.city ?? '—' },
+              { label: 'Destination',  value: parcel.bag?.destinationAgency?.city ?? '—' },
             ].map(({ label, value }) => (
               <div key={label} className="bg-slate-50 rounded-xl px-0 lg:px-1 py-1 lg:py-2.5">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
@@ -239,7 +239,7 @@ export default function ParcelDetailPage() {
                     code={parcel.qrcode}
                     qrcodeUrl={parcel.qrcodeUrl}
                     weight={parcel.weight}
-                    destination={parcel.bag?.shipment?.destinationAgency?.city}
+                    destination={parcel.bag?.destinationAgency?.city}
                     className="w-full max-w-xs"
                   />
                   <p className="text-[10px] text-slate-400 text-center">

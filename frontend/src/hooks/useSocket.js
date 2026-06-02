@@ -24,10 +24,6 @@ export function useSocket() {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     })
 
-    socket.on('shipment:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['shipments'] })
-    })
-
     socket.on('connect_error', (err) => {
       console.warn('Socket.io connexion échouée :', err.message)
       // L'app reste fonctionnelle sans le temps réel
