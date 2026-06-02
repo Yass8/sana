@@ -12,6 +12,7 @@ router.get(   '/me',   authenticate,          ctrl.getMe)
 router.get(   '/:id',  authenticate, isAdmin, ctrl.getById)
 router.post(  '/',     authenticate, isAdmin, ctrl.create)
 router.patch( '/:id',  authenticate, isAdmin, ctrl.update)
-router.delete('/:id',  authenticate, isAdmin, ctrl.deactivate)
+router.delete('/:id',  authenticate, isAdmin, ctrl.deleteUser)
+router.patch('/:id/desactivate',  authenticate, isAdmin, ctrl.desactivate)
 
 module.exports = router

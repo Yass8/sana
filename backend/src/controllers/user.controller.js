@@ -90,9 +90,9 @@ const update = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-// ─── DELETE /api/users/:id ────────────────────────────
+// ─── PATCH /api/users/:id/desactivate ─────────────────────────────
 // Soft delete — on désactive seulement
-const deactivate = async (req, res, next) => {
+const desactivate = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.id)
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
@@ -104,4 +104,18 @@ const deactivate = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, getMe, getById, create, update, deactivate }
+// ─── DELETE /api/users/:id ─────────────────────────────
+// Suppression définitive — à utiliser avec précaution
+const deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.params.id)
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
+    if (user.id === req.user.id) {
+      return res.status(400).json({ message: 'Impossible de supprimer son propre compte.' })
+    }
+    await user.destroy()
+    res.json({ message: 'Utilisateur supprimé définitivement.' })
+  } catch (err) { next(err) }
+}
+
+module.exports = { getAll, getMe, getById, create, update, desactivate, deleteUser }

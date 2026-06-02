@@ -20,10 +20,7 @@ async function testEmails() {
     include: [{ association: 'sender', attributes: ['id', 'name', 'email'] }],
     where: {
       // On filtre pour n'utiliser que ceux qui ont au moins un email valide
-      [require('sequelize').Op.or]: [
-        { '$sender.email$': { [require('sequelize').Op.ne]: null } },
-        { recipientEmail: { [require('sequelize').Op.ne]: null } }
-      ]
+      '$sender.email$': { [require('sequelize').Op.ne]: null },
     }
   })
 
@@ -60,25 +57,6 @@ async function testEmails() {
         }
       }
 
-      // Envoyer au destinataire s'il a un email
-      if (parcel.recipientEmail) {
-        try {
-          await sendStatusEmail({
-            to: parcel.recipientEmail,
-            parcelCode: parcel.qrcode,
-            status: status,
-            recipientName: parcel.recipientName,
-            senderName: parcel.sender?.name || 'Expéditeur',
-            notes: `Email de test pour le statut "${status}".`,
-            date: new Date()
-          })
-          console.log(`  ✅ Email statut "${status}" envoyé à destinataire ${parcel.recipientEmail}`)
-          successCount++
-        } catch (err) {
-          console.error(`  ❌ Échec envoi à destinataire ${parcel.recipientEmail} : ${err.message}`)
-          failCount++
-        }
-      }
     }
 
     // --- Test des alertes groupées ---
@@ -100,23 +78,6 @@ async function testEmails() {
       }
     }
 
-    if (parcel.recipientEmail) {
-      try {
-        await sendBulkAlertEmail({
-          to: parcel.recipientEmail,
-          parcelCode: parcel.qrcode,
-          message: 'Ceci est un message d’alerte groupée de test.',
-          senderName: parcel.sender?.name || 'Expéditeur',
-          recipientName: parcel.recipientName,
-          date: new Date()
-        })
-        console.log(`  ✅ Alerte groupée envoyée à destinataire ${parcel.recipientEmail}`)
-        successCount++
-      } catch (err) {
-        console.error(`  ❌ Échec alerte groupée destinataire ${parcel.recipientEmail} : ${err.message}`)
-        failCount++
-      }
-    }
   }
 
   console.log(`\n📊 Résumé : ${successCount} succès, ${failCount} échecs`)

@@ -32,7 +32,11 @@ export default function UserDetail() {
   const roleCfg = ROLE_CONFIG[user.role] || { label: user.role, color: 'text-slate-600', bg: 'bg-slate-100' }
 
   const handleDelete = async () => {
-    const message = `Supprimer définitivement ${user.name} ?`
+    const message = `La suppression définitive de l’utilisateur ${user.name} entraînera l’effacement irréversible de l’ensemble de ses données, 
+    incluant ses colis, l’historique des suivis et modifications,
+    ainsi que toutes les notes et commentaires associés. 
+    Cette action peut également impacter la fiabilité des statistiques et rapports existants.
+    Confirmez-vous vouloir poursuivre cette opération ?`
     const confirmed = await confirmDeleteAlert({ message, confirmButtonText: 'Supprimer' })
     if (!confirmed) return
 
@@ -140,7 +144,7 @@ export default function UserDetail() {
             </Link>
             <button onClick={handleDelete} disabled={deleting}
                     className="flex-1 md:flex-none flex items-center justify-center gap-1 border-2 border-red-200 text-red-400 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-red-50">
-              <Trash2 size={14} /> Supprimer
+              <Trash2 size={14} /> Supprimer définitivement
             </button>
           </div>
         </div>

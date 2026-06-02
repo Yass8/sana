@@ -90,7 +90,7 @@ const getById = async (req, res, next) => {
 // ─── POST /api/parcels ────────────────────────────────
 const create = async (req, res, next) => {
   try {
-    const { bagId, senderId, recipientName, recipientEmail, recipientPhone, description, weight } = req.body
+    const { bagId, senderId, recipientName, recipientPhone, description, weight } = req.body
 
     if (!bagId || !senderId || !recipientName) {
       return res.status(400).json({ message: 'bagId, senderId et recipientName requis.' })
@@ -116,7 +116,6 @@ const create = async (req, res, next) => {
       parcel = await Parcel.create({
         bagId, senderId,
         recipientName,
-        recipientEmail: recipientEmail ?? null,
         recipientPhone: recipientPhone ?? null,
         description: description ?? null,
         weight: weight ?? null,
@@ -141,17 +140,6 @@ const create = async (req, res, next) => {
         type: NOTIF_TYPE.STATUS_UPDATE,
         status: NOTIF_STATUS.PENDING,
       }, { transaction: t })
-
-      // Optionnel : notification pour le destinataire s'il a un email
-      if (recipientEmail) {
-        await Notification.create({
-          parcelId: parcel.id,
-          recipientEmail: recipientEmail,
-          channel: NOTIF_CHANNEL.EMAIL,
-          type: NOTIF_TYPE.STATUS_UPDATE,
-          status: NOTIF_STATUS.PENDING,
-        }, { transaction: t })
-      }
 
       // mettre à jour le poids du sac
       // Récupérer tous les colis du sac (avec le nouveau colis inclus)
@@ -211,31 +199,6 @@ const create = async (req, res, next) => {
       )
     }
 
-    // Si destinataire a un email, envoyer aussi
-    if (recipientEmail) {
-      try {
-        await sendStatusEmail({
-          to: recipientEmail,
-          parcelCode: parcel.qrcode,
-          status: PARCEL_STATUS.RECEIVED,
-          recipientName: recipientName,
-          senderName: sender.name,
-          notes: 'Votre colis a été réceptionné en agence.',
-          date: new Date(),
-          colis: { weight: parcel.weight, description: parcel.description }
-        })
-        await Notification.update(
-          { status: NOTIF_STATUS.SENT, sentAt: new Date() },
-          { where: { parcelId: parcel.id, recipientEmail: recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
-        )
-      } catch (emailErr) {
-        await Notification.update(
-          { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
-          { where: { parcelId: parcel.id, recipientEmail: recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
-        )
-      }
-    }
-
     res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
   } catch (err) {
     next(err)
@@ -290,16 +253,6 @@ const updateStatus = async (req, res, next) => {
         status:         NOTIF_STATUS.PENDING,
       }, { transaction: t })
 
-      // Notification pour le destinataire s'il a un email
-      if (parcel.recipientEmail) {
-        await Notification.create({
-          parcelId:       parcel.id,
-          recipientEmail: parcel.recipientEmail,
-          channel:        NOTIF_CHANNEL.EMAIL,
-          type:           NOTIF_TYPE.STATUS_UPDATE,
-          status:         NOTIF_STATUS.PENDING,
-        }, { transaction: t })
-      }
     })
 
     // Envoi des emails après la transaction
@@ -325,29 +278,6 @@ const updateStatus = async (req, res, next) => {
       )
     }
 
-    // 2. Envoyer au destinataire si email renseigné
-    if (parcel.recipientEmail) {
-      try {
-        await sendStatusEmail({
-          to: parcel.recipientEmail,
-          parcelCode: parcel.qrcode,
-          status: PARCEL_STATUS.ISSUE,
-          recipientName: parcel.recipientName,
-          senderName: parcel.sender.name,
-          notes: notes || '',
-          date: new Date(),
-        })
-        await Notification.update(
-          { status: NOTIF_STATUS.SENT, sentAt: new Date() },
-          { where: { parcelId: parcel.id, recipientEmail: parcel.recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
-        )
-      } catch (emailErr) {
-        await Notification.update(
-          { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
-          { where: { parcelId: parcel.id, recipientEmail: parcel.recipientEmail, type: NOTIF_TYPE.STATUS_UPDATE } }
-        )
-      }
-    }
 
     res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
   } catch (err) {
@@ -393,7 +323,7 @@ const deleteParcel = async (req, res, next) => {
 // ─── PUT /api/parcels/:id ─────────────────────────────
 const update = async (req, res, next) => {
   try {
-    const { description, weight, recipientName, recipientEmail, recipientPhone } = req.body
+    const { description, weight, recipientName, recipientPhone } = req.body
     
     const parcel = await Parcel.findByPk(req.params.id)
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
@@ -405,7 +335,6 @@ const update = async (req, res, next) => {
       description,
       weight,
       recipientName,
-      recipientEmail,
       recipientPhone
     })
 

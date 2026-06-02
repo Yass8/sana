@@ -9,6 +9,7 @@ import Card              from '../../components/ui/Card'
 import Spinner           from '../../components/ui/Spinner'
 import Skeleton          from '../../components/ui/Skeleton'
 import { showSuccessAlert } from '../../components/ui/SweetsAlert'
+import { useEffect } from 'react'
 
 const FILTERS = [
   { label: 'Tous',       value: '' },
@@ -37,9 +38,30 @@ export default function BagsPage() {
     enabled:  showModal,
   })
 
+  // Définit l'agence par défaut si aucune sélection n'a encore été faite
+  useEffect(() => {
+    if (!agencies.length) return
+
+    // Ne définir la valeur par défaut que si l'utilisateur n'a rien sélectionné
+    if (!originAgencyId) {
+      const paris = agencies.find(a => a.city === 'Paris')
+      if (paris) setOriginAgencyId(paris.id)
+    }
+
+    if (!destinationAgencyId) {
+      const bamako = agencies.find(a => a.city === 'Moroni')
+      if (bamako) setDestinationAgencyId(bamako.id)
+    }
+  }, [agencies, originAgencyId, destinationAgencyId])
+
   const handleCreate = async () => {
     if (!originAgencyId || !destinationAgencyId) {
       setErr('Sélectionner origine et destination');
+      return
+    }
+
+    if (originAgencyId === destinationAgencyId) {
+      setErr('Origine et destination doivent être différentes');
       return
     }
 

@@ -146,7 +146,6 @@ export default function ParcelDetailPage() {
               { label: 'Expéditeur',   value: parcel.sender?.name },
               { label: 'Destinataire', value: parcel.recipientName },
               { label: 'Email exp.',  value: parcel.sender?.email ?? '—' },
-              { label: 'Email dest.',  value: parcel.recipientEmail ?? '—' },
               { label: 'Tél. exp.',   value: parcel.sender.phone ?? '—' },
               { label: 'Tél. dest.',   value: parcel.recipientPhone ?? '—' },
               { label: 'Sac',          value: parcel.bag?.qrcode ?? '—' },

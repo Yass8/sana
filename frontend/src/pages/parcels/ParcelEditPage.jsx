@@ -24,7 +24,6 @@ export default function ParcelEditPage() {
     weight: '',
     recipientName: '',
     recipientPhone: '',
-    recipientEmail: '',
   })
 
   useEffect(() => {
@@ -34,7 +33,6 @@ export default function ParcelEditPage() {
         weight: parcel.weight ?? '',
         recipientName: parcel.recipientName ?? '',
         recipientPhone: parcel.recipientPhone ?? '',
-        recipientEmail: parcel.recipientEmail ?? '',
       })
     }
   }, [parcel])
@@ -146,13 +144,6 @@ export default function ParcelEditPage() {
                     Téléphone destinataire
                   </label>
                   <input name="recipientPhone" value={form.recipientPhone} onChange={handleChange}
-                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
-                    Email destinataire
-                  </label>
-                  <input name="recipientEmail" type="email" value={form.recipientEmail} onChange={handleChange}
                          className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
                 </div>
                 <div>

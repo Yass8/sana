@@ -192,16 +192,6 @@ const updateStatus = async (req, res, next) => {
           })
         }
 
-        if (parcel.recipientEmail) {
-          notifications.push({
-            parcelId:       parcel.id,
-            recipientEmail: parcel.recipientEmail,
-            channel:        NOTIF_CHANNEL.EMAIL,
-            type:           NOTIF_TYPE.STATUS_UPDATE,
-            status:         NOTIF_STATUS.PENDING,
-          })
-        }
-
         if (notifications.length) {
           await Notification.bulkCreate(notifications, { transaction: t })
         }
@@ -249,43 +239,6 @@ const updateStatus = async (req, res, next) => {
         }
       }
 
-      if (parcel.recipientEmail) {
-        try {
-          await sendStatusEmail({
-            to: parcel.recipientEmail,
-            parcelCode: parcel.qrcode,
-            status: targetParcelStatus,
-            recipientName: parcel.recipientName,
-            senderName: parcel.sender?.name || 'Expéditeur',
-            notes: `Mise à jour via sac (${action}).`,
-            date: new Date(),
-            origin: bag.originAgency ? { city: bag.originAgency.city, address: bag.originAgency.address, phone: bag.originAgency.phone } : null,
-            destination: bag.destinationAgency ? { city: bag.destinationAgency.city, address: bag.destinationAgency.address, phone: bag.destinationAgency.phone } : null,
-            colis: { weight: parcel.weight, description: parcel.description },
-          })
-          await Notification.update(
-            { status: NOTIF_STATUS.SENT, sentAt: new Date() },
-            {
-              where: {
-                parcelId: parcel.id,
-                recipientEmail: parcel.recipientEmail,
-                type: NOTIF_TYPE.STATUS_UPDATE,
-              },
-            }
-          )
-        } catch (emailErr) {
-          await Notification.update(
-            { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
-            {
-              where: {
-                parcelId: parcel.id,
-                recipientEmail: parcel.recipientEmail,
-                type: NOTIF_TYPE.STATUS_UPDATE,
-              },
-            }
-          )
-        }
-      }
     }
 
     const updatedBag = await Bag.findByPk(bag.id, {
@@ -350,39 +303,6 @@ const sendAlert = async (req, res, next) => {
             parcelId: parcel.id,
             userId: parcel.sender.id,
             recipientEmail: parcel.sender.email,
-            channel: NOTIF_CHANNEL.EMAIL,
-            type: NOTIF_TYPE.BULK_ALERT,
-            status: NOTIF_STATUS.FAILED,
-            errorMessage: err.message,
-          })
-        }
-      }
-
-      // Envoi au destinataire si email
-      if (parcel.recipientEmail) {
-        try {
-          await sendBulkAlertEmail({
-            to: parcel.recipientEmail,
-            parcelCode: parcel.qrcode,
-            message: message,
-            senderName: parcel.sender?.name || 'Expéditeur',
-            recipientName: parcel.recipientName,
-            date: new Date(),
-          })
-          notifications.push({
-            parcelId: parcel.id,
-            recipientEmail: parcel.recipientEmail,
-            channel: NOTIF_CHANNEL.EMAIL,
-            type: NOTIF_TYPE.BULK_ALERT,
-            status: NOTIF_STATUS.SENT,
-            sentAt: new Date(),
-          })
-        } catch (err) {
-          console.error(`Erreur envoi alerte à ${parcel.recipientEmail}:`, err)
-          errors.push({ email: parcel.recipientEmail, error: err.message })
-          notifications.push({
-            parcelId: parcel.id,
-            recipientEmail: parcel.recipientEmail,
             channel: NOTIF_CHANNEL.EMAIL,
             type: NOTIF_TYPE.BULK_ALERT,
             status: NOTIF_STATUS.FAILED,

@@ -20,7 +20,6 @@ module.exports = (sequelize) => {
     senderId: { type: DataTypes.UUID, allowNull: false, field: 'sender_id' },
     recipientName: { type: DataTypes.STRING(100), allowNull: false, field: 'recipient_name' },
     recipientPhone: { type: DataTypes.STRING(20), allowNull: true, field: 'recipient_phone' },
-    recipientEmail: { type: DataTypes.STRING(150), allowNull: true, field: 'recipient_email' },
     qrcodeUrl: { type: DataTypes.STRING(255), allowNull: true, field: 'qrcode_url' },
     status: {
       ...enumType(STATUSES),

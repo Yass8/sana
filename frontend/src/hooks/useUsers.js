@@ -37,6 +37,14 @@ export function useUpdateUser() {
   })
 }
 
+export function useDesactivateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => usersApi.desactivate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
 export function useDeleteUser() {
   const qc = useQueryClient()
   return useMutation({

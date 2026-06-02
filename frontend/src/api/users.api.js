@@ -6,5 +6,6 @@ export const usersApi = {
   create:   (data)    => api.post('/users', data),
   update:   (id,data) => api.patch(`/users/${id}`, data),
   delete:   (id)     => api.delete(`/users/${id}`),
+  desactivate: (id) => api.patch(`/users/${id}/desactivate`),
   sendBulk: (data)    => api.post('/notifications/bulk', data),
 }

@@ -1,11 +1,11 @@
 // src/pages/users/UsersPage.jsx
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useUsers, useDeleteUser } from '../../hooks/useUsers'
+import { useUsers, useDeleteUser, useDesactivateUser } from '../../hooks/useUsers'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
 
-import { User, Mail, Phone, Building2, Calendar, Edit, Trash2, Plus } from 'lucide-react'
+import { User, Mail, Phone, Edit, Trash2, Plus } from 'lucide-react'
 import { confirmDeleteAlert, showErrorAlert, showSuccessAlert } from '../../components/ui/SweetsAlert'
 
 const AVATAR_COLORS = ['#7C3AED', '#059669', '#2563EB', '#D97706', '#DC2625']
@@ -33,7 +33,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('')
 
   const users = useUsers({ role: roleFilter || undefined, search: search || undefined })
-  const deleteUser = useDeleteUser()
+  const desactivateUser = useDesactivateUser()
 
   const data = users.data ?? []
 
@@ -43,7 +43,7 @@ export default function UsersPage() {
     if (!confirmed) return
 
     try {
-      await deleteUser.mutateAsync(id)
+      await desactivateUser.mutateAsync(id)
       await showSuccessAlert({ text: `Utilisateur supprimé.` })
     } catch (err) {
       await showErrorAlert({ text: err })
@@ -51,7 +51,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn">
+    <div className="flex flex-col gap-5 animate-fadeIn mb-0 md:mb-25 lg:mb-0">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)' }}
@@ -197,6 +197,7 @@ export default function UsersPage() {
                                   className="text-xs font-semibold text-slate-800 hover:text-violet-600">
                               {u.name}
                             </Link>
+                            <span className="flex items-center gap-1 text-[11px] text-slate-400"><i>Status:</i>{u.isActive ? 'Actif' : 'Désactivé'}</span>
                             <div className="flex items-center gap-1 text-[11px] text-slate-400">
                               <Mail size={11} /> <span className="truncate">{u.email}</span>
                             </div>

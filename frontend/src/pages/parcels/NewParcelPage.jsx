@@ -12,7 +12,7 @@ import { showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAler
 
 const EMPTY = {
   senderName: '', senderEmail: '', senderPhone: '',
-  recipientName: '', recipientEmail: '', recipientPhone: '',
+  recipientName: '', recipientPhone: '',
   description: '', weight: '', bagId: '',
 }
 
@@ -160,7 +160,6 @@ export default function NewParcelPage() {
       bagId: form.bagId,
       senderId,
       recipientName: form.recipientName,
-      recipientEmail: form.recipientEmail || null,
       recipientPhone: form.recipientPhone || null,
       description: form.description || null,
       weight: form.weight ? parseFloat(form.weight) : null,
@@ -236,8 +235,6 @@ export default function NewParcelPage() {
           <div className="p-5 grid grid-cols-2 gap-4">
             <Field label="Nom complet" name="recipientName" placeholder="Fatou Diallo" required
                    value={form.recipientName} onChange={set('recipientName')} error={errs.recipientName} />
-            <Field label="Email" name="recipientEmail" type="email" placeholder="fatou@email.com"
-                   value={form.recipientEmail} onChange={set('recipientEmail')} error={errs.recipientEmail} />
             <Field label="Téléphone" name="recipientPhone" placeholder="+221 77 000 00 00"
                    value={form.recipientPhone} onChange={set('recipientPhone')} error={errs.recipientPhone} />
           </div>

@@ -82,15 +82,12 @@ async function seed() {
 
   // Parcels – génération de chaque code via service
   const parcelsData = [
-    // { senderId: client1.id, recipientName: 'Fatou Diallo',   recipientEmail: 'fatou.diallo@email.com', recipientPhone: '+221 77 111 22 33', description: 'Vêtements et chaussures', weight: 2.4 },
-    // { senderId: client2.id, recipientName: 'Ibrahim Koné',   recipientEmail: 'ibrahim.kone@email.com', recipientPhone: '+221 77 444 55 66', description: 'Médicaments',             weight: 1.2 },
-    // { senderId: client1.id, recipientName: 'Boubacar Sy',    recipientEmail: 'boubacar@email.com',     recipientPhone: '+221 77 777 88 99', description: 'Électronique',            weight: 3.5 },
-    { senderId: client1.id, recipientName: 'Med Moussa',    recipientEmail: 'aliyassir131@outlook.fr',     recipientPhone: '+269 321 11 11', description: 'Téléphone',            weight: 3.5 },
+    { senderId: client1.id, recipientName: 'Med Moussa', recipientPhone: '+269 321 11 11', description: 'Téléphone', weight: 3.5 },
   ]
 
   for (const data of parcelsData) {
     const existing = await Parcel.findOne({
-      where: { senderId: data.senderId, recipientEmail: data.recipientEmail },
+      where: { senderId: data.senderId, recipientName: data.recipientName },
     })
     if (!existing) {
       const qrcode = await generateCode('parcel')   // ← nouveau code

@@ -98,7 +98,7 @@ export default function UserForm() {
   const showAgencySelect = form.role !== 'client'
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-0 animate-fadeIn">
+    <div className="max-w-2xl mx-auto px-4 md:px-0 animate-fadeIn mb-0 md:mb-25 lg:mb-0">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/users')}
                 className="text-slate-400 hover:text-violet-600 text-sm flex items-center gap-1">
