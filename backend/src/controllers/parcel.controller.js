@@ -173,6 +173,16 @@ const create = async (req, res, next) => {
     const qrcodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
     await parcel.update({ qrcodeUrl })
 
+    // Récuperation du sac avec les agences
+    const sac = await Bag.findByPk(parcel.bagId, {
+      include: [
+        { association: 'originAgency', attributes: ['name','city','address','phone'] },
+        { association: 'destinationAgency', attributes: ['name','city','address','phone'] },
+      ]
+    })
+    
+    if (!sac) console.error(`Sac introuvable pour le colis ${parcel.id}`);
+
     // Envoi de l'email de confirmation
     try {
       await sendStatusEmail({
@@ -183,6 +193,9 @@ const create = async (req, res, next) => {
         senderName: sender.name,
         notes: 'Colis réceptionné en agence.',
         date: new Date(),
+        origin: sac?.originAgency ? { city: sac.originAgency.city, adresse: sac.originAgency.address, phone: sac.originAgency.phone } : null,
+        destination: sac?.destinationAgency ? { city: sac.destinationAgency.city, adresse: sac.destinationAgency.address, phone: sac.destinationAgency.phone } : null,
+        colis: { weight: parcel.weight, description: parcel.description }
       })
       // Mettre à jour la notification de l'expéditeur comme SENT
       await Notification.update(
@@ -209,6 +222,7 @@ const create = async (req, res, next) => {
           senderName: sender.name,
           notes: 'Votre colis a été réceptionné en agence.',
           date: new Date(),
+          colis: { weight: parcel.weight, description: parcel.description }
         })
         await Notification.update(
           { status: NOTIF_STATUS.SENT, sentAt: new Date() },
@@ -233,9 +247,14 @@ const updateStatus = async (req, res, next) => {
   try {
     const { notes, location } = req.body
 
+    // Récupérer le colis avec son sac et les agences
     const parcel = await Parcel.findByPk(req.params.id, {
       include: [
         { association: 'sender', attributes: ['id','name','email','phone'] },
+        { association: 'bag', include: [
+            { association: 'originAgency', attributes: ['city', 'address', 'phone'] },
+            { association: 'destinationAgency', attributes: ['city', 'address', 'phone'] },
+          ]},
       ],
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
@@ -292,6 +311,9 @@ const updateStatus = async (req, res, next) => {
         senderName: parcel.sender.name,
         notes: notes || '',
         date: new Date(),
+        origin: parcel.bag?.originAgency ? { city: parcel.bag.originAgency.city, adresse: parcel.bag.originAgency.address, phone: parcel.bag.originAgency.phone } : null,
+        destination: parcel.bag?.destinationAgency ? { city: parcel.bag.destinationAgency.city, adresse: parcel.bag.destinationAgency.address, phone: parcel.bag.destinationAgency.phone } : null,
+        colis: { weight: parcel.weight, description: parcel.description }
       })
       await Notification.update(
         { status: NOTIF_STATUS.SENT, sentAt: new Date() },
