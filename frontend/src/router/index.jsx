@@ -17,6 +17,9 @@ import UsersPage from '../pages/users/UsersPage'
 import UsersForm from '../pages/users/UsersForm'
 import UserDetail from '../pages/users/UserDetail'
 import ParcelEditPage from '../pages/parcels/ParcelEditPage'
+import AgenciesPage from '../pages/agencies/AgenciesPage'
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -30,6 +33,8 @@ function ProtectedRoute({ allowedRoles }) {
 const router = createBrowserRouter([
   { path: '/login',            element: <LoginPage /> },
   { path: '/track/:qrcode',   element: <PublicTrackingPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/',                 element: <Navigate to="/dashboard" replace /> },
   {
     element: <ProtectedRoute />,
@@ -46,6 +51,7 @@ const router = createBrowserRouter([
         { path: '/bags/:id',     element: <BagDetailPage /> },
         { path: '/clients',      element: <ClientsPage /> },
         { path: '/notifications',element: <NotificationsPage /> },
+        { path: '/agencies',     element: <AgenciesPage /> },
 
         { path: '/users',        element: <UsersPage /> },
         { path: '/users/new',    element: <UsersForm /> },

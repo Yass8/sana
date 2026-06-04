@@ -4,10 +4,10 @@ import { useAuth } from '../../context/AuthContext'
 import { LayoutDashboard, Package, Plane, ScanLine, ShoppingBag } from 'lucide-react'
 
 const NAV = [
-  { to: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin','client'] },
   { to: '/parcels',   label: 'Colis',   icon: Package, roles: ['agent_fr','agent_af','admin','client'] },
-  { to: '/scan',      label: 'Scanner', icon: ScanLine,  roles: ['agent_fr','agent_af','admin'] },
+  { to: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin','client'] },
   { to: '/bags',      label: 'Sacs',    icon: ShoppingBag, roles: ['agent_fr','admin'] },
+  // { to: '/scan',      label: 'Scanner', icon: ScanLine, roles: ['agent_fr','agent_af','admin'] },
 ]
 
 export default function BottomNav() {

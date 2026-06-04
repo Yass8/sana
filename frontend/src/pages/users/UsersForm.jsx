@@ -26,7 +26,7 @@ export default function UserForm() {
   const updateUser = useUpdateUser()
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', password: '',
+    name: '', email: '', phone: '',
     role: 'client', agencyId: '', isActive: true,
   })
   const [errors, setErrors] = useState({})
@@ -37,7 +37,6 @@ export default function UserForm() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        password: '',
         role: user.role || 'client',
         agencyId: user.agencyId || '',
         isActive: user.isActive ?? true,
@@ -59,8 +58,6 @@ export default function UserForm() {
     if (!form.name.trim()) e.name = 'Requis'
     if (!form.email.trim()) e.email = 'Requis'
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Email invalide'
-    if (!isEdit && !form.password.trim()) e.password = 'Requis'
-    if (form.password && form.password.length < 6) e.password = 'Minimum 6 caractères'
     if (form.role !== 'client' && !form.agencyId) e.agencyId = 'Requis pour ce rôle'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -78,7 +75,6 @@ export default function UserForm() {
       agencyId: form.agencyId || null,
       isActive: form.isActive,
     }
-    if (!isEdit || form.password) payload.password = form.password
 
     try {
       if (isEdit) {
@@ -163,18 +159,6 @@ export default function UserForm() {
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
                   {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                  Mot de passe {!isEdit && <span className="text-violet-600">*</span>}
-                  {isEdit && <span className="text-xs text-slate-400 ml-1">(laisser vide pour conserver)</span>}
-                </label>
-                <input type="password" value={form.password} onChange={setField('password')}
-                       className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none transition-all ${
-                         errors.password ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
-                       }`} />
-                {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
               </div>
             </div>
 

@@ -1,7 +1,7 @@
 // src/pages/users/UsersPage.jsx
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useUsers, useDeleteUser, useDesactivateUser } from '../../hooks/useUsers'
+import { Link } from 'react-router-dom'
+import { useUsers, useDesactivateUser } from '../../hooks/useUsers'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
 
@@ -28,7 +28,6 @@ const FILTERS = [
 ]
 
 export default function UsersPage() {
-  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
 
@@ -51,7 +50,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn mb-0 md:mb-25 lg:mb-0">
+    <div className="flex flex-col gap-5 animate-fadeIn mb-10 md:mb-25 lg:mb-0">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)' }}

@@ -40,6 +40,16 @@ module.exports = (sequelize) => {
       defaultValue: true,
       field:        'is_active',
     },
+    reset_password_token: {
+      type:      DataTypes.STRING(255),
+      allowNull: true,
+      field:     'reset_password_token',
+    },
+    reset_password_expires: {
+      type:      DataTypes.DATE,
+      allowNull: true,
+      field:     'reset_password_expires',
+    },
   }, {
     tableName:  'users',
     timestamps: true,

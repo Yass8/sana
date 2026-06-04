@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { agenciesApi } from '../api/agencies.api'
 
+
 export function useAgencies() {
   return useQuery({
     queryKey: ['agencies'],
@@ -11,11 +12,12 @@ export function useAgencies() {
   })
 }
 
-export function useAgenciesByCountry() {
-  const { data: agencies = [], ...rest } = useAgencies()
-  return {
-    ...rest,
-    agenciesFR: agencies.filter(a => a.country === 'FR'),
-    agenciesAF: agencies.filter(a => a.country !== 'FR'),
-  }
-}
+// export function useAgenciesByCountry() {
+//   const { data: agencies = [], ...rest } = useAgencies()
+//   return {
+//     ...rest,
+//     data: agencies,
+//     agenciesFR: agencies.filter(a => a.country === 'FR'),
+//     agenciesAF: agencies.filter(a => a.country !== 'FR'),
+//   }
+// }

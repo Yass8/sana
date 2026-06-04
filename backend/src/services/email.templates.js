@@ -271,4 +271,64 @@ const bulkAlertTemplate = ({ recipientName, parcelCode, message, senderName, tra
   return baseLayout(content);
 };
 
-module.exports = { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG };
+/* ─────────────────────────────────────────
+   TEMPLATE : Reinitialisation de mot de passe (à implémenter)
+   ───────────────────────────────────────── */
+const resetPasswordTemplate = ({ name, resetUrl }) => {
+  const content = `
+    <tr>
+      <td style="padding:32px 32px 0 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td width="48" valign="top">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#E0E7FF;border-radius:50%;width:40px;height:40px;">
+                <tr><td align="center" valign="middle" style="font-size:16px;font-weight:700;color:#4F46E5;font-family:Arial,sans-serif;">R</td></tr>
+              </table>
+            </td>
+            <td style="padding-left:14px;" valign="top">
+              <h1 style="margin:0 0 4px 0;font-size:18px;font-weight:700;color:#0F172A;line-height:1.3;">Réinitialisation de mot de passe</h1>
+              <p style="margin:0;font-size:14px;color:#64748B;">Bonjour <strong style="color:#0F172A;">${name || 'Madame, Monsieur'}</strong>,</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:24px 32px 24px 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F8FAFC;border-radius:12px;padding:16px;">
+          <tr>
+            <td>
+              <p style="margin:0 0 16px 0;font-size:14px;color:#0F172A;line-height:1.6;">
+                Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe.
+              </p>
+              <p style="margin:0 0 16px 0;font-size:13px;color:#64748B;">
+                Ce lien est valable pendant <strong>1 heure</strong>. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 32px 32px 32px;text-align:center;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            <td style="background:#7C3AED;border-radius:10px;text-align:center;">
+              <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Réinitialiser mon mot de passe</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0 0;font-size:11px;color:#94A3B8;">
+          Si le bouton ne fonctionne pas, copiez ce lien :<br>
+          <span style="color:#7C3AED;word-break:break-all;">${resetUrl}</span>
+        </p>
+      </td>
+    </tr>
+  `;
+
+  return baseLayout(content);
+};
+
+module.exports = { statusUpdateTemplate, bulkAlertTemplate, resetPasswordTemplate, STATUS_CONFIG };

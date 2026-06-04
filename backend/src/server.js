@@ -8,7 +8,7 @@ const PORT = process.env.PORT ?? 3000
 async function start() {
   try {
     await sequelize.authenticate()
-    console.log('✅ Connexion SQLite OK')
+    console.log('✅ Connexion DB OK')
 
     // force: false = crée les tables si elles n'existent pas, ne touche pas aux existantes
     await sequelize.sync({ force: false })

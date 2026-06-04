@@ -1,6 +1,6 @@
 // src/services/email.service.js
 const nodemailer = require('nodemailer');
-const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG } = require('./email.templates');
+const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate } = require('./email.templates');
 
 // Configuration du transporteur Gmail
 const transporter = nodemailer.createTransport({
@@ -56,4 +56,28 @@ async function sendBulkAlertEmail(params) {
   return await transporter.sendMail(mailOptions);
 }
 
-module.exports = { sendStatusEmail, sendBulkAlertEmail };
+require('./email.templates');
+
+/**
+ * Envoi de l'email de réinitialisation de mot de passe
+ */
+async function sendResetEmail(params) {
+  const html = resetPasswordTemplate(params);
+
+  const mailOptions = {
+    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    to: params.to,
+    subject: `🔐 Réinitialisation de votre mot de passe — SanaService`,
+    html: html,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error("Erreur Nodemailer (reset):", error);
+    throw new Error("Échec de l'envoi de l'email");
+  }
+}
+
+module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail };

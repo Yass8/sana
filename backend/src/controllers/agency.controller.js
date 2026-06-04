@@ -40,4 +40,13 @@ const update = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, getById, create, update }
+const deleteAgency = async (req, res, next) => {
+  try {
+    const agency = await Agency.findByPk(req.params.id)
+    if (!agency) return res.status(404).json({ message: 'Agence introuvable.' })
+    await agency.destroy()
+    res.json({ message: 'Agence supprimée avec succès.' })
+  } catch (err) { next(err) }
+}
+
+module.exports = { getAll, getById, create, update, deleteAgency }

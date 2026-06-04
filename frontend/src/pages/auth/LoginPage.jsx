@@ -120,6 +120,14 @@ export default function LoginPage() {
             </button>
 
           </form>
+          
+          <div className="mt-6 text-center">
+            <a href="/forgot-password"
+               className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors">
+              <span className="text-slate-400">Mot de passe oublié ?</span>
+            </a>
+          </div>
+          
 
           <p className="text-center text-xs text-slate-400 mt-6">
             Suivre un colis ?{' '}

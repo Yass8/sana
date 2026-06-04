@@ -1,8 +1,8 @@
 // src/pages/notifications/NotificationsPage.jsx
-import { useState }    from 'react'
-import { useNotifications, useNotificationStats, useRetryNotification } from '../../hooks/useNotifications'
-import Card            from '../../components/ui/Card'
-import Spinner         from '../../components/ui/Spinner'
+import { useState } from 'react'
+import { useNotifications, useNotificationStats } from '../../hooks/useNotifications'
+import Card from '../../components/ui/Card'
+import Spinner from '../../components/ui/Spinner'
 
 const STATUS_CFG = {
   sent:    { bg:'bg-emerald-50', text:'text-emerald-700', dot:'bg-emerald-500', label:'Envoyée'    },
@@ -27,26 +27,46 @@ function Pill({ cfg }) {
   )
 }
 
-const FILTERS = [
+const STATUS_FILTERS = [
   { label: 'Toutes',     value: '' },
   { label: 'Envoyées',   value: 'sent' },
   { label: 'En attente', value: 'pending' },
   { label: 'Échouées',   value: 'failed' },
 ]
 
+const CHANNEL_FILTERS = [
+  { label: 'Tous',  value: '' },
+  { label: 'Email', value: 'email' },
+  { label: 'SMS',   value: 'sms' },
+]
+
 export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState('')
-  const [search,       setSearch]       = useState('')
+  const [channelFilter, setChannelFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [expandedId, setExpandedId] = useState(null)
 
-  const notifs = useNotifications({ status: statusFilter || undefined, search: search || undefined })
-  const stats  = useNotificationStats()
-  const retry  = useRetryNotification()
+  const notifs = useNotifications({
+    status: statusFilter || undefined,
+    channel: channelFilter || undefined,
+    search: search || undefined,
+    sort: sortOrder,
+  })
+  const stats = useNotificationStats()
 
   const data = notifs.data ?? []
-  const s    = stats.data  ?? {}
+  const s = stats.data ?? {}
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—'
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
+    })
+  }
 
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn">
+    <div className="flex flex-col gap-5 animate-fadeIn mb-10 md:mb-25 lg:mb-0">
 
       <div>
         <h1 style={{fontFamily:'var(--font-display)'}}
@@ -71,33 +91,48 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      {/* Recherche */}
-      <div className="flex items-center gap-2 bg-white border-2 border-slate-200
-                      rounded-xl px-4 py-3 focus-within:border-violet-500
-                      focus-within:ring-4 focus-within:ring-violet-100 transition-all">
-        <span className="text-slate-300">⌕</span>
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-               placeholder="Code colis, email…"
-               className="flex-1 text-sm outline-none bg-transparent text-slate-900"/>
-        {search && (
-          <button onClick={() => setSearch('')}
-                  className="text-slate-300 hover:text-slate-500 transition-colors">✕</button>
-        )}
-      </div>
+      {/* Barre de recherche + filtres */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex-1 flex items-center gap-2 bg-white border-2 border-slate-200
+                        rounded-xl px-4 py-3 focus-within:border-violet-500
+                        focus-within:ring-4 focus-within:ring-violet-100 transition-all">
+          <span className="text-slate-300">⌕</span>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                 placeholder="Code colis, email…"
+                 className="flex-1 text-sm outline-none bg-transparent text-slate-900"/>
+          {search && (
+            <button onClick={() => setSearch('')}
+                    className="text-slate-300 hover:text-slate-500 transition-colors">✕</button>
+          )}
+        </div>
 
-      {/* Filtres */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
-        {FILTERS.map(f => (
-          <button key={f.value} onClick={() => setStatusFilter(f.value)}
-                  className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-xl
-                              border-2 transition-all flex-shrink-0 font-semibold ${
-                    statusFilter === f.value
-                      ? 'bg-[#0A1628] text-white border-[#0A1628]'
-                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                  }`}>
-            {f.label}
+        <div className="flex gap-2 items-center flex-wrap">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 outline-none focus:border-violet-500"
+          >
+            {STATUS_FILTERS.map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+          <select
+            value={channelFilter}
+            onChange={e => setChannelFilter(e.target.value)}
+            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 outline-none focus:border-violet-500"
+          >
+            {CHANNEL_FILTERS.map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 hover:border-violet-500 transition-colors flex items-center gap-1"
+          >
+            {sortOrder === 'desc' ? 'Plus récent' : 'Plus ancien'}
+            <span className="text-[10px]">▼</span>
           </button>
-        ))}
+        </div>
       </div>
 
       {notifs.isLoading ? (
@@ -120,8 +155,8 @@ export default function NotificationsPage() {
             {data.map(n => {
               const sc = STATUS_CFG[n.status]
               return (
-                <div key={n.id} className="px-4 py-3.5">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div key={n.id} className="px-4 py-3.5" onClick={() => setExpandedId(prev => prev === n.id ? null : n.id)}>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
                     <p style={{fontFamily:'var(--font-display)'}}
                        className="text-sm font-bold text-violet-600">
                       {n.parcel?.qrcode ?? '—'}
@@ -140,18 +175,14 @@ export default function NotificationsPage() {
                       {n.recipientEmail ?? n.recipientPhone ?? '—'}
                     </span>
                   </div>
-                  {n.errorMessage && (
-                    <p className="text-[10px] text-red-500 mt-1">{n.errorMessage}</p>
-                  )}
-                  {n.status === 'failed' && (
-                    <button onClick={() => retry.mutate(n.id)}
-                            disabled={retry.isPending}
-                            className="mt-2 text-xs border-2 border-violet-200
-                                       text-violet-600 px-3 py-1 rounded-xl
-                                       hover:bg-violet-50 transition-colors
-                                       font-semibold">
-                      Relancer
-                    </button>
+                  {expandedId === n.id && (
+                    <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
+                      <p><span className="font-medium">Date :</span> {formatDate(n.sentAt ?? n.createdAt)}</p>
+                      {n.errorMessage && (
+                        <p className="text-red-500 mt-1"><span className="font-medium">Erreur :</span> {n.errorMessage}</p>
+                      )}
+                      {/* <p><span className="font-medium">ID :</span> {n.id}</p> */}
+                    </div>
                   )}
                 </div>
               )
@@ -181,7 +212,8 @@ export default function NotificationsPage() {
                   return (
                     <tr key={n.id}
                         className="border-b border-slate-50 last:border-0
-                                   hover:bg-slate-50/50 transition-colors">
+                                   hover:bg-slate-50/50 transition-colors cursor-pointer"
+                        onClick={() => setExpandedId(prev => prev === n.id ? null : n.id)}>
                       <td className="px-5 py-3.5">
                         <span style={{fontFamily:'var(--font-display)'}}
                               className="text-xs font-bold text-violet-600">
@@ -205,23 +237,10 @@ export default function NotificationsPage() {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-[11px] text-slate-400">
-                        {(n.sentAt ?? n.createdAt)
-                          ? new Date(n.sentAt ?? n.createdAt).toLocaleDateString('fr-FR', {
-                              day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
-                            })
-                          : '—'}
+                        {formatDate(n.sentAt ?? n.createdAt)}
                       </td>
                       <td className="px-5 py-3.5">
-                        {n.status === 'failed' && (
-                          <button onClick={() => retry.mutate(n.id)}
-                                  disabled={retry.isPending}
-                                  className="text-xs border-2 border-slate-200
-                                             text-slate-500 hover:border-violet-500
-                                             hover:text-violet-600 px-3 py-1.5
-                                             rounded-xl transition-all font-semibold">
-                            Relancer
-                          </button>
-                        )}
+                        {/* Aucune action de relancement */}
                       </td>
                     </tr>
                   )

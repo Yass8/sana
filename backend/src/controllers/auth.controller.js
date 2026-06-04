@@ -2,6 +2,8 @@
 const jwt        = require('jsonwebtoken')
 const { User }   = require('../models')
 const { ROLES }  = require('../constants')
+const { sendResetEmail } = require('../services/email.service')
+const { Op } = require('sequelize')
 
 // Génère un JWT signé
 function generateToken(user) {
@@ -107,4 +109,87 @@ const logout = (req, res) => {
   res.json({ message: 'Déconnecté avec succès.' })
 }
 
-module.exports = { register, login, me, logout }
+// ─── POST /api/auth/forgot-password ─────────────────
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body
+
+    const user = await User.findOne({ where: { email }})
+
+    // Réponse identique même si l'email n'existe pas (évite l'énumération)
+    if (!user) {
+      return res.json({message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' })
+    }
+    // Générer un token de réinitialisation (ex: UUID ou JWT avec courte durée)
+    const resetToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    )
+
+    // Stocker le token et sa date d'expiration dans la base de données
+    user.reset_password_token = resetToken
+    user.reset_password_expires = new Date(Date.now() + 3600000) // 1 heure
+    await user.save()
+
+    const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`
+    
+    // TODO : Envoyer un email avec ce lien (utiliser une template d'email)
+    console.log(`Lien de réinitialisation pour ${email} : ${resetUrl}`)
+    await sendResetEmail({
+      to: email,
+      name: user.name,
+      resetUrl,
+    })
+    
+    return res.json({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' })
+  } catch (err){
+    next(err)
+  }
+}
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token et nouveau mot de passe requis.' })
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Mot de passe trop court (6 caractères min).' })
+    }
+
+    // Vérifier le token et trouver l'utilisateur correspondant
+    let decoded
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET)
+    } catch (err) {
+      return res.status(400).json({ message: 'Token invalide ou expiré.' })
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: decoded.id,
+        reset_password_token: token,
+        reset_password_expires: { [Op.gt]: new Date() },
+      }
+    })
+
+    if (!user) {
+      return res.status(400).json({ message: 'Token invalide ou expiré.' })
+    }
+
+    // Mettre à jour le mot de passe et supprimer le token de réinitialisation
+    user.passwordHash = password // le hook beforeUpdate hash automatiquement
+    user.reset_password_token = null
+    user.reset_password_expires = null
+    await user.save()
+
+    return res.json({ message: 'Mot de passe réinitialisé avec succès.' })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { register, login, me, logout, forgotPassword, resetPassword }
