@@ -8,4 +8,5 @@ export const usersApi = {
   delete:   (id)     => api.delete(`/users/${id}`),
   desactivate: (id) => api.patch(`/users/${id}/desactivate`),
   sendBulk: (data)    => api.post('/notifications/bulk', data),
+  updatePassword: (id, data) => api.put(`/users/${id}/update-password`, data),
 }

@@ -1,6 +1,6 @@
 // src/services/email.service.js
 const nodemailer = require('nodemailer');
-const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate } = require('./email.templates');
+const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate, welcomeTemplate } = require('./email.templates');
 
 // Configuration du transporteur Gmail
 const transporter = nodemailer.createTransport({
@@ -80,4 +80,25 @@ async function sendResetEmail(params) {
   }
 }
 
-module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail };
+/**
+ * Envoi de l'email de bienvenue lors de la création d'un nouvel utilisateur
+ * (fonction à appeler depuis le controller user.controller.js après la création d'un utilisateur)
+ */
+async function sendWelcomeEmail(params) {
+  const html = welcomeTemplate(params);
+  const mailOptions = {
+    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    to: params.to,
+    subject: `🎉 Bienvenue chez SanaService, ${params.name} !`,
+    html: html,
+  };
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error("Erreur Nodemailer (welcome):", error);
+    throw new Error("Échec de l'envoi de l'email de bienvenue");
+  }
+}
+
+module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail, sendWelcomeEmail };

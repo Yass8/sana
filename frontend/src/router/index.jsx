@@ -20,6 +20,7 @@ import ParcelEditPage from '../pages/parcels/ParcelEditPage'
 import AgenciesPage from '../pages/agencies/AgenciesPage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
+import ProfilePage from '../pages/users/ProfilePage'
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -56,7 +57,8 @@ const router = createBrowserRouter([
         { path: '/users',        element: <UsersPage /> },
         { path: '/users/new',    element: <UsersForm /> },
         { path: '/users/:id',    element: <UserDetail /> },
-        { path: '/users/:id/edit', element: <UsersForm /> }
+        { path: '/users/:id/edit', element: <UsersForm /> },
+        { path: '/profile',      element: <ProfilePage /> }
       ],
     }],
   },

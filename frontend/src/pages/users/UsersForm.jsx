@@ -80,6 +80,8 @@ export default function UserForm() {
       if (isEdit) {
         await updateUser.mutateAsync({ id, data: payload })
       } else {
+        const sendMail = true // Toujours envoyer un mail de bienvenue pour les nouveaux utilisateurs
+        payload.sendMail = sendMail
         await createUser.mutateAsync(payload)
         await showSuccessAlert({ text: 'Utilisateur ajouté.' })
       }

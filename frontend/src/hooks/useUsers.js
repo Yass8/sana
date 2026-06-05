@@ -52,3 +52,14 @@ export function useDeleteUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   })
 }
+
+export function useUpdatePassword() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, currentPassword, newPassword }) =>
+      usersApi.updatePassword(id, { currentPassword, newPassword }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['user', id] })
+    },
+  })
+}

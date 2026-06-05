@@ -331,4 +331,58 @@ const resetPasswordTemplate = ({ name, resetUrl }) => {
   return baseLayout(content);
 };
 
-module.exports = { statusUpdateTemplate, bulkAlertTemplate, resetPasswordTemplate, STATUS_CONFIG };
+/* ─────────────────────────────────────────
+    TEMPLATES: email de bienvenue pour les nouveaux utilisateurs (à implémenter)
+    ───────────────────────────────────────── */
+const welcomeTemplate = ({ name, to, temporaryPassword, loginUrl }) => {
+  const content = `
+    <tr>
+      <td style="padding:32px 32px 0 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td style="padding:0 0 16px 0;">
+              <h1 style="margin:0;font-size:18px;font-weight:700;color:#0F172A;line-height:1.3;">Bienvenue sur notre plateforme</h1>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:24px 32px 24px 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F8FAFC;border-radius:12px;padding:16px;">
+          <tr>
+            <td>
+              <p style="margin:0 0 16px 0;font-size:14px;color:#0F172A;line-height:1.6;">
+                Bonjour <strong style="color:#0F172A;">${name || 'Madame, Monsieur'}</strong>,
+              </p>
+              <p style="margin:0 0 16px 0;font-size:14px;color:#0F172A;line-height:1.6;">
+                Votre compte a été créé avec succès. Vous pouvez vous connecter à votre compte en utilisant les informations suivantes :
+              </p>
+              <p style="margin:0 0 16px 0;font-size:14px;color:#0F172A;line-height:1.6;">
+                Email : <strong>${to}</strong><br>
+                Mot de passe temporaire : <strong>${temporaryPassword}</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 32px 32px 32px;text-align:center;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            <td style="background:#7C3AED;border-radius:10px;text-align:center;">
+              <a href="${loginUrl}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Se connecter à mon compte</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `;
+
+  return baseLayout(content);
+};
+
+module.exports = { statusUpdateTemplate, bulkAlertTemplate, resetPasswordTemplate, welcomeTemplate, STATUS_CONFIG };

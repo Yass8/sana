@@ -1,6 +1,7 @@
 // src/controllers/user.controller.js
 const { User, Agency } = require('../models')
 const { ROLES }        = require('../constants')
+const { sendWelcomeEmail } = require('../services/email.service')
 
 // ─── GET /api/users ───────────────────────────────────
 const getAll = async (req, res, next) => {
@@ -54,11 +55,18 @@ const getById = async (req, res, next) => {
 // Création d'un agent par l'admin
 const create = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role, agencyId } = req.body
+    const { name, email, password, phone, role, agencyId, sendMail } = req.body
 
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: 'Nom, email, mot de passe et rôle requis.' })
+    if (!name || !email || !role) {
+      return res.status(400).json({ message: 'Nom, email et rôle requis.' })
     }
+
+    const alphaNum = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+
+    const finallyPassword = password || Array.from(
+      { length: 6 },
+      () => alphaNum[Math.floor(Math.random() * alphaNum.length)]
+    ).join('')
 
     const validRoles = [ROLES.AGENT_FR, ROLES.AGENT_AF, ROLES.ADMIN, ROLES.CLIENT]
     if (!validRoles.includes(role)) {
@@ -70,10 +78,25 @@ const create = async (req, res, next) => {
 
     const user = await User.create({
       name, email, phone, role, agencyId: agencyId ?? null,
-      passwordHash: password,
+      passwordHash: finallyPassword,
     })
 
     res.status(201).json(user.toSafeJSON())
+
+    if (sendMail) {
+      try {
+        await sendWelcomeEmail({
+          to: user.email,
+          name: user.name,
+          temporaryPassword: finallyPassword, // mot de passe en clair pour le mail de bienvenue
+          loginUrl: `${process.env.APP_URL}/login`,
+        })
+      }
+      catch (err) {
+        console.error('Erreur envoi email de bienvenue:', err)
+      }
+    }
+
   } catch (err) { next(err) }
 }
 
@@ -118,4 +141,39 @@ const deleteUser = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, getMe, getById, create, update, desactivate, deleteUser }
+// update password
+const updatePassword = async (req, res, next) => {
+  try {
+    const user = await User.scope('withPassword').findByPk(req.params.id)
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
+
+    const { currentPassword, newPassword } = req.body
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Mot de passe actuel et nouveau mot de passe requis.' })
+    }
+
+    // Vérification du mot de passe actuel
+    const isValid = await user.checkPassword(currentPassword)
+    if (!isValid) {
+      return res.status(400).json({ message: 'Mot de passe actuel incorrect.' })
+    }
+
+    // Vérification que le nouveau est différent
+    const isSame = await user.checkPassword(newPassword)
+    if (isSame) {
+      return res.status(400).json({ message: 'Le nouveau mot de passe doit être différent de l\'ancien.' })
+    }
+
+    // Mise à jour (le hook beforeUpdate doit hasher)
+    await user.update({ passwordHash: newPassword })
+
+    res.json({ message: 'Mot de passe mis à jour.' })
+
+  } catch (err) { next(err) }
+
+}
+
+    
+    
+
+module.exports = { getAll, getMe, getById, create, update, desactivate, deleteUser, updatePassword }
