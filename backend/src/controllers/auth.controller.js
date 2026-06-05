@@ -134,8 +134,6 @@ const forgotPassword = async (req, res, next) => {
 
     const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`
     
-    // TODO : Envoyer un email avec ce lien (utiliser une template d'email)
-    console.log(`Lien de réinitialisation pour ${email} : ${resetUrl}`)
     await sendResetEmail({
       to: email,
       name: user.name,

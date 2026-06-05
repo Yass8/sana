@@ -147,7 +147,6 @@ export default function NewParcelPage() {
         })
         // La réponse peut être directe ou contenir un champ `data`
         senderId = response.id ?? response.data?.id
-        console.log('Nouvel utilisateur créé, ID :', senderId)
         await showSuccessAlert({ text: `Nouveau client créé (${form.senderEmail}). Mot de passe temporaire : ${randomPassword}` })
       } catch (err) {
         console.error('Erreur création utilisateur :', err)

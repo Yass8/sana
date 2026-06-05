@@ -107,7 +107,6 @@ export default function ScanPage() {
     else if (bagMatch) code = bagMatch[1]
 
     setDebugCode(code)
-    console.log('Code extrait:', code)
 
     // 1. Recherche colis
     let isParcel = false
@@ -118,7 +117,8 @@ export default function ScanPage() {
       isParcel = true
     } catch (err) {
       // Ignorer, on va tenter de trouver un sac
-      console.log('Pas un colis, recherche sac...')
+      // console.log('Pas un colis, recherche sac...')
+      console.error('Erreur recherche colis:', err)
     }
 
     if (isParcel) return
