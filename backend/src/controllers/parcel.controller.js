@@ -1,6 +1,6 @@
 // src/controllers/parcel.controller.js
 const { Parcel, Bag, TrackingEvent,
-        Notification, User, sequelize } = require('../models')
+        Notification, User, Agency, sequelize } = require('../models')
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
         ROLES, canTransition } = require('../constants')
@@ -8,6 +8,11 @@ const { generateQRCode, deleteQRCode } = require('../services/qrcode.service')
 const { Op } = require('sequelize')
 const { generateCode } = require('../services/codeGenerator.service')
 const { sendStatusEmail } = require('../services/email.service');
+
+
+// IDs des agences fixes (à remplacer si besoin)
+const DEFAULT_ORIGIN_AGENCY_ID = '69ab1a3a-0989-485b-851b-a7430a6e38e0';
+const DEFAULT_DESTINATION_AGENCY_ID = 'bf0ff001-79b5-4aef-bcce-3038aac4165b';
 
 const INCLUDE_FULL = [
   { association: 'sender',  attributes: ['id','name','email','phone'] },
@@ -92,21 +97,22 @@ const create = async (req, res, next) => {
   try {
     const { bagId, senderId, recipientName, recipientPhone, description, weight } = req.body
 
-    if (!bagId || !senderId || !recipientName) {
-      return res.status(400).json({ message: 'bagId, senderId et recipientName requis.' })
+    if (!senderId || !recipientName) {
+      return res.status(400).json({ message: 'senderId et recipientName sont requis.' })
     }
 
-    const bag = await Bag.findByPk(bagId)
-    if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
-    if (bag.status !== 'ouvert') {
-      return res.status(400).json({ message: 'Ce sac est fermé.' })
-    }
-
-    // Récupérer l'expéditeur pour ses coordonnées
     const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone'] })
-
     if (!sender) {
-      throw new Error('Expéditeur introuvable')
+      return res.status(404).json({ message: 'Expéditeur introuvable.' })
+    }
+
+    let bag = null
+    if (bagId) {
+      bag = await Bag.findByPk(bagId)
+      if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
+      if (bag.status !== 'ouvert') {
+        return res.status(400).json({ message: 'Ce sac est fermé. Impossible d’ajouter un colis.' })
+      }
     }
 
     let parcel
@@ -114,7 +120,8 @@ const create = async (req, res, next) => {
       const qrcode = await generateCode('parcel')
 
       parcel = await Parcel.create({
-        bagId, senderId,
+        bagId: bagId || null,
+        senderId,
         recipientName,
         recipientPhone: recipientPhone ?? null,
         description: description ?? null,
@@ -131,7 +138,6 @@ const create = async (req, res, next) => {
         notes: 'Colis réceptionné en agence.',
       }, { transaction: t })
 
-      // Notification pour l'expéditeur (email)
       await Notification.create({
         parcelId: parcel.id,
         userId: senderId,
@@ -141,35 +147,46 @@ const create = async (req, res, next) => {
         status: NOTIF_STATUS.PENDING,
       }, { transaction: t })
 
-      // mettre à jour le poids du sac
-      // Récupérer tous les colis du sac (avec le nouveau colis inclus)
-      const allParcels = await Parcel.findAll({
-        where: { bagId },
-        attributes: ['weight'],
-        transaction: t,
-      })
-      // Calculer la somme des poids (les poids null sont ignorés)
-      const totalWeight = allParcels.reduce((sum, p) => {
-        const w = p.weight ? parseFloat(p.weight) : 0
-        return sum + w
-      }, 0)
-      // Mettre à jour le sac
-      await bag.update({ weight: totalWeight }, { transaction: t })
+      if (bag) {
+        const allParcels = await Parcel.findAll({
+          where: { bagId },
+          attributes: ['weight'],
+          transaction: t,
+        })
+        const totalWeight = allParcels.reduce((sum, p) => {
+          const w = p.weight ? parseFloat(p.weight) : 0
+          return sum + w
+        }, 0)
+        await bag.update({ weight: totalWeight }, { transaction: t })
+      }
     })
-
-    // Génération du QR
+    // Génération QR code
     const qrcodeUrl = await generateQRCode(parcel.qrcode, 'parcel')
     await parcel.update({ qrcodeUrl })
 
-    // Récuperation du sac avec les agences
-    const sac = await Bag.findByPk(parcel.bagId, {
-      include: [
-        { association: 'originAgency', attributes: ['name','city','address','phone'] },
-        { association: 'destinationAgency', attributes: ['name','city','address','phone'] },
-      ]
-    })
-    
-    if (!sac) console.error(`Sac introuvable pour le colis ${parcel.id}`);
+    // Déterminer les agences d'origine et de destination pour l'email
+    let originAgency = null
+    let destinationAgency = null
+
+    if (bag) {
+      // Si le colis est dans un sac, on récupère les agences du sac
+      const sac = await Bag.findByPk(bag.id, {
+        include: [
+          { association: 'originAgency', attributes: ['name','city','address','phone'] },
+          { association: 'destinationAgency', attributes: ['name','city','address','phone'] },
+        ]
+      })
+      originAgency = sac?.originAgency ?? null
+      destinationAgency = sac?.destinationAgency ?? null
+    } else {
+      // Colis individuel : on utilise les agences fixes
+      const [origin, destination] = await Promise.all([
+        Agency.findByPk(DEFAULT_ORIGIN_AGENCY_ID, { attributes: ['name','city','address','phone'] }),
+        Agency.findByPk(DEFAULT_DESTINATION_AGENCY_ID, { attributes: ['name','city','address','phone'] })
+      ])
+      originAgency = origin
+      destinationAgency = destination
+    }
 
     // Envoi de l'email de confirmation
     try {
@@ -181,18 +198,25 @@ const create = async (req, res, next) => {
         senderName: sender.name,
         notes: 'Colis réceptionné en agence.',
         date: new Date(),
-        origin: sac?.originAgency ? { city: sac.originAgency.city, adresse: sac.originAgency.address, phone: sac.originAgency.phone } : null,
-        destination: sac?.destinationAgency ? { city: sac.destinationAgency.city, adresse: sac.destinationAgency.address, phone: sac.destinationAgency.phone } : null,
+        origin: originAgency ? {
+          city: originAgency.city,
+          adresse: originAgency.address,
+          phone: originAgency.phone
+        } : null,
+        destination: destinationAgency ? {
+          city: destinationAgency.city,
+          adresse: destinationAgency.address,
+          phone: destinationAgency.phone
+        } : null,
         colis: { weight: parcel.weight, description: parcel.description }
       })
-      // Mettre à jour la notification de l'expéditeur comme SENT
+
       await Notification.update(
         { status: NOTIF_STATUS.SENT, sentAt: new Date() },
         { where: { parcelId: parcel.id, userId: senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
       )
     } catch (emailErr) {
       console.error('Erreur envoi email:', emailErr)
-      // Marquer la notification comme FAILED
       await Notification.update(
         { status: NOTIF_STATUS.FAILED, errorMessage: emailErr.message },
         { where: { parcelId: parcel.id, userId: senderId, type: NOTIF_TYPE.STATUS_UPDATE } }
@@ -217,20 +241,42 @@ const updateStatus = async (req, res, next) => {
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
 
-    // Check if status transition is allowed on individual parcel
-    const isIssueReport = status === PARCEL_STATUS.ISSUE
-    const isCollectionConfirm = status === PARCEL_STATUS.COLLECTED && 
-                                parcel.status === PARCEL_STATUS.ARRIVED_DESTINATION &&
-                                (req.user.role === ROLES.AGENT_AF || req.user.role === ROLES.ADMIN)
-    
-    if (!isIssueReport && !isCollectionConfirm) {
-      return res.status(403).json({
-        message: 'Les transitions de statut individuelles ne sont pas autorisées. Modifiez le statut via le sac (page Sacs).',
-      })
+    let nextStatus
+
+    if (parcel.bagId) {
+      // Colis dans un sac : seules certaines transitions individuelles sont permises
+      const isIssueReport = status === PARCEL_STATUS.ISSUE
+      const isCollectionConfirm = status === PARCEL_STATUS.COLLECTED && 
+                                  parcel.status === PARCEL_STATUS.ARRIVED_DESTINATION &&
+                                  (req.user.role === ROLES.AGENT_AF || req.user.role === ROLES.ADMIN)
+      
+      if (!isIssueReport && !isCollectionConfirm) {
+        return res.status(403).json({
+          message: 'Les transitions de statut individuelles ne sont pas autorisées pour un colis en sac. Modifiez le statut via le sac (page Sacs).',
+        })
+      }
+      nextStatus = isIssueReport ? PARCEL_STATUS.ISSUE : PARCEL_STATUS.COLLECTED
+    } else {
+      // Colis individuel : transitions autorisées
+      const allowedTransitions = {
+        [PARCEL_STATUS.RECEIVED]: [PARCEL_STATUS.DEPARTED_AIRPORT, PARCEL_STATUS.ISSUE],
+        [PARCEL_STATUS.DEPARTED_AIRPORT]: [PARCEL_STATUS.ARRIVED_DESTINATION, PARCEL_STATUS.ISSUE],
+        [PARCEL_STATUS.ARRIVED_DESTINATION]: [PARCEL_STATUS.COLLECTED, PARCEL_STATUS.ISSUE],
+        [PARCEL_STATUS.COLLECTED]: [],
+        [PARCEL_STATUS.ISSUE]: [],
+      }
+      const allowed = allowedTransitions[parcel.status] || []
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ message: `Transition non autorisée de ${parcel.status} à ${status}.` })
+      }
+      // Seuls les rôles autorisés peuvent confirmer le retrait
+      if (status === PARCEL_STATUS.COLLECTED && !['agent_af', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Seul un agent AF ou admin peut confirmer le retrait.' })
+      }
+      nextStatus = status
     }
 
-    const nextStatus = status === PARCEL_STATUS.ISSUE ? PARCEL_STATUS.ISSUE : PARCEL_STATUS.COLLECTED
-
+    // Transaction : mise à jour + événement + notification
     await sequelize.transaction(async (t) => {
       await parcel.update({ status: nextStatus }, { transaction: t })
 
@@ -243,7 +289,6 @@ const updateStatus = async (req, res, next) => {
         occurredAt: new Date(),
       }, { transaction: t })
 
-      // Notification pour l'expéditeur
       await Notification.create({
         parcelId:       parcel.id,
         userId:         parcel.senderId,
@@ -252,11 +297,25 @@ const updateStatus = async (req, res, next) => {
         type:           NOTIF_TYPE.STATUS_UPDATE,
         status:         NOTIF_STATUS.PENDING,
       }, { transaction: t })
-
     })
 
-    // Envoi des emails après la transaction
-    // 1. Envoyer à l'expéditeur
+    // Envoi de l'email avec les agences appropriées
+    let originAgency = null
+    let destinationAgency = null
+
+    if (!parcel.bagId) {
+      // Colis individuel : agences fixes
+      const [origin, destination] = await Promise.all([
+        Agency.findByPk(DEFAULT_ORIGIN_AGENCY_ID, { attributes: ['name','city','address','phone'] }),
+        Agency.findByPk(DEFAULT_DESTINATION_AGENCY_ID, { attributes: ['name','city','address','phone'] })
+      ])
+      originAgency = origin
+      destinationAgency = destination
+    } else {
+      // Pour un colis en sac, on pourrait récupérer les agences du sac si besoin (pour l'email)
+      // Ici on laisse null, l'email de collecte/issue n'en a pas forcément besoin
+    }
+
     try {
       await sendStatusEmail({
         to: parcel.sender.email,
@@ -266,6 +325,17 @@ const updateStatus = async (req, res, next) => {
         senderName: parcel.sender.name,
         notes: notes || '',
         date: new Date(),
+        origin: originAgency ? {
+          city: originAgency.city,
+          adresse: originAgency.address,
+          phone: originAgency.phone
+        } : null,
+        destination: destinationAgency ? {
+          city: destinationAgency.city,
+          adresse: destinationAgency.address,
+          phone: destinationAgency.phone
+        } : null,
+        colis: { weight: parcel.weight, description: parcel.description }
       })
       await Notification.update(
         { status: NOTIF_STATUS.SENT, sentAt: new Date() },
@@ -278,12 +348,12 @@ const updateStatus = async (req, res, next) => {
       )
     }
 
-
     res.status(201).json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))
   } catch (err) {
     next(err)
   }
 }
+
 
 // ─── GET /api/parcels/:id/qrcode ────────────────────
 const getQRCode = async (req, res, next) => {

@@ -123,7 +123,7 @@ export default function ClientsPage() {
                   </div>
                   <span className="text-[10px] font-semibold bg-blue-50 text-blue-700
                                    px-2 py-0.5 rounded-full flex-shrink-0">
-                    {c._count?.parcels ?? 0} colis
+                    {c.parcelsCount ?? 0} colis
                   </span>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default function ClientsPage() {
                     <td className="px-4 py-3.5">
                       <span className="text-[10px] font-semibold bg-blue-50 text-blue-700
                                        px-2 py-0.5 rounded-full">
-                        {c._count?.parcels ?? 0} colis
+                        {c.parcelsCount ?? 0} colis
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-[11px] text-slate-400">

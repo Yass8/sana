@@ -1,6 +1,5 @@
-// src/pages/parcels/NewParcelPage.jsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { parcelsApi } from '../../api/parcels.api'
 import { bagsApi } from '../../api/bags.api'
@@ -39,8 +38,14 @@ const Field = ({ label, name, type = 'text', placeholder, required, full, value,
 
 export default function NewParcelPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const preselectedBagId = searchParams.get('bagId') || ''
+
   const queryClient = useQueryClient()
-  const [form, setForm] = useState(EMPTY)
+  const [form, setForm] = useState({
+    ...EMPTY,
+    bagId: preselectedBagId,
+  })
   const [errs, setErrs] = useState({})
   const [searchEmail, setSearchEmail] = useState('')
   const [debouncedEmail, setDebouncedEmail] = useState('')
@@ -118,7 +123,7 @@ export default function NewParcelPage() {
     const e = {}
     if (!form.senderName.trim())    e.senderName    = 'Requis'
     if (!form.recipientName.trim()) e.recipientName = 'Requis'
-    if (!form.bagId)                e.bagId         = 'Requis'
+    // bagId n'est plus obligatoire
     if (form.weight !== '') {
       const weightNum = parseFloat(form.weight)
       if (isNaN(weightNum)) e.weight = 'Nombre invalide'
@@ -145,7 +150,6 @@ export default function NewParcelPage() {
           role: 'client',
           isActive: true,
         })
-        // La réponse peut être directe ou contenir un champ `data`
         senderId = response.id ?? response.data?.id
         await showSuccessAlert({ text: `Nouveau client créé (${form.senderEmail}). Mot de passe temporaire : ${randomPassword}` })
       } catch (err) {
@@ -156,7 +160,7 @@ export default function NewParcelPage() {
     }
 
     const payload = {
-      bagId: form.bagId,
+      bagId: form.bagId || null,   // envoie null si vide
       senderId,
       recipientName: form.recipientName,
       recipientPhone: form.recipientPhone || null,
@@ -167,7 +171,8 @@ export default function NewParcelPage() {
   }
 
   const isCreating = createUser.isPending || createParcel.isPending
-  const submitDisabled = isCreating || !form.senderEmail || !form.senderName || !form.bagId || !form.recipientName
+  // Le bouton submit n'exige plus bagId
+  const submitDisabled = isCreating || !form.senderEmail || !form.senderName || !form.recipientName
 
   return (
     <div className="max-w-2xl mx-auto animate-fadeIn mb-2 md:mb-25 lg:mb-0">
@@ -248,18 +253,17 @@ export default function NewParcelPage() {
             <Field label="Poids (kg)" name="weight" type="number" placeholder="2.5"
                    value={form.weight} onChange={set('weight')} error={errs.weight} />
             <div>
-              <label className="block text-xs font-semibold text-slate-500
-                                uppercase tracking-wide mb-1.5">
-                Sac <span className="text-violet-600">*</span>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Sac
               </label>
-              <select value={form.bagId} onChange={set('bagId')}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-sm
-                                  outline-none transition-all ${
-                        errs.bagId
-                          ? 'border-red-400'
-                          : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
-                      }`}>
-                <option value="">— Sélectionner —</option>
+              <select
+                value={form.bagId}
+                onChange={set('bagId')}
+                className={`w-full px-4 py-3 border-2 rounded-xl text-sm outline-none transition-all ${
+                  errs.bagId ? 'border-red-400' : 'border-slate-200 focus:border-violet-500 focus:ring-4 focus:ring-violet-100'
+                }`}
+              >
+                <option value="">Aucun sac (colis individuel)</option>
                 {bags.map(b => (
                   <option key={b.id} value={b.id}>
                     {b.qrcode} · {b.destinationAgency?.city}
@@ -269,38 +273,29 @@ export default function NewParcelPage() {
               {errs.bagId && <p className="text-xs text-red-500 mt-1">{errs.bagId}</p>}
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-500
-                                uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                 Contenu déclaré
               </label>
               <textarea value={form.description} onChange={set('description')}
                         placeholder="Vêtements, chaussures, médicaments…" rows={2}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl
-                                   text-sm outline-none resize-none transition-all
-                                   focus:border-violet-500 focus:ring-4 focus:ring-violet-100"/>
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none resize-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"/>
             </div>
           </div>
         </Card>
 
         {createParcel.isError && (
-          <div className="bg-red-50 border border-red-200 text-red-600
-                          text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
             {createParcel.error?.message ?? 'Erreur lors de la création.'}
           </div>
         )}
 
         <div className="flex gap-3 mb-10 md:mb-0 lg:mb-0">
           <button type="button" onClick={() => navigate('/parcels')}
-                  className="flex-1 border-2 border-slate-200 text-slate-500
-                             py-3.5 rounded-xl text-sm font-semibold
-                             hover:border-slate-300 transition-colors">
+                  className="flex-1 border-2 border-slate-200 text-slate-500 py-3.5 rounded-xl text-sm font-semibold hover:border-slate-300 transition-colors">
             Annuler
           </button>
           <button type="submit" disabled={submitDisabled}
-                  className="flex-1 bg-violet-600 hover:bg-violet-700
-                             disabled:opacity-60 text-white font-semibold
-                             py-3.5 rounded-xl text-sm transition-colors
-                             flex items-center justify-center gap-2">
+                  className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
             {isCreating ? <><Spinner size="sm" color="white"/> Traitement…</> : 'Créer le colis'}
           </button>
         </div>

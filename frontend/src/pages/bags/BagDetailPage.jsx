@@ -1,4 +1,3 @@
-// src/pages/bags/BagDetailPage.jsx
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,7 +8,7 @@ import Spinner from '../../components/ui/Spinner'
 import Skeleton from '../../components/ui/Skeleton'
 import LabelPrinter from '../../components/ui/LabelPrinter'
 import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
-import { Copy, Download } from 'lucide-react'
+import { Copy, Download, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
 
 export default function BagDetailPage() {
@@ -24,7 +23,6 @@ export default function BagDetailPage() {
     queryFn: () => bagsApi.getById(id),
   })
 
-  // Mettre à jour localStorage quand airportDone change
   const closeBag = useMutation({
     mutationFn: () => bagsApi.close(id),
     onSuccess: async () => {
@@ -92,7 +90,6 @@ export default function BagDetailPage() {
   const parcels = bag?.parcels ?? []
   const status = bag?.status
 
-  // Déterminer quels boutons afficher selon la logique séquentielle
   const canClose = status === 'ouvert'
   const canMarkDepartAirport = status === 'fermé'
   const canMarkArrived = status === 'en_transit'
@@ -195,28 +192,21 @@ export default function BagDetailPage() {
 
           {/* Formulaire alerte */}
           {showAlert && (
-            <div className="mt-4 bg-red-50 border border-red-200
-                            rounded-xl p-4 flex flex-col gap-3 animate-fadeIn">
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-3 animate-fadeIn">
               <p className="text-xs font-semibold text-red-700">
                 Message envoyé par email et SMS aux {parcels.length} clients de ce sac.
               </p>
               <textarea value={alertMsg} onChange={e => setAlertMsg(e.target.value)}
                         placeholder="Ex: Retard douanier…" rows={3}
-                        className="w-full px-3 py-2.5 border-2 border-red-200
-                                   rounded-xl text-sm outline-none resize-none
-                                   bg-white focus:border-red-400 transition-all" />
+                        className="w-full px-3 py-2.5 border-2 border-red-200 rounded-xl text-sm outline-none resize-none bg-white focus:border-red-400 transition-all" />
               <div className="flex gap-2">
                 <button onClick={() => setShowAlert(false)}
-                        className="flex-1 border-2 border-slate-200 text-slate-500
-                                   py-2 rounded-xl text-sm font-semibold transition-colors">
+                        className="flex-1 border-2 border-slate-200 text-slate-500 py-2 rounded-xl text-sm font-semibold transition-colors">
                   Annuler
                 </button>
                 <button onClick={() => alertMsg.trim() && sendAlert.mutate(alertMsg)}
                         disabled={!alertMsg.trim() || sendAlert.isPending}
-                        className="flex-1 bg-red-500 hover:bg-red-600
-                                   disabled:opacity-50 text-white font-semibold
-                                   py-2 rounded-xl text-sm transition-colors
-                                   flex items-center justify-center gap-2">
+                        className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
                   {sendAlert.isPending ? <><Spinner size="sm" color="white" /> Envoi…</> : `Envoyer à ${parcels.length} clients`}
                 </button>
               </div>
@@ -258,26 +248,26 @@ export default function BagDetailPage() {
         </div>
       </Card>
 
-      
-      <div className="flex flex-wrap gap-4 bg-white border border-slate-100
-                      rounded-2xl px-5 py-3.5 shadow-sm">
-        <div className="mt-4 flex items-center gap-3">
-            <button onClick={() => navigate(`/bags/${id}/edit`)}
-                    className="text-xs bg-slate-50 border-2 border-slate-200
-                               hover:border-violet-500 hover:text-violet-600
-                               text-slate-500 px-3 py-1.5 rounded-xl
-                               transition-all font-semibold flex items-center gap-1">
-              <Copy size={14} /> Modifier
-            </button>
-            <DeleteButton type="bag" id={id} />
-
-          </div>
+      {/* Barre d'outils : Ajouter colis, Modifier, Supprimer */}
+      <div className="flex flex-wrap gap-4 bg-white border border-slate-100 rounded-2xl px-5 py-3.5 shadow-sm">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => navigate(`/parcels/new?bagId=${id}`)}
+            className="text-xs bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-xl transition-all font-semibold flex items-center gap-1"
+          >
+            <Plus size={14} /> Ajouter un colis dans ce sac
+          </button>
+          <button onClick={() => navigate(`/bags/${id}/edit`)}
+                  className="text-xs bg-slate-50 border-2 border-slate-200 hover:border-violet-500 hover:text-violet-600 text-slate-500 px-3 py-1.5 rounded-xl transition-all font-semibold flex items-center gap-1">
+            <Copy size={14} /> Modifier
+          </button>
+          <DeleteButton type="bag" id={id} />
+        </div>
       </div>
 
       {/* Liste colis */}
       <Card className='mb-10 md:mb-20 lg:mb-0'>
-        <div className="flex items-center justify-between px-5 py-4
-                        border-b border-slate-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 style={{ fontFamily: 'var(--font-display)' }}
               className="font-bold text-slate-900">Colis dans ce sac </h2>
           <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
@@ -306,16 +296,14 @@ export default function BagDetailPage() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 {['Code', 'Expéditeur', 'Destinataire', 'Poids', 'Statut'].map(h => (
-                  <th key={h} className="text-left text-[10px] font-semibold text-slate-400
-                                         uppercase tracking-wide px-5 py-3">{h}</th>
+                  <th key={h} className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">{h}</th>
                 ))}
                </tr>
             </thead>
             <tbody>
               {parcels.map(p => (
                 <tr key={p.id} onClick={() => navigate(`/parcels/${p.id}`)}
-                    className="border-b border-slate-50 hover:bg-violet-50/50
-                               cursor-pointer transition-colors last:border-0">
+                    className="border-b border-slate-50 hover:bg-violet-50/50 cursor-pointer transition-colors last:border-0">
                   <td className="px-5 py-3.5">
                     <span style={{ fontFamily: 'var(--font-display)' }}
                           className="text-xs font-bold text-violet-600">{p.qrcode}</span>

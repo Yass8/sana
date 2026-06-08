@@ -18,6 +18,16 @@ export function useUser(id) {
   })
 }
 
+export function useSendBulkMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => usersApi.sendBulk(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })   // pour rafraîchir si besoin
+    },
+  })
+}
+
 export function useCreateUser() {
   const qc = useQueryClient()
   return useMutation({

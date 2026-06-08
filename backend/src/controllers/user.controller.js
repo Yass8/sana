@@ -1,14 +1,14 @@
 // src/controllers/user.controller.js
 const { User, Agency } = require('../models')
 const { ROLES }        = require('../constants')
+    const { Op, Sequelize } = require('sequelize')
 const { sendWelcomeEmail } = require('../services/email.service')
 
 // ─── GET /api/users ───────────────────────────────────
 const getAll = async (req, res, next) => {
   try {
     const { role, search, page = 1, limit = 20 } = req.query
-    const where  = {}
-    const { Op } = require('sequelize')
+    const where = {}
 
     if (role)   where.role = role
     if (search) where[Op.or] = [
@@ -20,9 +20,25 @@ const getAll = async (req, res, next) => {
 
     const { count, rows } = await User.findAndCountAll({
       where,
-      include: [{ association: 'agency', attributes: ['id', 'name', 'city'] }],
-      order:   [['name', 'ASC']],
-      limit:   parseInt(limit),
+      // Un seul tableau include
+      include: [
+        { association: 'agency', attributes: ['id', 'name', 'city'] }
+      ],
+      //Attribut virtuel : compte les colis liés à l’utilisateur
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*) 
+              FROM parcels 
+              WHERE parcels.sender_id = "User".id
+            )`),
+            'parcelsCount'  
+          ]
+        ]
+      },
+      order: [['name', 'ASC']],
+      limit: parseInt(limit),
       offset,
     })
 
@@ -45,9 +61,31 @@ const getById = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.id, {
       include: [{ association: 'agency', attributes: ['id', 'name', 'city'] }],
+      attributes: {
+        include: [
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id
+          )`), 'totalParcels'],
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id AND parcels.status = 'received'
+          )`), 'receivedParcels'],
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id AND parcels.status = 'departed_airport'
+          )`), 'departedParcels'],
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id AND parcels.status = 'arrived_destination'
+          )`), 'arrivedParcels'],
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id AND parcels.status = 'collected'
+          )`), 'collectedParcels'],
+          [Sequelize.literal(`(
+            SELECT COUNT(*) FROM parcels WHERE parcels.sender_id = "User".id AND parcels.status = 'issue'
+          )`), 'issueParcels'],
+        ]
+      },
     })
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
-    res.json(user.toSafeJSON())
+    res.json(user.toSafeJSON())   // les nouveaux champs seront automatiquement présents
   } catch (err) { next(err) }
 }
 
@@ -131,15 +169,35 @@ const desactivate = async (req, res, next) => {
 // Suppression définitive — à utiliser avec précaution
 const deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id)
-    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
-    if (user.id === req.user.id) {
-      return res.status(400).json({ message: 'Impossible de supprimer son propre compte.' })
+    const userId = req.params.id;
+    const currentUser = req.user;
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+
+    // 1. Récupération de l'utilisateur
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }    
+
+    // 2. Contrôles de sécurité et de validité
+    if (user.email === superAdminEmail) {
+      return res.status(400).json({ message: 'Impossible de supprimer le compte super admin.' });
     }
-    await user.destroy()
-    res.json({ message: 'Utilisateur supprimé définitivement.' })
-  } catch (err) { next(err) }
-}
+
+    if (user.id === currentUser.id) {
+      return res.status(400).json({ message: 'Impossible de supprimer son propre compte.' });
+    }
+
+    // 3. Exécution de la suppression
+    await user.destroy();
+
+    return res.json({ message: 'Utilisateur supprimé définitivement.' });
+
+  } catch (err) {
+    next(err);
+  }
+};
 
 // update password
 const updatePassword = async (req, res, next) => {

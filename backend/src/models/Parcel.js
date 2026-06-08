@@ -16,7 +16,7 @@ module.exports = (sequelize) => {
     qrcode: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     weight: { type: DataTypes.DECIMAL(6, 2), allowNull: true },
-    bagId: { type: DataTypes.UUID, allowNull: false, field: 'bag_id' },
+    bagId: { type: DataTypes.UUID, allowNull: true, field: 'bag_id' },
     senderId: { type: DataTypes.UUID, allowNull: false, field: 'sender_id' },
     recipientName: { type: DataTypes.STRING(100), allowNull: false, field: 'recipient_name' },
     recipientPhone: { type: DataTypes.STRING(20), allowNull: true, field: 'recipient_phone' },
