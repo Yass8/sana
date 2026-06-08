@@ -3,7 +3,7 @@ const { Notification, Parcel, User } = require('../models')
 const { NOTIF_STATUS, NOTIF_CHANNEL,
         NOTIF_TYPE }                 = require('../constants')
 const { Op }                         = require('sequelize')
-const { sendBulkAlertEmail, sendStatusEmail } = require('../services/email.service')
+const { sendBulkAlertEmail, sendStatusEmail, sendBulkCustomEmail } = require('../services/email.service')
 
 const getAll = async (req, res, next) => {
   try {
@@ -120,4 +120,55 @@ const bulk = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { getAll, retry, bulk }
+const sendBulk = async (req, res, next) => {
+  try {
+    const { userIds, channel, message } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'Liste des destinataires requise.' });
+    }
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: 'Message requis.' });
+    }
+
+    // Récupérer les utilisateurs (clients uniquement pour l'instant)
+    const users = await User.findAll({
+      where: { id: userIds, role: 'client', isActive: true },
+      attributes: ['id', 'name', 'email'],
+    });
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'Aucun client trouvé parmi les IDs fournis.' });
+    }
+
+    const errors = [];
+    let successCount = 0;
+
+    for (const user of users) {
+      if (channel === 'email' || channel === 'both') {
+        try {
+          await sendBulkCustomEmail({
+            to: user.email,
+            name: user.name,
+            message: message,
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Erreur envoi à ${user.email}:`, err);
+          errors.push({ email: user.email, error: err.message });
+        }
+      }
+      // SMS à implémenter plus tard
+    }
+
+    res.json({
+      message: `${successCount} email(s) envoyé(s) sur ${users.length} destinataire(s).`,
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+module.exports = { getAll, retry, bulk, sendBulk }

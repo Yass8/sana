@@ -59,7 +59,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn mb-10 md:mb-20 lg:mb-0">
+    <div className="flex flex-col gap-5 animate-fadeIn mb-10 md:mb-25 lg:mb-0">
       {/* En-tête */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
@@ -90,7 +90,7 @@ export default function UsersPage() {
       {/* Toast succès */}
       {toasted && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl animate-fadeIn">
-          ✅ Message envoyé à {selected.size} client(s).
+          ✅ Message envoyé aux client(s) sélectionné(s).
         </div>
       )}
 

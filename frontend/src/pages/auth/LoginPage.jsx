@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
 
         <p className="hidden lg:block text-white/20 text-xs">
-          © {new Date().getFullYear()} ColisTrack
+          © {new Date().getFullYear()} SanaService. Tous droits réservés.
         </p>
       </div>
 

@@ -34,7 +34,7 @@ export default function PublicTrackingPage() {
       <header className="bg-[#0A1628] px-5 py-4 flex items-center justify-between">
         <div>
           <p style={{fontFamily:'var(--font-display)'}}
-             className="text-white text-lg font-bold">ColisTrack</p>
+             className="text-white text-lg font-bold">SanaService</p>
           <p className="text-violet-400 text-[10px] font-semibold
                         tracking-widest uppercase">Suivi de colis</p>
         </div>

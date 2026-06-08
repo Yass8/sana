@@ -7,7 +7,6 @@ import { ScanLine, User, Users, Bell, LogOut, Building2 } from 'lucide-react'
 const MENU_ITEMS = [
   { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin','client'] },
   { to: '/users',         label: 'Utilisateurs',  icon: Users, roles: ['admin'] },
-  { to: '/clients',       label: 'Clients',       icon: Users, roles: ['admin'] },
   { to: '/agencies',      label: 'Agences',       icon: Building2, roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,  roles: ['admin'] },
 ]

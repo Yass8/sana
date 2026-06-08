@@ -1,6 +1,6 @@
 // src/services/email.service.js
 const nodemailer = require('nodemailer');
-const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate, welcomeTemplate } = require('./email.templates');
+const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate, welcomeTemplate, bulkCustomMessageTemplate } = require('./email.templates');
 
 // Configuration du transporteur Gmail
 const transporter = nodemailer.createTransport({
@@ -56,7 +56,6 @@ async function sendBulkAlertEmail(params) {
   return await transporter.sendMail(mailOptions);
 }
 
-require('./email.templates');
 
 /**
  * Envoi de l'email de réinitialisation de mot de passe
@@ -101,4 +100,20 @@ async function sendWelcomeEmail(params) {
   }
 }
 
-module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail, sendWelcomeEmail };
+/**
+ * Envoi d'un message groupé personnalisé (depuis la page utilisateurs)
+ */
+async function sendBulkCustomEmail({ to, name, message }) {
+  const html = bulkCustomMessageTemplate({ name, message });
+
+  const mailOptions = {
+    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `📬 Message de SanaService`,
+    html,
+  };
+
+  return await transporter.sendMail(mailOptions);
+}
+
+module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail, sendWelcomeEmail, sendBulkCustomEmail };

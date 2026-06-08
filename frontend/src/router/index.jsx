@@ -11,7 +11,6 @@ import NewParcelPage        from '../pages/parcels/NewParcelPage'
 import ScanPage             from '../pages/scan/ScanPage'
 import BagsPage             from '../pages/bags/BagsPage'
 import BagDetailPage        from '../pages/bags/BagDetailPage'
-import ClientsPage          from '../pages/clients/ClientsPage'
 import NotificationsPage    from '../pages/notifications/NotificationsPage'
 import UsersPage from '../pages/users/UsersPage'
 import UsersForm from '../pages/users/UsersForm'
@@ -50,7 +49,6 @@ const router = createBrowserRouter([
         { path: '/scan',         element: <ScanPage /> },
         { path: '/bags',         element: <BagsPage /> },
         { path: '/bags/:id',     element: <BagDetailPage /> },
-        { path: '/clients',      element: <ClientsPage /> },
         { path: '/notifications',element: <NotificationsPage /> },
         { path: '/agencies',     element: <AgenciesPage /> },
 

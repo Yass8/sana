@@ -2,9 +2,9 @@ import { useState } from 'react'
 import Spinner from '../ui/Spinner'
 
 const CHANNELS = [
-  { id: 'email', label: 'Email' },
-  { id: 'sms',   label: 'SMS' },
-  { id: 'both',  label: 'Les deux' },
+  { id: 'email', label: 'Email', disabled: false },
+  { id: 'sms',   label: 'SMS',   disabled: true, tooltip: 'Bientôt disponible' },
+  { id: 'both',  label: 'Les deux', disabled: true, tooltip: 'Bientôt disponible' },
 ]
 
 export default function BulkMessageModal({ selected, sendBulk, onClose }) {
@@ -18,7 +18,7 @@ export default function BulkMessageModal({ selected, sendBulk, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4 animate-fadeIn"
+    <div className="fixed inset-0 bg-black/50 flex items-center md:items-center justify-center z-50 p-4 animate-fadeIn lg:mb-0"
          onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm flex flex-col gap-5 animate-slideUp md:animate-fadeIn">
         <div className="flex items-center justify-between">
@@ -32,10 +32,19 @@ export default function BulkMessageModal({ selected, sendBulk, onClose }) {
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Canal</label>
           <div className="flex gap-2">
             {CHANNELS.map(c => (
-              <button key={c.id} onClick={() => setChannel(c.id)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
-                        channel === c.id ? 'border-violet-500 text-violet-600 bg-violet-50' : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                      }`}>
+              <button
+                key={c.id}
+                onClick={() => !c.disabled && setChannel(c.id)}
+                disabled={c.disabled}
+                title={c.tooltip || ''}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
+                  channel === c.id
+                    ? 'border-violet-500 text-violet-600 bg-violet-50'
+                    : c.disabled
+                    ? 'border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed'
+                    : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                }`}
+              >
                 {c.label}
               </button>
             ))}

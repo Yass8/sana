@@ -1,11 +1,12 @@
 // src/pages/dashboard/DashboardPage.jsx
 import { useNavigate }       from 'react-router-dom'
 import { useAuth }           from '../../context/AuthContext'
-import { useDashboardStats } from '../../hooks/useDashboardStats'
+import { useDashboardStats, useQuickActions } from '../../hooks/useDashboardStats'
 import { useParcels }        from '../../hooks/useParcels'
 import StatusBadge           from '../../components/ui/StatusBadge'
 import Card                  from '../../components/ui/Card'
 import Spinner               from '../../components/ui/Spinner'
+import QuickActionsPanel from '../../components/dashboard/QuickActionPannel'
 
 function StatCard({ label, value, sub, variant = 'default' }) {
   const variants = {
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const { user }  = useAuth()
   const navigate  = useNavigate()
   const stats     = useDashboardStats()
+  const quickActions = useQuickActions()
   const parcels   = useParcels({ limit: 5, sortBy: 'createdAt', sortDir: 'DESC' })
 
   const s    = stats.data ?? {}
@@ -82,6 +84,11 @@ export default function DashboardPage() {
         <StatCard label="Problèmes actifs"  value={s.issues}        variant="violet"/>
         <StatCard label="Livrés ce mois"    value={s.monthDelivered} variant="green"/>
       </div>
+
+      {/* Actions rapides (visible pour agents et admin) */}
+      {user?.role !== 'client' && (
+        <QuickActionsPanel actions={quickActions.data} isLoading={quickActions.isLoading} />
+      )}
 
       {/* Derniers colis */}
       <Card className='mb-10 md:mb-24'>

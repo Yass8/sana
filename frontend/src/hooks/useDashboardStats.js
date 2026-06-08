@@ -9,3 +9,12 @@ export function useDashboardStats() {
     refetchInterval: 60_000,
   })
 }
+
+export function useQuickActions() {
+    return useQuery({
+        queryKey: ['quick-actions'],
+        queryFn: dashboardApi.getQuickActions,
+        staleTime: 30_000,
+    refetchInterval: 60_000, // rafraîchir toutes les minutes
+    })
+}
