@@ -35,7 +35,9 @@ const getAll = async (req, res, next) => {
 
     const where = {}
     if (status) where.status = status
-    if (bagId)  where.bagId  = bagId
+    if (bagId !== undefined) {
+      where.bagId = bagId === 'null' ? null : bagId;
+    }
     if (search) where[Op.or] = [
       { qrcode:       { [Op.like]: `%${search}%` } },
       { recipientName: { [Op.like]: `%${search}%` } },

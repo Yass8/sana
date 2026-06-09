@@ -135,7 +135,7 @@ export default function DashboardPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                {['Code','Expéditeur','Destinataire','Destination','Statut'].map(h => (
+                {['Code','Expéditeur','Destinataire','Statut'].map(h => (
                   <th key={h} className="text-left text-[10px] font-semibold
                                          text-slate-400 uppercase tracking-wide
                                          px-5 py-3">
@@ -157,9 +157,6 @@ export default function DashboardPage() {
                   </td>
                   <td className="px-5 py-3.5 text-slate-600">{p.sender?.name ?? '—'}</td>
                   <td className="px-5 py-3.5 text-slate-600">{p.recipientName}</td>
-                  <td className="px-5 py-3.5 text-xs text-slate-400">
-                    {p.bag?.destinationAgency?.city ?? '—'}
-                  </td>
                   <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
                 </tr>
               ))}

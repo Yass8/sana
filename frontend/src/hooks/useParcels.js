@@ -30,3 +30,11 @@ export function useUpdateParcelStatus() {
     },
   })
 }
+
+export function useAvailableParcels() {
+  return useQuery({
+    queryKey: ['available-parcels'],  // meilleur nom de cache
+    queryFn: () => parcelsApi.getAll({ status: 'received', bagId: 'null' }),
+    select: (d) => (Array.isArray(d) ? d : d?.rows ?? []),
+  });
+}

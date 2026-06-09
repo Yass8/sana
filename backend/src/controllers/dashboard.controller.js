@@ -14,7 +14,7 @@ const getStats = async (req, res, next) => {
            issues, monthDelivered] = await Promise.all([
       Parcel.count({ where: { createdAt: { [Op.gte]: today } } }),
       Parcel.count({ where: { createdAt: { [Op.between]: [yesterday, today] } } }),
-      Bag.count({    where: { status: 'in_transit' } }),
+      Bag.count({    where: { status: 'en_transit' } }),
       Parcel.count({ where: { status: 'issue' } }),
       Parcel.count({ where: {
         status:    'collected',

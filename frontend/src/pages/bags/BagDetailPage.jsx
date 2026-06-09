@@ -8,8 +8,9 @@ import Spinner from '../../components/ui/Spinner'
 import Skeleton from '../../components/ui/Skeleton'
 import LabelPrinter from '../../components/ui/LabelPrinter'
 import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
-import { Copy, Download, Plus } from 'lucide-react'
+import { Copy, Download, Plus, Package } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
+import { useAvailableParcels } from '../../hooks/useParcels'
 
 export default function BagDetailPage() {
   const { id } = useParams()
@@ -17,6 +18,9 @@ export default function BagDetailPage() {
   const queryClient = useQueryClient()
   const [alertMsg, setAlertMsg] = useState('')
   const [showAlert, setShowAlert] = useState(false)
+
+  const [selectedParcels, setSelectedParcels] = useState(new Set())
+  const [searchAvailable, setSearchAvailable] = useState('')
 
   const { data: bag, isLoading } = useQuery({
     queryKey: ['bag', id],
@@ -58,6 +62,23 @@ export default function BagDetailPage() {
       await showErrorAlert({ text: err?.message || 'Impossible de mettre à jour le statut.' })
     },
   })
+
+  const availableParcels = useAvailableParcels()
+
+  // mutation pour ajouter des colis
+  const addParcelsMutation = useMutation({
+    mutationFn: (parcelIds) => bagsApi.addParcels(id, parcelIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bag', id] })
+      queryClient.invalidateQueries({ queryKey: ['available-parcels'] })
+      setSelectedParcels(new Set())
+      showSuccessAlert({ text: 'Colis ajoutés au sac.' })
+    },
+    onError: (err) => showErrorAlert({ text: err.message || 'Erreur lors de l\'ajout.'})
+  })
+
+  console.log(bag?.status);
+  
 
   if (isLoading) return (
     <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
@@ -264,6 +285,111 @@ export default function BagDetailPage() {
           <DeleteButton type="bag" id={id} />
         </div>
       </div>
+
+      {/* Section colis disponibles */}
+      
+      {bag?.status === 'ouvert' && (
+        <Card>
+          <div className="p-5">
+            <h2 style={{ fontFamily: 'var(--font-display)' }} className="font-bold text-slate-900 mb-3">
+              Colis disponibles (sans sac)
+            </h2>
+
+            {/* Champ de recherche instantanée */}
+            <div className="relative mb-4">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm">⌕</span>
+              <input
+                type="text"
+                value={searchAvailable}
+                onChange={e => setSearchAvailable(e.target.value)}
+                placeholder="Rechercher un colis..."
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+              />
+              {searchAvailable && (
+                <button
+                  onClick={() => setSearchAvailable('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {availableParcels.isLoading ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : (
+              <>
+                {/* Filtrage des colis par le terme de recherche */}
+                {(() => {
+                  const filtered = availableParcels.data?.filter(p => {
+                    if (!searchAvailable.trim()) return true
+                    const term = searchAvailable.toLowerCase()
+                    return (
+                      p.qrcode?.toLowerCase().includes(term) ||
+                      p.sender?.name?.toLowerCase().includes(term) ||
+                      p.recipientName?.toLowerCase().includes(term)
+                    )
+                  }) ?? []
+
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-sm text-slate-400 text-center py-8">
+                        {searchAvailable ? 'Aucun colis trouvé.' : 'Aucun colis individuel en attente.'}
+                      </p>
+                    )
+                  }
+
+                  return (
+                    <>
+                      <div className="max-h-72 overflow-y-auto space-y-2 mb-4 pr-1">
+                        {filtered.map(p => (
+                          <label key={p.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={selectedParcels.has(p.id)}
+                              onChange={() => {
+                                setSelectedParcels(prev => {
+                                  const next = new Set(prev)
+                                  next.has(p.id) ? next.delete(p.id) : next.add(p.id)
+                                  return next
+                                })
+                              }}
+                              className="accent-violet-600 w-4 h-4"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{p.qrcode}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {p.sender?.name || '?'} → {p.recipientName}
+                                {p.weight ? ` · ${p.weight}kg` : ''}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => {
+                          const ids = [...selectedParcels]
+                          if (ids.length === 0) return
+                          addParcelsMutation.mutate(ids)
+                        }}
+                        disabled={selectedParcels.size === 0 || addParcelsMutation.isPending}
+                        className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors w-full justify-center"
+                      >
+                        {addParcelsMutation.isPending ? (
+                          <Spinner size="sm" color="white" />
+                        ) : (
+                          <Package size={16} />
+                        )}
+                        Ajouter {selectedParcels.size > 0 ? `(${selectedParcels.size})` : ''} au sac
+                      </button>
+                    </>
+                  )
+                })()}
+              </>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Liste colis */}
       <Card className='mb-10 md:mb-20 lg:mb-0'>

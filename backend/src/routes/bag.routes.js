@@ -13,6 +13,7 @@ router.get(   '/:id',        authenticate, agentsAndAdmin, ctrl.getById)
 router.post(  '/',           authenticate, frAndAdmin,     ctrl.create)
 router.patch( '/:id/close',  authenticate, frAndAdmin,     ctrl.close)
 router.patch( '/:id/status', authenticate, agentsAndAdmin, ctrl.updateStatus)
+router.patch('/:id/add-parcels', authenticate, frAndAdmin, ctrl.addParcels)
 router.post(  '/:id/alert',  authenticate, frAndAdmin,     ctrl.sendAlert)
 router.delete('/:id',        authenticate, frAndAdmin,     ctrl.deleteBag)
 

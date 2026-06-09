@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Briefcase, ArrowRight, CheckCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import Spinner from '../ui/Spinner';
+import StatusBadge from '../ui/StatusBadge';
 
 export default function QuickActionsPanel({ actions = [], isLoading }) {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function QuickActionsPanel({ actions = [], isLoading }) {
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 style={{ fontFamily: 'var(--font-display)' }} className="font-bold text-slate-900 flex items-center gap-2">
-            ⚡ Actions immédiates
+            Actions rapides
             <span className="text-xs font-normal bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
               {actions.length}
             </span>
@@ -73,9 +74,14 @@ function ActionCard({ action, onClick }) {
           <Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <p style={{ fontFamily: 'var(--font-display)' }} className={`text-sm font-bold ${codeColor} truncate`}>
-            {action.code}
-          </p>
+          <div className="flex items-center gap-2">
+            <p style={{ fontFamily: 'var(--font-display)' }} className={`text-sm font-bold ${codeColor} truncate`}>
+              {action.code}
+            </p>
+            {action.status && (
+              <StatusBadge status={action.status} />
+            )}
+          </div>
           <p className="text-xs text-slate-700 mt-1 line-clamp-2">{action.label}</p>
           <div className="flex items-center gap-1 mt-2 text-xs font-medium text-slate-500 group-hover:text-slate-700">
             <span>Accéder</span>

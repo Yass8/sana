@@ -13,10 +13,11 @@ import { useEffect } from 'react'
 
 const FILTERS = [
   { label: 'Tous',       value: '' },
-  { label: 'Ouverts',    value: 'open' },
-  { label: 'Fermés',     value: 'closed' },
-  { label: 'En transit', value: 'in_transit' },
-  { label: 'Arrivés',    value: 'arrived' },
+  { label: 'Ouverts',    value: 'ouvert' },
+  { label: 'Fermés',     value: 'fermé' },
+  { label: 'En transit', value: 'en_transit' },
+  { label: 'Arrivés',    value: 'arrivé' },
+  { label: 'Problèmes',    value: 'issue' },
 ]
 
 export default function BagsPage() {

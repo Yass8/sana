@@ -358,4 +358,72 @@ const deleteBag = async (req, res, next) => {
   }
 }
 
-module.exports = { getAll, getById, create, close, updateStatus, sendAlert, trackByQRCode, deleteBag }
+const addParcels = async (req, res, next) => {
+  try {
+    const { parcelIds } = req.body; // tableau d'IDs
+    if (!parcelIds || !Array.isArray(parcelIds) || parcelIds.length === 0) {
+      return res.status(400).json({ message: 'Liste de colis requise.' });
+    }
+
+    const bag = await Bag.findByPk(req.params.id);
+    if (!bag) return res.status(404).json({ message: 'Sac introuvable.' });
+    if (bag.status !== BAG_STATUS.OPEN) {
+      return res.status(400).json({ message: 'Le sac doit être ouvert pour ajouter des colis.' });
+    }
+
+    // Récupérer les colis éligibles (sans sac, statut "received")
+    const parcels = await Parcel.findAll({
+      where: {
+        id: parcelIds,
+        bagId: null,
+        status: PARCEL_STATUS.RECEIVED,
+      },
+    });
+
+    if (parcels.length === 0) {
+      return res.status(400).json({ message: 'Aucun colis éligible trouvé.' });
+    }
+
+    // Mise à jour en transaction
+    await sequelize.transaction(async (t) => {
+      // Associer les colis au sac
+      await Parcel.update(
+        { bagId: bag.id },
+        { where: { id: parcels.map(p => p.id) }, transaction: t }
+      );
+
+      // Recalculer le poids du sac
+      const allParcels = await Parcel.findAll({
+        where: { bagId: bag.id },
+        attributes: ['weight'],
+        transaction: t,
+      });
+      const totalWeight = allParcels.reduce((sum, p) => {
+        const w = p.weight ? parseFloat(p.weight) : 0;
+        return sum + w;
+      }, 0);
+      await bag.update({ weight: totalWeight }, { transaction: t });
+    });
+
+    // Retourner le sac mis à jour
+    const updatedBag = await Bag.findByPk(bag.id, {
+      include: [
+        { association: 'originAgency', attributes: ['id', 'name', 'city'] },
+        { association: 'destinationAgency', attributes: ['id', 'name', 'city'] },
+        {
+          association: 'parcels',
+          include: [{ association: 'sender', attributes: ['id', 'name', 'email', 'phone'] }],
+        },
+      ],
+    });
+
+    res.json({
+      message: `${parcels.length} colis ajouté(s) au sac.`,
+      bag: updatedBag,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAll, getById, create, close, updateStatus, sendAlert, trackByQRCode, deleteBag, addParcels }

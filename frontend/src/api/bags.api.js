@@ -7,6 +7,7 @@ export const bagsApi = {
   create:      (data) => api.post('/bags', data),
   close:       (id)   => api.patch(`/bags/${id}/close`),
   updateStatus:(id, action) => api.patch(`/bags/${id}/status`, { action }),
+  addParcels: (id, parcelIds) => api.patch(`/bags/${id}/add-parcels`, { parcelIds }),
   sendAlert:   (id, data) => api.post(`/bags/${id}/alert`, data),
   delete:      (id)   => api.delete(`/bags/${id}`),
 }
