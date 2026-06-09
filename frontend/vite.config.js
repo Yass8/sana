@@ -12,8 +12,8 @@ export default defineConfig({
     // https: true,
     // port: 5173,
     proxy: {
-      '/api':      { target: 'http://localhost:3000', changeOrigin: true },
-      '/qrcodes': { target: 'http://localhost:3000', changeOrigin: true },
+      '/api':      { target: import.meta.env.VITE_BASE_API_URL, changeOrigin: true },
+      '/qrcodes': { target: import.meta.env.VITE_BASE_API_URL, changeOrigin: true },
     },
   },
 })
