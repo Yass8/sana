@@ -18,7 +18,13 @@ async function initDB() {
   try {
     await sequelize.authenticate()
     console.log('✅ Connexion DB OK')
+    // src/server.js
+require('dotenv').config()
 
+// 🔍 LIGNE DE DEBUG (À enlever plus tard pour la sécurité !)
+console.log("🔍 Vérification JWT_SECRET sur Vercel :", process.env.JWT_SECRET ? "Présente (OK)" : "Absente (VIDE)")
+
+// ... (le reste de ton code)
     // force: false = crée les tables si elles n'existent pas
     await sequelize.sync({ force: false })
     console.log('✅ Tables synchronisées')
