@@ -1,7 +1,7 @@
 // src/api/axios.js
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api', timeout: 10000 })
+const api = axios.create({ baseURL: `${import.meta.env.VITE_BASE_API_URL}/api`, timeout: 10000 })
 
 const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password']
 
