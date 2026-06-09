@@ -6,7 +6,10 @@ const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
 
-app.use(cors({ origin: process.env.APP_URL }))
+// On récupère l'URL et on retire le slash de fin s'il existe
+const originUrl = process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : '*';
+
+app.use(cors({ origin: originUrl }))
 app.use(express.json())
 
 // ── Fichiers statiques — qrcodes ──────────────────
