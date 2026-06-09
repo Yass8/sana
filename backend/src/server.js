@@ -1,5 +1,13 @@
 // src/server.js
 require('dotenv').config()
+
+// 💡 L'ASTUCE POUR VERCEL : On force l'analyseur statique à inclure le driver Postgres
+try {
+  require('pg')
+} catch (e) {
+  // On ignore l'erreur si jamais on est dans un environnement sans pg
+}
+
 const app           = require('./app')
 const { sequelize } = require('./models')
 
@@ -19,15 +27,14 @@ async function initDB() {
   }
 }
 
-// On lance la connexion (Vercel l'exécutera au démarrage de la fonction)
+// On lance la connexion
 initDB()
 
-// ⚠️ IMPORTANT : On ne lance app.listen QUE si on est en local (pas sur Vercel)
+// On ne lance app.listen QUE si on est en local
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 Serveur tourne au port ${PORT}`)
   })
 }
 
-// ⚠️ TRÈS IMPORTANT POUR VERCEL : On exporte l'application Express
 module.exports = app
