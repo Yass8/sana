@@ -6,7 +6,7 @@ const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
 
-app.use(cors({ origin: 'http://localhost:5173' }))
+app.use(cors({ origin: process.env.APP_URL }))
 app.use(express.json())
 
 // ── Fichiers statiques — qrcodes ──────────────────
