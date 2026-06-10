@@ -12,6 +12,9 @@ import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../comp
 import { ArrowLeft, Copy, Download, AlertTriangle, ChevronUp, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
 
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
+
+
 export default function ParcelDetailPage() {
   const { id }       = useParams()
   const { user }     = useAuth()
@@ -327,7 +330,7 @@ export default function ParcelDetailPage() {
                   className="font-bold text-slate-900 mb-4">QR Code</h2>
               {parcel.qrcodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
-                  <img src={parcel.qrcodeUrl} alt={parcel.qrcode}
+                  <img src={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`} alt={parcel.qrcode}
                        className="w-40 h-40"/>
                   <LabelPrinter
                     type="parcel"

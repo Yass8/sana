@@ -7,6 +7,9 @@ import TrackingTimeline from '../../components/ui/TrackingTimeline'
 import StatusBadge      from '../../components/ui/StatusBadge'
 import Spinner          from '../../components/ui/Spinner'
 
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
+
+
 export default function PublicTrackingPage() {
   const { qrcode: paramQRCode } = useParams()
   const navigate = useNavigate()
@@ -139,7 +142,7 @@ export default function PublicTrackingPage() {
                 <div className="px-5 py-5 border-t border-slate-100 flex flex-col
                                 items-center gap-3">
                   <p className="text-xs text-slate-400">QR code de suivi</p>
-                  <img src={data.qrcodeUrl} alt={data.qrcode} className="w-32 h-32"/>
+                  <img src={data.qrcodeUrl.startsWith('http') ? data.qrcodeUrl : `${BASE_API_URL}${data.qrcodeUrl}`} alt={data.qrcode} className="w-32 h-32"/>
                 </div>
               )}
 

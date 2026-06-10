@@ -2,6 +2,9 @@ import { Printer } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
+
+
 const LABEL_STYLES = {
   parcel: {
     label: 'COLIS',
@@ -58,7 +61,7 @@ export default function LabelPrinter({
         </div>
         <div class="body" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;">
           <div class="qrcode-wrapper" style="flex-shrink:0;width:${Math.round(20 * 3.78)}px;height:${Math.round(20 * 3.78)}px;border:1px solid #e2e8f0;border-radius:3px;display:flex;align-items:center;justify-content:center;background:#fff;">
-            <img class="qrcode" src="${qrcodeUrl}" alt="QR" style="width:${Math.round(18 * 3.78)}px;height:${Math.round(18 * 3.78)}px;object-fit:contain;" />
+            <img class="qrcode" src="${BASE_API_URL}${qrcodeUrl}" alt="QR Code" style="width:${Math.round(18 * 3.78)}px;height:${Math.round(18 * 3.78)}px;object-fit:contain;" />
           </div>
           <div class="info" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;">
             <div class="code-text" style="font-family:'Courier New',monospace;font-size:10px;font-weight:700;color:#0A1628;line-height:1.1;word-break:break-word;background:#f1f5f9;padding:3px 5px;border-radius:3px;text-align:center;letter-spacing:-0.3px;">

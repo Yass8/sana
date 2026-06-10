@@ -12,6 +12,8 @@ import { Copy, Download, Plus, Package } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
 import { useAvailableParcels } from '../../hooks/useParcels'
 
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
+
 export default function BagDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -243,7 +245,7 @@ export default function BagDetailPage() {
               className="font-bold text-slate-900 mb-4 text-center">QR Code du sac : {bag.qrcode}</h2>
           {bag.qrcodeUrl ? (
             <div className="flex flex-col items-center gap-3">
-              <img src={bag.qrcodeUrl} alt={bag.qrcode}
+              <img src={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`} alt={bag.qrcode}
                    className="w-40 h-40" />
               <LabelPrinter
                 type="bag"
