@@ -65,8 +65,9 @@ export default function LabelPrinter({
     // Texte du code sous le QR
     const codeText = document.createElement('div')
     codeText.style.marginTop = '8px'
+    codeText.style.marginLeft = '20px'
     codeText.style.fontFamily = "'Courier New', Courier, monospace"
-    codeText.style.fontSize = '14px'
+    codeText.style.fontSize = '18px'
     codeText.style.fontWeight = '700'
     codeText.style.color = '#0A1628'
     codeText.style.textAlign = 'left'           // aligné à gauche
