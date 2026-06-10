@@ -248,11 +248,8 @@ export default function BagDetailPage() {
               <img src={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`} alt={bag.qrcode}
                    className="w-40 h-40" />
               <LabelPrinter
-                type="bag"
                 code={bag.qrcode}
-                qrcodeUrl={bag.qrcodeUrl}
-                weight={bag.weight}
-                destination={bag.destinationAgency?.city}
+                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
                 className="w-full max-w-xs"
               />
               <p className="text-[10px] text-slate-400 text-center">

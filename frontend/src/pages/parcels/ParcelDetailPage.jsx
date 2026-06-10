@@ -333,11 +333,8 @@ export default function ParcelDetailPage() {
                   <img src={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`} alt={parcel.qrcode}
                        className="w-40 h-40"/>
                   <LabelPrinter
-                    type="parcel"
                     code={parcel.qrcode}
-                    qrcodeUrl={parcel.qrcodeUrl}
-                    weight={parcel.weight}
-                    destination={parcel.bag?.destinationAgency?.city}
+                    qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
                     className="w-full max-w-xs"
                   />
                   <p className="text-[10px] text-slate-400 text-center">

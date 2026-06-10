@@ -17,7 +17,7 @@ async function generateQRCode(code, type = 'parcel') {
   const filename = `${code}.png`
 
   // Base URL du front (ajoute cette variable sur Vercel, ex: https://monfront.vercel.app)
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  const frontendUrl = process.env.APP_URL || 'http://localhost:5173'
   
   const trackingUrl = type === 'parcel'
     ? `${frontendUrl}/track/${code}`
