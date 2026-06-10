@@ -249,7 +249,7 @@ export default function BagDetailPage() {
                    className="w-40 h-40" />
               <LabelPrinter
                 code={bag.qrcode}
-                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
+                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
                 className="w-full max-w-xs"
               />
               <p className="text-[10px] text-slate-400 text-center">
