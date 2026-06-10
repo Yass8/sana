@@ -1,52 +1,69 @@
 // src/services/qrcode.service.js
 const QRCode = require('qrcode')
-const path   = require('path')
-const fs     = require('fs').promises
+const { createClient } = require('@supabase/supabase-js')
 
-const STORAGE_DIR = path.join(__dirname, '../storage/qrcodes')
+// Initialisation du client Supabase
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-async function ensureDir() {
-  await fs.mkdir(STORAGE_DIR, { recursive: true })
+const BUCKET_NAME = 'qrcodes'
+
+/**
+ * Génère un QR code PNG en mémoire et l'envoie sur Supabase Storage
+ * Retourne l'URL publique de l'image
+ */
+async function generateQRCode(code, type = 'parcel') {
+  const filename = `${code}.png`
+
+  // Base URL du front (ajoute cette variable sur Vercel, ex: https://monfront.vercel.app)
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  
+  const trackingUrl = type === 'parcel'
+    ? `${frontendUrl}/track/${code}`
+    : `${frontendUrl}/bags/${code}`
+
+  // 1. Générer le QR Code directement sous forme de Buffer (en mémoire)
+  const qrCodeBuffer = await QRCode.toBuffer(trackingUrl, {
+    width: 400,
+    margin: 2,
+    color: {
+      dark: '#0F1923',  // couleur du QR (noir profond)
+      light: '#FFFFFF', // fond blanc
+    },
+    errorCorrectionLevel: 'H',
+  })
+
+  // 2. Uploader le buffer sur ton bucket Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(filename, qrCodeBuffer, {
+      contentType: 'image/png',
+      upsert: true // Écrase l'image si elle existe déjà (évite les doublons)
+    })
+
+  if (error) {
+    throw new Error(`Erreur lors de l'upload du QR Code sur Supabase : ${error.message}`)
+  }
+
+  // 3. Récupérer et retourner l'URL publique du fichier stocké
+  const { data: publicUrlData } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filename)
+
+  return publicUrlData.publicUrl
 }
 
 /**
- * Génère un QR code PNG et le sauvegarde localement
- * Le QR code encode l'URL de suivi public — le client peut
- * scanner et accéder directement au suivi de son colis
+ * Supprime le QR Code du bucket Supabase
  */
-async function generateQRCode(code, type = 'parcel') {
-  await ensureDir()
-
-  const filename = `${code}.png`
-  const filepath = path.join(STORAGE_DIR, filename)
-
-  // Déjà généré
-  try {
-    await fs.access(filepath)
-    return `/qrcodes/${filename}`
-  } catch {}
-
-  // L'URL encodée dans le QR — pointe vers le suivi public
-  const trackingUrl = type === 'parcel'
-    ? `http://localhost:5173/track/${code}`
-    : `http://localhost:5173/bags/${code}`
-
-  await QRCode.toFile(filepath, trackingUrl, {
-    width:            400,
-    margin:           2,
-    color: {
-      dark:  '#0F1923',  // couleur du QR (noir profond)
-      light: '#FFFFFF',  // fond blanc
-    },
-    errorCorrectionLevel: 'H', // 30% de récupération si endommagé
-  })
-
-  return `/qrcodes/${filename}`
-}
-
 async function deleteQRCode(code) {
-  const filepath = path.join(STORAGE_DIR, `${code}.png`)
-  try { await fs.unlink(filepath) } catch {}
+  const filename = `${code}.png`
+  try {
+    await supabase.storage.from(BUCKET_NAME).remove([filename])
+  } catch (err) {
+    console.error(`Impossible de supprimer le QR code ${filename} de Supabase`, err)
+  }
 }
 
 module.exports = { generateQRCode, deleteQRCode }
