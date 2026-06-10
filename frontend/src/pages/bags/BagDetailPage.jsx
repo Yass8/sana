@@ -77,10 +77,7 @@ export default function BagDetailPage() {
       showSuccessAlert({ text: 'Colis ajoutés au sac.' })
     },
     onError: (err) => showErrorAlert({ text: err.message || 'Erreur lors de l\'ajout.'})
-  })
-
-  console.log(bag?.status);
-  
+  })  
 
   if (isLoading) return (
     <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
