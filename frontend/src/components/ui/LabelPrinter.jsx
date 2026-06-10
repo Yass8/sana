@@ -52,7 +52,7 @@ export default function LabelPrinter({
           justify-content:center;
           background:#ffffff;
         ">
-          <img class="qrcode" src="${BASE_API_URL}${qrcodeUrl}" alt="QR Code" style="
+          <img class="qrcode" src="${BASE_API_URL}/${qrcodeUrl}" alt="QR Code" style="
             width:100%;
             height:100%;
             object-fit:contain;
