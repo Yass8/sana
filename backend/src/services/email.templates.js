@@ -153,7 +153,6 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
             </td>
             <td style="padding-left:14px;" valign="middle">
               <h1 style="margin:0;font-size:16px;font-weight:700;color:#0F172A;line-height:1.3;">${cfg.label}</h1>
-              <p style="margin:4px 0 0 0;font-size:13px;color:#64748B;">Bonjour <strong style="color:#0F172A;">${recipientName || 'Madame, Monsieur'}</strong></p>
             </td>
           </tr>
         </table>
@@ -168,6 +167,28 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
             <td>
               <p style="margin:0 0 4px 0;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;">Numéro de suivi</p>
               <p style="margin:0;font-size:20px;font-weight:800;color:#ffffff;letter-spacing:0.5px;font-family:monospace;">${parcelCode}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- QR Code -->
+    <tr>
+      <td style="padding:20px 32px 0 32px; text-align:center;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            <td style="padding:16px; background:#F8FAFC; border-radius:12px; border:1px solid #E2E8F0;">
+              <img 
+                src="${process.env.SUPABASE_URL}/storage/v1/object/public/qrcodes/${parcelCode}.png" 
+                alt="QR Code" 
+                width="140" 
+                height="140" 
+                style="display:block; margin:0 auto; border-radius:8px;"
+              />
+              <p style="margin:8px 0 0 0; font-size:12px; color:#64748B; font-weight:600;">
+                Scannez pour suivre votre colis
+              </p>
             </td>
           </tr>
         </table>
