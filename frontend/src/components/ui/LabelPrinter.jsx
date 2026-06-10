@@ -26,57 +26,15 @@ export default function LabelPrinter({
 
     // Conversion mm → px (1 mm ≈ 3.78 px)
     const mmToPx = 3.78
-    const widthPx = Math.round(widthMm * mmToPx) // ≈ 227px
-    const heightPx = Math.round(heightMm * mmToPx) // ≈ 189px
+    const widthPx = Math.round(widthMm * mmToPx)
+    const heightPx = Math.round(heightMm * mmToPx)
 
-    // Taille du QR à l'intérieur de l'étiquette (en px)
-    const qrSizePx = Math.round(Math.min(widthPx, heightPx) * 0.6) // ~60% de la plus petite dimension
+    const qrSizePx = Math.round(Math.min(widthPx, heightPx) * 0.6)
 
-    const content = `
-      <div class="label" style="
-        width:${widthPx}px;
-        height:${heightPx}px;
-        background:white;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-        box-sizing:border-box;
-      ">
-        <div class="qrcode-wrapper" style="
-          width:${qrSizePx}px;
-          height:${qrSizePx}px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:#ffffff;
-        ">
-          <img class="qrcode" src="${BASE_API_URL}/${qrcodeUrl}" alt="QR Code" style="
-            width:100%;
-            height:100%;
-            object-fit:contain;
-            display:block;
-          " />
-        </div>
+    // Résoudre l'URL complète du QR
+    const resolvedUrl = qrcodeUrl.startsWith('http') ? qrcodeUrl : `${BASE_API_URL}/${qrcodeUrl}`
 
-        <div class="code-text" style="
-          margin-top:8px;
-          font-family: 'Courier New', Courier, monospace;
-          font-size:14px;
-          font-weight:700;
-          color:#0A1628;
-          text-align:center;
-          letter-spacing:0.2px;
-          word-break:break-word;
-          max-width:${Math.round(widthPx * 0.9)}px;
-        ">
-          ${code ?? ''}
-        </div>
-      </div>
-    `
-
-    // Conteneur temporaire hors écran
+    // Créer conteneur hors écran
     const container = document.createElement('div')
     container.style.position = 'fixed'
     container.style.top = '-9999px'
@@ -85,19 +43,55 @@ export default function LabelPrinter({
     container.style.height = `${heightPx}px`
     container.style.background = 'white'
     container.style.zIndex = '9999'
+    container.style.display = 'flex'
+    container.style.flexDirection = 'column'
+    container.style.alignItems = 'center'
+    container.style.justifyContent = 'center'
+    container.style.boxSizing = 'border-box'
     document.body.appendChild(container)
 
-    container.innerHTML = content
+    // Wrapper pour le QR
+    const qrWrapper = document.createElement('div')
+    qrWrapper.style.width = `${qrSizePx}px`
+    qrWrapper.style.height = `${qrSizePx}px`
+    qrWrapper.style.display = 'flex'
+    qrWrapper.style.alignItems = 'center'
+    qrWrapper.style.justifyContent = 'center'
+    qrWrapper.style.background = '#ffffff'
+    container.appendChild(qrWrapper)
+
+    // Texte du code sous le QR
+    const codeText = document.createElement('div')
+    codeText.style.marginTop = '8px'
+    codeText.style.fontFamily = "'Courier New', Courier, monospace"
+    codeText.style.fontSize = '14px'
+    codeText.style.fontWeight = '700'
+    codeText.style.color = '#0A1628'
+    codeText.style.textAlign = 'center'
+    codeText.style.letterSpacing = '0.2px'
+    codeText.style.wordBreak = 'break-word'
+    codeText.style.maxWidth = `${Math.round(widthPx * 0.9)}px`
+    codeText.textContent = code ?? ''
+    container.appendChild(codeText)
 
     try {
-      // Attendre le chargement du QR
-      const img = container.querySelector('.qrcode')
-      if (img && !img.complete) {
-        await new Promise((resolve) => {
-          img.onload = resolve
-          img.onerror = resolve
-        })
-      }
+      // Créer l'image en JS avec crossOrigin
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.style.width = '100%'
+      img.style.height = '100%'
+      img.style.objectFit = 'contain'
+      img.style.display = 'block'
+
+      // Attendre le chargement (ou l'erreur)
+      await new Promise((resolve) => {
+        img.onload = () => resolve(true)
+        img.onerror = () => resolve(false)
+        img.src = resolvedUrl
+      })
+
+      // Ajouter l'image au wrapper (même si erreur, on laisse l'élément pour html2canvas)
+      qrWrapper.appendChild(img)
 
       // Capture haute résolution
       const canvas = await html2canvas(container, {
