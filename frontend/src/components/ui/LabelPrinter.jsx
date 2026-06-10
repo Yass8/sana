@@ -49,7 +49,6 @@ export default function LabelPrinter({
     container.style.alignItems = 'flex-start'   // aligné à gauche
     container.style.justifyContent = 'flex-start'
     container.style.padding = '10px'            // marge interne
-    container.style.marginLeft = '10px'            // marge interne
     container.style.boxSizing = 'border-box'
     document.body.appendChild(container)
 
