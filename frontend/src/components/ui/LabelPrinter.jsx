@@ -29,7 +29,8 @@ export default function LabelPrinter({
     const widthPx = Math.round(widthMm * mmToPx)
     const heightPx = Math.round(heightMm * mmToPx)
 
-    const qrSizePx = Math.round(Math.min(widthPx, heightPx) * 0.6)
+    // QR code plus grand (0.75 au lieu de 0.6)
+    const qrSizePx = Math.round(Math.min(widthPx, heightPx) * 0.75)
 
     // Résoudre l'URL complète du QR
     const resolvedUrl = qrcodeUrl.startsWith('http') ? qrcodeUrl : `${BASE_API_URL}/${qrcodeUrl}`
@@ -45,8 +46,9 @@ export default function LabelPrinter({
     container.style.zIndex = '9999'
     container.style.display = 'flex'
     container.style.flexDirection = 'column'
-    container.style.alignItems = 'center'
-    container.style.justifyContent = 'center'
+    container.style.alignItems = 'flex-start'   // aligné à gauche
+    container.style.justifyContent = 'flex-start'
+    container.style.padding = '10px'            // marge interne
     container.style.boxSizing = 'border-box'
     document.body.appendChild(container)
 
@@ -67,7 +69,7 @@ export default function LabelPrinter({
     codeText.style.fontSize = '14px'
     codeText.style.fontWeight = '700'
     codeText.style.color = '#0A1628'
-    codeText.style.textAlign = 'center'
+    codeText.style.textAlign = 'left'           // aligné à gauche
     codeText.style.letterSpacing = '0.2px'
     codeText.style.wordBreak = 'break-word'
     codeText.style.maxWidth = `${Math.round(widthPx * 0.9)}px`
@@ -90,7 +92,7 @@ export default function LabelPrinter({
         img.src = resolvedUrl
       })
 
-      // Ajouter l'image au wrapper (même si erreur, on laisse l'élément pour html2canvas)
+      // Ajouter l'image au wrapper
       qrWrapper.appendChild(img)
 
       // Capture haute résolution
