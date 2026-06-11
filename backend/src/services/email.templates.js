@@ -127,6 +127,7 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
   const parcelInfoBlock = () => {
     if (!colis) return '';
     const weight = colis.weight ? `${colis.weight} kg` : null;
+    const bagCd = colis?.bagCode ?? null;
     const desc = colis.description;
     if (!weight && !desc) return '';
     return `
@@ -134,6 +135,7 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
         <tr>
           <td style="padding:12px 14px;background:#ffffff;border-radius:10px;border:1px solid #E2E8F0;">
             <p style="margin:0 0 6px 0;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">Détails du colis</p>
+            ${bagCd ? `<p style="margin:0 0 4px 0;font-size:13px;color:#0F172A;"><span style="color:#64748B;">Sac :</span> Votre colis est dans le sac numéro <strong>${bagCd}</strong></p>` : ''}
             ${weight ? `<p style="margin:0 0 4px 0;font-size:13px;color:#0F172A;"><span style="color:#64748B;">Poids :</span> <strong>${weight}</strong></p>` : ''}
             ${desc ? `<p style="margin:0;font-size:13px;color:#0F172A;"><span style="color:#64748B;">Contenu :</span> ${desc}</p>` : ''}
           </td>

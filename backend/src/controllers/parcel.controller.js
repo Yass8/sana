@@ -169,6 +169,7 @@ const create = async (req, res, next) => {
     // Déterminer les agences d'origine et de destination pour l'email
     let originAgency = null
     let destinationAgency = null
+    let bagCode = ""
 
     if (bag) {
       // Si le colis est dans un sac, on récupère les agences du sac
@@ -180,6 +181,7 @@ const create = async (req, res, next) => {
       })
       originAgency = sac?.originAgency ?? null
       destinationAgency = sac?.destinationAgency ?? null
+      bagCode = sac?.qrcode ?? null
     } else {
       // Colis individuel : on utilise les agences fixes
       const [origin, destination] = await Promise.all([
@@ -210,7 +212,8 @@ const create = async (req, res, next) => {
           adresse: destinationAgency.address,
           phone: destinationAgency.phone
         } : null,
-        colis: { weight: parcel.weight, description: parcel.description }
+        colis: { weight: parcel.weight, description: parcel.description },
+        bagCode: bagCode
       })
 
       await Notification.update(
