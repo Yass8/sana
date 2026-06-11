@@ -187,7 +187,7 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
                 style="display:block; margin:0 auto; border-radius:8px;"
               />
               <p style="margin:8px 0 0 0; font-size:12px; color:#64748B; font-weight:600;">
-                Ce qrcode devrait être présenté lors du retrait du colis
+                QR Code à présenter lors du retrait de votre colis. 
               </p>
             </td>
           </tr>
