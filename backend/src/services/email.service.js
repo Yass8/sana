@@ -1,8 +1,19 @@
 // src/services/email.service.js
 const nodemailer = require('nodemailer');
-const { statusUpdateTemplate, bulkAlertTemplate, STATUS_CONFIG, resetPasswordTemplate, welcomeTemplate, bulkCustomMessageTemplate } = require('./email.templates');
+const {
+  statusUpdateTemplate,
+  statusUpdateText,
+  bulkAlertTemplate,
+  bulkAlertText,
+  resetPasswordTemplate,
+  resetPasswordText,
+  welcomeTemplate,
+  welcomeText,
+  bulkCustomMessageTemplate,
+  bulkCustomMessageText,
+  STATUS_CONFIG
+} = require('./email.templates');
 
-// Configuration du transporteur Gmail
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -13,21 +24,31 @@ const transporter = nodemailer.createTransport({
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
 
+// Expéditeur et adresse de réponse (utilise la même adresse Gmail, modifiable à souhait)
+const FROM_ADDRESS = `"SanaService" <${process.env.GMAIL_USER}>`;
+const REPLY_TO = `"Service client SanaService" <${process.env.GMAIL_USER}>`;
+
 /**
  * Envoi de statut
  */
 async function sendStatusEmail(params) {
-  
   const trackingUrl = `${APP_URL}/track/${params.parcelCode}`;
   const config = STATUS_CONFIG[params.status] || STATUS_CONFIG.received;
-  
+
   const html = statusUpdateTemplate({ ...params, trackingUrl });
+  const text = statusUpdateText({ ...params, trackingUrl });
 
   const mailOptions = {
-    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    from: FROM_ADDRESS,
     to: params.to,
+    replyTo: REPLY_TO,
     subject: `📦 ${params.parcelCode} : ${config.label}`,
+    text: text,
     html: html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
   };
 
   try {
@@ -45,29 +66,42 @@ async function sendStatusEmail(params) {
 async function sendBulkAlertEmail(params) {
   const trackingUrl = `${APP_URL}/track/${params.parcelCode}`;
   const html = bulkAlertTemplate({ ...params, trackingUrl });
+  const text = bulkAlertText({ ...params, trackingUrl });
 
   const mailOptions = {
-    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    from: FROM_ADDRESS,
     to: params.to,
+    replyTo: REPLY_TO,
     subject: `⚠️ Information importante — ${params.parcelCode}`,
+    text: text,
     html: html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
   };
 
   return await transporter.sendMail(mailOptions);
 }
-
 
 /**
  * Envoi de l'email de réinitialisation de mot de passe
  */
 async function sendResetEmail(params) {
   const html = resetPasswordTemplate(params);
+  const text = resetPasswordText(params);
 
   const mailOptions = {
-    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    from: FROM_ADDRESS,
     to: params.to,
+    replyTo: REPLY_TO,
     subject: `🔐 Réinitialisation de votre mot de passe — SanaService`,
+    text: text,
     html: html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
   };
 
   try {
@@ -81,16 +115,24 @@ async function sendResetEmail(params) {
 
 /**
  * Envoi de l'email de bienvenue lors de la création d'un nouvel utilisateur
- * (fonction à appeler depuis le controller user.controller.js après la création d'un utilisateur)
  */
 async function sendWelcomeEmail(params) {
   const html = welcomeTemplate(params);
+  const text = welcomeText(params);
+
   const mailOptions = {
-    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    from: FROM_ADDRESS,
     to: params.to,
+    replyTo: REPLY_TO,
     subject: `🎉 Bienvenue chez SanaService, ${params.name} !`,
+    text: text,
     html: html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
   };
+
   try {
     const info = await transporter.sendMail(mailOptions);
     return info;
@@ -105,12 +147,19 @@ async function sendWelcomeEmail(params) {
  */
 async function sendBulkCustomEmail({ to, name, message }) {
   const html = bulkCustomMessageTemplate({ name, message });
+  const text = bulkCustomMessageText({ name, message });
 
   const mailOptions = {
-    from: `"SanaService" <${process.env.GMAIL_USER}>`,
+    from: FROM_ADDRESS,
     to,
+    replyTo: REPLY_TO,
     subject: `📬 Message de SanaService`,
-    html,
+    text: text,
+    html: html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
   };
 
   return await transporter.sendMail(mailOptions);

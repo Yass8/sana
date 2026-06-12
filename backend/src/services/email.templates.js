@@ -44,7 +44,7 @@ const STATUS_CONFIG = {
 };
 
 /* ─────────────────────────────────────────
-   LAYOUT DE BASE
+   LAYOUT DE BASE (HTML)
    ───────────────────────────────────────── */
 const baseLayout = (content, headerTitle = 'SanaService') => `
 <!DOCTYPE html>
@@ -83,7 +83,8 @@ const baseLayout = (content, headerTitle = 'SanaService') => `
           <tr>
             <td style="background:#F8FAFC;padding:24px 32px;border-top:1px solid #E2E8F0;text-align:center;border-radius:0 0 20px 20px;">
               <p style="margin:0 0 6px 0;font-size:12px;color:#64748B;font-weight:500;">SanaService · Votre partenaire logistique</p>
-              <p style="margin:0;font-size:11px;color:#94A3B8;">Cet email a été généré automatiquement. Merci de ne pas y répondre.</p>
+              <!-- ✅ Footer modifié : plus de "ne pas répondre" -->
+              <p style="margin:0;font-size:11px;color:#94A3B8;">Pour toute question, répondez simplement à cet email.</p>
               <p style="margin:8px 0 0 0;font-size:10px;color:#CBD5E1;">
                 <a href="${APP_URL}" style="color:#7C3AED;text-decoration:none;">sanaservice.com</a>
               </p>
@@ -98,7 +99,7 @@ const baseLayout = (content, headerTitle = 'SanaService') => `
 `;
 
 /* ─────────────────────────────────────────
-   TEMPLATE : MISE À JOUR DE STATUT
+   TEMPLATE : MISE À JOUR DE STATUT (HTML)
    ───────────────────────────────────────── */
 const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, origin, destination, trackingUrl, notes, colis }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.received;
@@ -271,7 +272,29 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
 };
 
 /* ─────────────────────────────────────────
-   TEMPLATE : ALERTE GROUPÉE
+   VERSION TEXTE : MISE À JOUR DE STATUT
+   ───────────────────────────────────────── */
+const statusUpdateText = ({ parcelCode, status, recipientName, senderName, origin, destination, trackingUrl, notes, colis }) => {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.received;
+  let text = `Bonjour,\n\n`;
+  text += `Votre colis ${parcelCode} a été mis à jour : ${cfg.label}.\n`;
+  text += `Suivez-le ici : ${trackingUrl}\n\n`;
+  text += `Expéditeur : ${senderName || '—'}\n`;
+  text += `Destinataire : ${recipientName || '—'}\n`;
+  if (origin) text += `Agence d'origine : ${origin.city || '—'}\n`;
+  if (destination) text += `Agence de destination : ${destination.city || '—'}\n`;
+  if (colis) {
+    if (colis.weight) text += `Poids : ${colis.weight} kg\n`;
+    if (colis.description) text += `Contenu : ${colis.description}\n`;
+    if (colis.bagCode) text += `Sac n° : ${colis.bagCode}\n`;
+  }
+  if (notes) text += `Note : ${notes}\n`;
+  text += `\nCordialement,\nSanaService`;
+  return text;
+};
+
+/* ─────────────────────────────────────────
+   TEMPLATE : ALERTE GROUPÉE (HTML)
    ───────────────────────────────────────── */
 const bulkAlertTemplate = ({ recipientName, parcelCode, message, senderName, trackingUrl }) => {
   const content = `
@@ -312,6 +335,11 @@ const bulkAlertTemplate = ({ recipientName, parcelCode, message, senderName, tra
     </tr>
   `;
   return baseLayout(content);
+};
+
+/* Version texte alerte groupée */
+const bulkAlertText = ({ parcelCode, message, trackingUrl }) => {
+  return `Bonjour,\n\nInformation importante concernant votre colis ${parcelCode} :\n${message}\n\nVoir les détails : ${trackingUrl}\n\nCordialement,\nSanaService`;
 };
 
 /* ─────────────────────────────────────────
@@ -357,6 +385,11 @@ const resetPasswordTemplate = ({ name, resetUrl }) => {
     </tr>
   `;
   return baseLayout(content);
+};
+
+/* Version texte réinitialisation */
+const resetPasswordText = ({ name, resetUrl }) => {
+  return `Bonjour ${name || ''},\n\nVous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous pour en définir un nouveau (valable 1 heure) :\n${resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\nCordialement,\nSanaService`;
 };
 
 /* ─────────────────────────────────────────
@@ -406,6 +439,11 @@ const welcomeTemplate = ({ name, to, temporaryPassword, loginUrl }) => {
   return baseLayout(content);
 };
 
+/* Version texte bienvenue */
+const welcomeText = ({ name, to, temporaryPassword, loginUrl }) => {
+  return `Bonjour ${name || ''},\n\nVotre compte SanaService a été créé avec succès.\n\nEmail : ${to}\nMot de passe temporaire : ${temporaryPassword}\n\nConnectez-vous ici : ${loginUrl}\nNous vous recommandons de changer votre mot de passe dès la première connexion.\n\nCordialement,\nSanaService`;
+};
+
 /* ─────────────────────────────────────────
    TEMPLATE : MESSAGE PERSONNALISÉ GROUPÉ
    ───────────────────────────────────────── */
@@ -450,4 +488,21 @@ const bulkCustomMessageTemplate = ({ name, message }) => {
   return baseLayout(content);
 };
 
-module.exports = { statusUpdateTemplate, bulkAlertTemplate, resetPasswordTemplate, welcomeTemplate, STATUS_CONFIG, bulkCustomMessageTemplate };
+/* Version texte message personnalisé groupé */
+const bulkCustomMessageText = ({ name, message }) => {
+  return `Bonjour ${name || ''},\n\n${message}\n\nCordialement,\nSanaService`;
+};
+
+module.exports = {
+  statusUpdateTemplate,
+  statusUpdateText,
+  bulkAlertTemplate,
+  bulkAlertText,
+  resetPasswordTemplate,
+  resetPasswordText,
+  welcomeTemplate,
+  welcomeText,
+  bulkCustomMessageTemplate,
+  bulkCustomMessageText,
+  STATUS_CONFIG
+};
