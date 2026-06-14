@@ -67,7 +67,7 @@ const baseLayout = (content, headerTitle = 'SanaService') => `
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
                 <tr>
                   <td style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    📬 SanaService
+                    SanaService
                   </td>
                 </tr>
                 <tr>
