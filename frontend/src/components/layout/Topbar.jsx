@@ -2,10 +2,11 @@
 import { useState }      from 'react'
 import { useNavigate }   from 'react-router-dom'
 import { useAuth }       from '../../context/AuthContext'
-import { ScanLine, User, Users, Bell, LogOut, Building2 } from 'lucide-react'
+import { ScanLine, User, Users, Bell, LogOut, Building2, BarChart3 } from 'lucide-react'
 
 const MENU_ITEMS = [
-  { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin','client'] },
+  { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin'] },
+  { to: '/daily-stats',       label: 'Stats',    icon: BarChart3,  roles: ['agent_fr','agent_af','admin'] },
   { to: '/users',         label: 'Utilisateurs',  icon: Users, roles: ['admin'] },
   { to: '/agencies',      label: 'Agences',       icon: Building2, roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,  roles: ['admin'] },

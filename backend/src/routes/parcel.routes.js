@@ -12,6 +12,7 @@ const allAuth    = authorize(ROLES.CLIENT, ROLES.AGENT_FR, ROLES.AGENT_AF, ROLES
 router.get('/track/:qrcode', ctrl.trackByQRCode)
 
 // Routes protégées
+router.get('/daily-stats', authenticate, allAgents, ctrl.getDailyStats)
 router.get( '/',           authenticate, allAgents,  ctrl.getAll)
 router.post('/',           authenticate, frAndAdmin,  ctrl.create)
 router.get( '/:id',        authenticate, allAuth,     ctrl.getById)

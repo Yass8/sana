@@ -10,7 +10,8 @@ import {
   Users, 
   Bell,
   LogOut, 
-  Building2
+  Building2,
+  BarChart3
 } from 'lucide-react'
 
 const NAV = [
@@ -20,6 +21,7 @@ const NAV = [
   { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','agent_af','admin'] },
   { to: '/users',       label: 'Utilisateurs',    icon: Users,           roles: ['admin'] },
   { to: '/agencies',       label: 'Agences',       icon: Building2,       roles: ['admin'] },
+  { to: '/daily-stats',       label: 'Stats',       icon: BarChart3,       roles: ['agent_fr','agent_af','admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,            roles: ['admin'] },
 ]
 

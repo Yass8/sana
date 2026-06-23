@@ -419,5 +419,49 @@ const update = async (req, res, next) => {
   }
 }
 
+// ─── GET /api/parcels/daily-stats?date=YYYY-MM-DD ────────
+const getDailyStats = async (req, res, next) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ message: 'Le paramètre date est requis (YYYY-MM-DD).' });
+    }
 
-module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel, update }
+    // Validation du format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return res.status(400).json({ message: 'Format de date invalide (YYYY-MM-DD).' });
+    }
+
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay   = new Date(`${date}T23:59:59.999Z`);
+
+    const where = {
+      createdAt: {
+        [Op.gte]: startOfDay,
+        [Op.lte]: endOfDay,
+      },
+    };
+
+    // Restriction client (si un jour cette route est ouverte aux clients)
+    if (req.user.role === ROLES.CLIENT) {
+      where.senderId = req.user.id;
+    }
+
+    const parcels = await Parcel.findAll({
+      where,
+      include: [
+        { association: 'sender', attributes: ['id', 'name'] },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.json({ date, parcels, count: parcels.length });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel, update, getDailyStats }
