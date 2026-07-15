@@ -13,6 +13,8 @@ export default function LabelPrinter({
   qrcodeUrl,
   disabled = false,
   className = '',
+  recipientInfo = '',
+  bag = false
 }) {
   const isDisabled = disabled || !isValidUrl(qrcodeUrl)
   const tooltip = isDisabled ? 'QR code manquant ou invalide. Impossible d’imprimer.' : 'Télécharger l’étiquette'
@@ -22,7 +24,7 @@ export default function LabelPrinter({
 
     // Dimensions en mm
     const widthMm = 60
-    const heightMm = 50
+    const heightMm = 60
 
     // Conversion mm → px (1 mm ≈ 3.78 px)
     const mmToPx = 3.78
@@ -64,7 +66,7 @@ export default function LabelPrinter({
 
     // Texte du code sous le QR
     const codeText = document.createElement('div')
-    codeText.style.marginTop = '8px'
+    // codeText.style.marginTop = ''
     codeText.style.fontFamily = "'Courier New', Courier, monospace"
     codeText.style.fontSize = '18px'
     codeText.style.fontWeight = '700'
@@ -75,6 +77,18 @@ export default function LabelPrinter({
     codeText.style.maxWidth = `${Math.round(widthPx * 0.9)}px`
     codeText.textContent = code ?? ''
     container.appendChild(codeText)
+
+    if (bag===false && recipientInfo.length > 0) {
+      const footerText = document.createElement('div')
+      footerText.style.marginBottom = '2px'
+      footerText.style.fontFamily = "'Courier New', Courier, monospace"
+      footerText.style.fontSize = '9px'
+      footerText.style.fontWeight = '500'
+      footerText.style.color = '#0A1628'
+      footerText.style.textAlign = 'left'
+      footerText.textContent = recipientInfo
+      container.appendChild(footerText)
+    }
 
     try {
       // Créer l'image en JS avec crossOrigin

@@ -248,6 +248,7 @@ export default function BagDetailPage() {
                 code={bag.qrcode}
                 qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
                 className="w-full max-w-xs"
+                bag={true}
               />
               <p className="text-[10px] text-slate-400 text-center">
                 Scannez pour avoir les détails de ce sac

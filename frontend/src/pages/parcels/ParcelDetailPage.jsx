@@ -336,6 +336,7 @@ export default function ParcelDetailPage() {
                     code={parcel.qrcode}
                     qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
                     className="w-full max-w-xs"
+                    recipientInfo={parcel.recipientPhone ? `${parcel.recipientName} :  ${parcel.recipientPhone}` : parcel.recipientName  || 'Tél non renseigné'}
                   />
                   <p className="text-[10px] text-slate-400 text-center">
                     Scannez pour suivre ce colis

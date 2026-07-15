@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { parcelsApi } from '../../api/parcels.api'
+import { useBags } from '../../hooks/useBags'
 import Card from '../../components/ui/Card'
 import Spinner from '../../components/ui/Spinner'
 import Skeleton from '../../components/ui/Skeleton'
@@ -19,6 +20,32 @@ export default function ParcelEditPage() {
     queryFn: () => parcelsApi.getById(id),
   })
 
+  // Gestion du sac
+  const [selectedBagId, setSelectedBagId] = useState('')
+  const { data: openBags = [], isLoading: loadingBags } = useBags({ status: 'ouvert' })
+
+  const bagMutation = useMutation({
+    mutationFn: (bagId) => parcelsApi.update(id, { bagId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parcel', id] })
+      queryClient.invalidateQueries({ queryKey: ['parcels'] })
+      showSuccessAlert({ text: 'Sac mis à jour avec succès.' })
+    },
+    onError: (err) => {
+      showErrorAlert({ text: err?.message || 'Erreur lors de la modification du sac.' })
+    },
+  })
+
+  const handleRemoveBag = () => bagMutation.mutate(null)
+  const handleAssignBag = () => {
+    if (!selectedBagId) {
+      showErrorAlert({ text: 'Veuillez sélectionner un sac.' })
+      return
+    }
+    bagMutation.mutate(selectedBagId)
+  }
+
+  // Formulaire principal
   const [form, setForm] = useState({
     description: '',
     weight: '',
@@ -96,6 +123,17 @@ export default function ParcelEditPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <div className="p-5">
+            {/* SECTION : Modification du sac */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-sm text-slate-600">Sac actuel :</span>
+                <span className="text-sm font-semibold text-violet-700">
+                  {parcel?.bag?.qrcode ?? 'Aucun'}
+                </span>
+              </div>
+            </div>
+
+            {/* SECTION : Modifier le colis */}
             <h2 style={{ fontFamily: 'var(--font-display)' }}
                 className="font-bold text-slate-900 mb-5">Modifier le colis</h2>
 
