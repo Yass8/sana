@@ -419,8 +419,8 @@ const update = async (req, res, next) => {
   }
 }
 
-// ─── GET /api/parcels/daily-stats?date=YYYY-MM-DD ────────
-const getDailyStats = async (req, res, next) => {
+// ─── GET /api/parcels/daily-history?date=YYYY-MM-DD ────────
+const getDailyHistory = async (req, res, next) => {
   try {
     const { date } = req.query;
     if (!date) {
@@ -464,4 +464,4 @@ const getDailyStats = async (req, res, next) => {
 
 
 
-module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel, update, getDailyStats }
+module.exports = { getAll, trackByQRCode, getById, create, updateStatus, getQRCode, deleteParcel, update, getDailyHistory }

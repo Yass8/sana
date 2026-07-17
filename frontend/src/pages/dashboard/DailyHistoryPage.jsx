@@ -1,4 +1,4 @@
-// src/pages/stats/DailyStatsPage.jsx
+// src/pages/history/DailyHistoryPage.jsx
 import { useState, useMemo } from 'react';
 import { useDailyParcels } from '../../hooks/useDailyParcels';
 import Card from '../../components/ui/Card';
@@ -168,7 +168,7 @@ function ParcelsTable({
 // --------------------------------------------------------
 // Composant principal
 // --------------------------------------------------------
-export default function DailyStatsPage() {
+export default function DailyHistoryPage() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [pricePerKg, setPricePerKg] = useState(17);
@@ -223,7 +223,7 @@ export default function DailyStatsPage() {
           width: '*',
           stack: [
             { text: 'SanaService', style: 'companyName' },
-            { text: 'Rapport journalier – Suivi des colis expédiés', style: 'reportSubtitle' },
+            { text: 'Rapport journalier – Historique des colis expédiés', style: 'reportSubtitle' },
           ],
         },
         {
@@ -232,8 +232,10 @@ export default function DailyStatsPage() {
           alignment: 'right',
         },
       ],
-      // fait margin top 30px
+      
       margin: [40, 0, 40, 20],
+      // padding top
+      paddingTop: 20,
     };
 
     // ---- Bloc des totaux (kilos & prix) ----
@@ -463,20 +465,20 @@ export default function DailyStatsPage() {
     };
 
     const pdfDoc = pdfMake.createPdf(docDefinition);
-    pdfDoc.download(`rapport-SanaService-${selectedDate}.pdf`);
+    pdfDoc.download(`historique-SanaService-${selectedDate}.pdf`);
   };
 
 
   return (
-    <div id="daily-stats-print" className="flex flex-col gap-5 animate-fadeIn">
+    <div id="daily-history-print" className="flex flex-col gap-5 animate-fadeIn">
       {/* En-tête avec la date – visible à l’impression, mais l’input date reste masqué */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)' }} className="text-xl md:text-2xl font-bold text-slate-900">
-            Statistiques journalières
+            Historique des colis
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            Colis du {dateLabel}
+            Consultation du {dateLabel}
           </p>
         </div>
         <input
@@ -506,7 +508,7 @@ export default function DailyStatsPage() {
 
       {/* Totaux */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Total kilos" value={totalWeight} />
+        <StatCard label="Total kilos" value={`${totalWeight} kg`} />
         <StatCard label="Total prix" value={`${totalPrice} €`} variant="violet" />
       </div>
 

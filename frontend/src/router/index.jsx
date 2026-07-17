@@ -20,7 +20,7 @@ import AgenciesPage from '../pages/agencies/AgenciesPage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import ProfilePage from '../pages/users/ProfilePage'
-import DailyStatsPage from '../pages/dashboard/DailyStatsPage'
+import DailyHistoryPage from '../pages/dashboard/DailyHistoryPage'
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -43,7 +43,7 @@ const router = createBrowserRouter([
       element: <AppLayout />,
       children: [
         { path: '/dashboard',    element: <DashboardPage /> },
-        { path: '/daily-stats', element: <DailyStatsPage /> },
+        { path: '/daily-history', element: <DailyHistoryPage /> },
         { path: '/parcels',      element: <ParcelsPage /> },
         { path: '/parcels/new',  element: <NewParcelPage /> },
         { path: '/parcels/:id',  element: <ParcelDetailPage /> },
