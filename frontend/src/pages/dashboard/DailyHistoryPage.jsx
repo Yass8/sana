@@ -500,7 +500,7 @@ export default function DailyHistoryPage() {
           onChange={(e) => setPricePerKg(parseFloat(e.target.value) || 0)}
           className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white shadow-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 transition-colors"
         />
-        <button onClick={handleDownloadPdf} className="ml-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 transition-colors">
+        <button onClick={handleDownloadPdf} className="ml-1 md:ml-2 rounded-md md:rounded-xl bg-violet-600 px-2 md:px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 transition-colors">
           Télécharger PDF
         </button>
       </div>
