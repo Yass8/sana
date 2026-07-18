@@ -14,30 +14,34 @@ export default function LabelPrinter({
   disabled = false,
   className = '',
   recipientInfo = '',
-  bag = false
+  bag = false,
+  pieceNumber = 1,
+  totalPieces = 1 
 }) {
   const isDisabled = disabled || !isValidUrl(qrcodeUrl)
-  const tooltip = isDisabled ? 'QR code manquant ou invalide. Impossible d’imprimer.' : 'Télécharger l’étiquette'
+  const tooltip = isDisabled
+    ? 'QR code manquant ou invalide. Impossible d’imprimer.'
+    : 'Télécharger l’étiquette'
+
+  // Construction du code affiché
+  const displayCode =
+    totalPieces > 1 ? `${code}(${pieceNumber}/${totalPieces})` : code
 
   const downloadPDF = async () => {
     if (isDisabled) return
 
-    // Dimensions en mm
     const widthMm = 60
     const heightMm = 60
-
-    // Conversion mm → px (1 mm ≈ 3.78 px)
     const mmToPx = 3.78
     const widthPx = Math.round(widthMm * mmToPx)
     const heightPx = Math.round(heightMm * mmToPx)
-
-    // QR code plus grand (0.75 au lieu de 0.6)
     const qrSizePx = Math.round(Math.min(widthPx, heightPx) * 0.75)
 
-    // Résoudre l'URL complète du QR
-    const resolvedUrl = qrcodeUrl.startsWith('http') ? qrcodeUrl : `${BASE_API_URL}/${qrcodeUrl}`
+    const resolvedUrl = qrcodeUrl.startsWith('http')
+      ? qrcodeUrl
+      : `${BASE_API_URL}/${qrcodeUrl}`
 
-    // Créer conteneur hors écran
+    // Conteneur hors écran (identique à l'original)
     const container = document.createElement('div')
     container.style.position = 'fixed'
     container.style.top = '-9999px'
@@ -48,13 +52,12 @@ export default function LabelPrinter({
     container.style.zIndex = '9999'
     container.style.display = 'flex'
     container.style.flexDirection = 'column'
-    container.style.alignItems = 'flex-start'   // aligné à gauche
+    container.style.alignItems = 'flex-start'
     container.style.justifyContent = 'flex-start'
-    container.style.padding = '10px'            // marge interne
+    container.style.padding = '10px'
     container.style.boxSizing = 'border-box'
     document.body.appendChild(container)
 
-    // Wrapper pour le QR
     const qrWrapper = document.createElement('div')
     qrWrapper.style.width = `${qrSizePx}px`
     qrWrapper.style.height = `${qrSizePx}px`
@@ -64,21 +67,19 @@ export default function LabelPrinter({
     qrWrapper.style.background = '#ffffff'
     container.appendChild(qrWrapper)
 
-    // Texte du code sous le QR
     const codeText = document.createElement('div')
-    // codeText.style.marginTop = ''
     codeText.style.fontFamily = "'Courier New', Courier, monospace"
     codeText.style.fontSize = '18px'
     codeText.style.fontWeight = '700'
     codeText.style.color = '#0A1628'
-    codeText.style.textAlign = 'left'           // aligné à gauche
+    codeText.style.textAlign = 'left'
     codeText.style.letterSpacing = '0.2px'
     codeText.style.wordBreak = 'break-word'
     codeText.style.maxWidth = `${Math.round(widthPx * 0.9)}px`
-    codeText.textContent = code ?? ''
+    codeText.textContent = displayCode   // ← on utilise displayCode
     container.appendChild(codeText)
 
-    if (bag===false && recipientInfo.length > 0) {
+    if (bag === false && recipientInfo.length > 0) {
       const footerText = document.createElement('div')
       footerText.style.marginBottom = '2px'
       footerText.style.fontFamily = "'Courier New', Courier, monospace"
@@ -91,7 +92,6 @@ export default function LabelPrinter({
     }
 
     try {
-      // Créer l'image en JS avec crossOrigin
       const img = new Image()
       img.crossOrigin = 'anonymous'
       img.style.width = '100%'
@@ -99,17 +99,14 @@ export default function LabelPrinter({
       img.style.objectFit = 'contain'
       img.style.display = 'block'
 
-      // Attendre le chargement (ou l'erreur)
       await new Promise((resolve) => {
         img.onload = () => resolve(true)
         img.onerror = () => resolve(false)
         img.src = resolvedUrl
       })
 
-      // Ajouter l'image au wrapper
       qrWrapper.appendChild(img)
 
-      // Capture haute résolution
       const canvas = await html2canvas(container, {
         scale: 3,
         useCORS: true,
@@ -119,7 +116,6 @@ export default function LabelPrinter({
         backgroundColor: 'white',
       })
 
-      // Générer le PDF
       const pdf = new jsPDF({
         unit: 'px',
         format: [widthPx, heightPx],
@@ -128,7 +124,8 @@ export default function LabelPrinter({
 
       const imgData = canvas.toDataURL('image/png')
       pdf.addImage(imgData, 'PNG', 0, 0, widthPx, heightPx)
-      pdf.save(`etiquette-${code ?? 'qr'}.pdf`)
+      // Le nom du fichier peut aussi refléter la pièce
+      pdf.save(`etiquette-${displayCode ?? 'qr'}.pdf`)
     } finally {
       document.body.removeChild(container)
     }

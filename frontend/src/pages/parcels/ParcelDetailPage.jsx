@@ -22,6 +22,8 @@ export default function ParcelDetailPage() {
   const updateStatus = useUpdateParcelStatus()
   const [alertReason, setAlertReason] = useState('')
   const [showAlert,  setShowAlert]    = useState(false)
+  const [totalPieces, setTotalPieces] = useState(1)
+  const [currentPiece, setCurrentPiece] = useState(1)
 
   const { data: parcel, isLoading, isError } = useParcel(id)
 
@@ -330,19 +332,54 @@ export default function ParcelDetailPage() {
                   className="font-bold text-slate-900 mb-4">QR Code</h2>
               {parcel.qrcodeUrl ? (
                 <div className="flex flex-col items-center gap-3">
-                  <img src={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`} alt={parcel.qrcode}
-                       className="w-40 h-40"/>
+                  <img src={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
+                      alt={parcel.qrcode}
+                      className="w-40 h-40"/>
+
+                  {/* Personnalisation nombre de pièces (colis uniquement) */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <label className="text-slate-500">Pièce n°</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalPieces}
+                      value={currentPiece}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value, 10)
+                        if (isNaN(val) || val < 1) val = 1
+                        if (val > totalPieces) val = totalPieces
+                        setCurrentPiece(val)
+                      }}
+                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-center text-slate-700"
+                    />
+                    <span className="text-slate-400">/</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={totalPieces}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value, 10)
+                        if (isNaN(val) || val < 1) val = 1
+                        setTotalPieces(val)
+                        if (currentPiece > val) setCurrentPiece(val)
+                      }}
+                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-center text-slate-700"
+                    />
+                  </div>
+
                   <LabelPrinter
                     code={parcel.qrcode}
                     qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
                     className="w-full max-w-xs"
                     recipientInfo={parcel.recipientPhone ? `${parcel.recipientName} :  ${parcel.recipientPhone}` : parcel.recipientName  || 'Tél non renseigné'}
+                    pieceNumber={currentPiece}
+                    totalPieces={totalPieces}
                   />
                   <p className="text-[10px] text-slate-400 text-center">
                     Scannez pour suivre ce colis
                   </p>
                   <a href={parcel.qrcodeUrl} download={`${parcel.qrcode}.png`}
-                     className="text-xs text-violet-600 hover:underline font-semibold flex items-center gap-1">
+                    className="text-xs text-violet-600 hover:underline font-semibold flex items-center gap-1">
                     <Download size={14} /> Télécharger PNG
                   </a>
                 </div>

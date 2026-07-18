@@ -225,6 +225,7 @@ export default function DailyHistoryPage() {
             { text: 'SanaService', style: 'companyName' },
             { text: 'Rapport journalier – Historique des colis expédiés', style: 'reportSubtitle' },
           ],
+          
         },
         {
           text: dateLabel,
@@ -233,9 +234,7 @@ export default function DailyHistoryPage() {
         },
       ],
       
-      margin: [40, 0, 40, 20],
-      // padding top
-      paddingTop: 20,
+      margin: [40, 10, 40, 20],
     };
 
     // ---- Bloc des totaux (kilos & prix) ----
@@ -389,7 +388,7 @@ export default function DailyHistoryPage() {
     // ---- Document final ----
     const docDefinition = {
       pageSize: 'A4',
-      pageMargins: [40, 40, 40, 50],
+      pageMargins: [40, 60, 40, 50],
       header: () => header,
       footer: footer,
       content: [

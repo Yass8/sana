@@ -9,7 +9,7 @@ module.exports = (sequelize) => {
       primaryKey:   true,
     },
     name:    { type: DataTypes.STRING(100), allowNull: false },
-    country: { type: DataTypes.STRING(5),   allowNull: false },
+    country: { type: DataTypes.STRING(50),   allowNull: false },
     city:    { type: DataTypes.STRING(100), allowNull: false },
     address: { type: DataTypes.TEXT,        allowNull: true  },
     phone:   { type: DataTypes.STRING(20),  allowNull: true  },
