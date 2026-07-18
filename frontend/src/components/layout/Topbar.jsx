@@ -2,7 +2,7 @@
 import { useState }      from 'react'
 import { useNavigate }   from 'react-router-dom'
 import { useAuth }       from '../../context/AuthContext'
-import { ScanLine, User, Users, Bell, LogOut, Building2, History } from 'lucide-react'
+import { ScanLine, User, Users, Bell, LogOut, Building2, History, Link } from 'lucide-react'
 
 const MENU_ITEMS = [
   { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin'] },
@@ -10,6 +10,7 @@ const MENU_ITEMS = [
   { to: '/users',         label: 'Utilisateurs',  icon: Users, roles: ['admin'] },
   { to: '/agencies',      label: 'Agences',       icon: Building2, roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,  roles: ['admin'] },
+  { to: '/track/CL12345', label: 'Suivi du colis',icon: Link,  roles: ['admin','agent_fr','agent_af','client'] },
 ]
 
 export default function Topbar() {

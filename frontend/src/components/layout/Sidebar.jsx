@@ -11,7 +11,8 @@ import {
   Bell,
   LogOut, 
   Building2,
-  History
+  History,
+  Link
 } from 'lucide-react'
 
 const NAV = [
@@ -23,6 +24,7 @@ const NAV = [
   { to: '/agencies',      label: 'Agences',       icon: Building2,       roles: ['admin'] },
   { to: '/daily-history', label: 'Historique',    icon: History,       roles: ['agent_fr','agent_af','admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,            roles: ['admin'] },
+  { to: '/track/CL12345', label: 'Suivi du colis',icon: Link,  roles: ['admin','agent_fr','agent_af','client'] },
 ]
 
 export default function Sidebar() {

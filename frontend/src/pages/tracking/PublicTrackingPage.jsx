@@ -106,8 +106,13 @@ export default function PublicTrackingPage() {
                     {data.qrcode}
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Paris, France → {data.bag?.destinationAgency?.city},{' '}
-                    {data.bag?.destinationAgency?.country}
+                    Paris, France → {
+                      (()=> {
+                        const city = data.bag?.destinationAgency?.city?.trim();
+                        const country = data.bag?.destinationAgency?.country?.trim();
+                        return (!city && !country) ? 'Moroni, Comores' : (city && country) ? `${city}, ${country}` : (city || country);
+                      })()
+                    }
                   </p>
                 </div>
                 <StatusBadge status={data.status} size="md"/>

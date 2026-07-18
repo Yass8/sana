@@ -22,7 +22,7 @@ export default function UserStatsCards({ stats }) {
     issueParcels = 0,
   } = stats
 
-  const inTransit = receivedParcels + departedParcels + arrivedParcels
+  const inTransit = Math.floor(Number(receivedParcels) + Number(departedParcels) + Number(arrivedParcels))
   const noParcels = totalParcels === 0
 
   if (noParcels) {
