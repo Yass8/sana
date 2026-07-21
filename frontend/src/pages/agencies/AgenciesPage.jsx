@@ -1,6 +1,5 @@
 // src/pages/agencies/AgenciesPage.jsx
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAgencies } from '../../hooks/useAgencies'
 import { agenciesApi } from '../../api/agencies.api'
 import Card from '../../components/ui/Card'
@@ -14,7 +13,6 @@ const avatarColor = (id) => AVATAR_COLORS[id?.charCodeAt(0) % AVATAR_COLORS.leng
 const initials = (name) => name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? '?'
 
 export default function AgenciesPage() {
-  const navigate = useNavigate()
   const { data: agencies = [], isLoading, refetch } = useAgencies()
 
   const [showModal, setShowModal] = useState(false)
@@ -110,7 +108,7 @@ export default function AgenciesPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-800">{agency.name}</p>
               <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-                <MapPin size={12} /> <span>{agency.city}</span>
+                <MapPin size={12} /> <span>{agency.city}, {agency.country}</span>
               </div>
               {agency.address && (
                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">{agency.address}</p>
