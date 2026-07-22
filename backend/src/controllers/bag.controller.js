@@ -105,11 +105,21 @@ const create = async (req, res, next) => {
 
 const close = async (req, res, next) => {
   try {
-    const bag = await Bag.findByPk(req.params.id)
+    const bag = await Bag.findByPk(req.params.id, {
+      include: [{ association: 'parcels', attributes: ['id'] }],
+    })
     if (!bag) return res.status(404).json({ message: 'Sac introuvable.' })
     if (bag.status !== BAG_STATUS.OPEN) {
       return res.status(400).json({ message: 'Ce sac est déjà fermé.' })
     }
+
+    const parcelCount = bag.parcels?.length ?? 0
+    if (parcelCount === 0) {
+      return res.status(400).json({
+        message: 'Impossible de fermer un sac vide. Ajoutez au moins un colis avant de le fermer.',
+      })
+    }
+
     await bag.update({ status: BAG_STATUS.CLOSED })
     res.json(bag)
   } catch (err) { next(err) }

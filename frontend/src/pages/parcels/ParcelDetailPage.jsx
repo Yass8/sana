@@ -1,13 +1,16 @@
-import { useState }           from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth }            from '../../context/AuthContext'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { useAuth } from '../../context/AuthContext'
 import { useParcel, useUpdateParcelStatus } from '../../hooks/useParcels'
-import TrackingTimeline       from '../../components/ui/TrackingTimeline'
-import StatusBadge            from '../../components/ui/StatusBadge'
-import Card                   from '../../components/ui/Card'
-import Spinner                from '../../components/ui/Spinner'
-import Skeleton               from '../../components/ui/Skeleton'
-import LabelPrinter           from '../../components/ui/LabelPrinter'
+import { useBags } from '../../hooks/useBags'
+import { parcelsApi } from '../../api/parcels.api'
+import TrackingTimeline from '../../components/ui/TrackingTimeline'
+import StatusBadge from '../../components/ui/StatusBadge'
+import Card from '../../components/ui/Card'
+import Spinner from '../../components/ui/Spinner'
+import Skeleton from '../../components/ui/Skeleton'
+import LabelPrinter from '../../components/ui/LabelPrinter'
 import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 import { ArrowLeft, Copy, Download, AlertTriangle, ChevronUp, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
@@ -16,16 +19,33 @@ const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
 
 export default function ParcelDetailPage() {
-  const { id }       = useParams()
-  const { user }     = useAuth()
-  const navigate     = useNavigate()
+  const { id } = useParams()
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const updateStatus = useUpdateParcelStatus()
   const [alertReason, setAlertReason] = useState('')
-  const [showAlert,  setShowAlert]    = useState(false)
+  const [showAlert, setShowAlert] = useState(false)
   const [totalPieces, setTotalPieces] = useState(1)
   const [currentPiece, setCurrentPiece] = useState(1)
+  const [selectedBagId, setSelectedBagId] = useState('')
 
   const { data: parcel, isLoading, isError } = useParcel(id)
+  const { data: openBags = [], isLoading: loadingBags } = useBags({ status: 'ouvert' })
+  const effectiveSelectedBagId = selectedBagId || parcel?.bagId || ''
+
+  const bagMutation = useMutation({
+    mutationFn: (bagId) => parcelsApi.update(id, { bagId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['parcel', id] })
+      await queryClient.invalidateQueries({ queryKey: ['parcels'] })
+      await queryClient.invalidateQueries({ queryKey: ['bags'] })
+      await showSuccessAlert({ text: 'Sac mis à jour avec succès.' })
+    },
+    onError: async (err) => {
+      await showErrorAlert({ text: err?.message || 'Erreur lors de la modification du sac.' })
+    },
+  })
 
   const handleReportIssue = async () => {
     const confirmed = await confirmActionAlert({
@@ -57,6 +77,25 @@ export default function ParcelDetailPage() {
     } catch (err) {
       await showErrorAlert({ text: err?.message || 'Impossible de confirmer le retrait.' })
     }
+  }
+
+  const handleRemoveBag = async () => {
+    const confirmed = await confirmActionAlert({
+      message: 'Voulez-vous retirer ce colis du sac actuel ?',
+      confirmButtonText: 'Oui, retirer'
+    })
+    if (!confirmed) return
+
+    bagMutation.mutate(null)
+  }
+
+  const handleAssignBag = async () => {
+    if (!selectedBagId) {
+      await showErrorAlert({ text: 'Veuillez sélectionner un sac ouvert.' })
+      return
+    }
+
+    bagMutation.mutate(selectedBagId)
   }
 
   // Nouvelles fonctions pour le colis individuel
@@ -186,6 +225,59 @@ export default function ParcelDetailPage() {
         </Card>
 
         <div className="flex flex-col gap-4">
+
+          <Card>
+            <div className="p-5">
+              <h2 style={{fontFamily:'var(--font-display)'}}
+                  className="font-bold text-slate-900 mb-3">Modifier le sac</h2>
+              <p className="text-[11px] text-slate-500 mb-3">
+                {parcel?.bagId
+                  ? 'Retirez ce colis du sac actuel ou déplacez-le vers un autre sac ouvert.'
+                  : 'Associez ce colis à un sac ouvert.'}
+              </p>
+
+              <div className="text-xs text-slate-600 mb-2">
+                Sac actuel : <span className="font-semibold text-violet-700">{parcel?.bag?.qrcode ?? 'Aucun'}</span>
+              </div>
+
+              <select
+                value={effectiveSelectedBagId}
+                onChange={(e) => setSelectedBagId(e.target.value)}
+                disabled={bagMutation.isPending || loadingBags}
+                className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none bg-white focus:border-violet-500"
+              >
+                <option value="">Sélectionner un sac ouvert</option>
+                {openBags.map((bag) => (
+                  <option key={bag.id} value={bag.id}>
+                    {bag.qrcode}{bag.destinationAgency?.city ? ` · ${bag.destinationAgency.city}` : ''}
+                  </option>
+                ))}
+              </select>
+
+              {!loadingBags && openBags.length === 0 && (
+                <p className="text-[11px] text-slate-400 mt-2">Aucun sac ouvert disponible pour le moment.</p>
+              )}
+
+              <div className="flex gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={handleRemoveBag}
+                  disabled={bagMutation.isPending || parcel?.status === 'collected'}
+                  className="flex-1 border-2 border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+                >
+                  Retirer du sac
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignBag}
+                  disabled={bagMutation.isPending || !selectedBagId || parcel?.status === 'collected'}
+                  className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-xs"
+                >
+                  {bagMutation.isPending ? <Spinner size="sm" color="white" /> : 'Déplacer'}
+                </button>
+              </div>
+            </div>
+          </Card>
 
           {/* Bloc conditionnel */}
           {parcel.bagId ? (

@@ -398,19 +398,61 @@ const deleteParcel = async (req, res, next) => {
 // ─── PUT /api/parcels/:id ─────────────────────────────
 const update = async (req, res, next) => {
   try {
-    const { description, weight, recipientName, recipientPhone } = req.body
-    
+    const { description, weight, recipientName, recipientPhone, bagId } = req.body
+
     const parcel = await Parcel.findByPk(req.params.id)
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
     if (parcel.status === PARCEL_STATUS.COLLECTED) {
       return res.status(400).json({ message: 'Impossible de modifier un colis déjà collecté.' })
     }
-    
-    await parcel.update({
-      description,
-      weight,
-      recipientName,
-      recipientPhone
+
+    let normalizedBagId = null
+    if (Object.prototype.hasOwnProperty.call(req.body, 'bagId')) {
+      normalizedBagId = bagId === '' ? null : bagId ?? null
+
+      if (normalizedBagId) {
+        const targetBag = await Bag.findByPk(normalizedBagId)
+        if (!targetBag) {
+          return res.status(404).json({ message: 'Sac introuvable.' })
+        }
+        if (targetBag.status !== 'ouvert') {
+          return res.status(400).json({ message: 'Ce sac est fermé. Impossible de déplacer le colis.' })
+        }
+      }
+    }
+
+    const previousBagId = parcel.bagId
+
+    await sequelize.transaction(async (t) => {
+      await parcel.update({
+        description,
+        weight,
+        recipientName,
+        recipientPhone,
+        ...(Object.prototype.hasOwnProperty.call(req.body, 'bagId') ? { bagId: normalizedBagId } : {}),
+      }, { transaction: t })
+
+      if (Object.prototype.hasOwnProperty.call(req.body, 'bagId') && previousBagId !== normalizedBagId) {
+        const affectedBagIds = [previousBagId, normalizedBagId].filter(Boolean)
+
+        for (const affectedBagId of affectedBagIds) {
+          const affectedBag = await Bag.findByPk(affectedBagId, { transaction: t })
+          if (!affectedBag) continue
+
+          const parcelsInBag = await Parcel.findAll({
+            where: { bagId: affectedBag.id },
+            attributes: ['weight'],
+            transaction: t,
+          })
+
+          const totalWeight = parcelsInBag.reduce((sum, p) => {
+            const w = p.weight ? parseFloat(p.weight) : 0
+            return sum + w
+          }, 0)
+
+          await affectedBag.update({ weight: totalWeight }, { transaction: t })
+        }
+      }
     })
 
     res.json(await Parcel.findByPk(parcel.id, { include: INCLUDE_FULL }))

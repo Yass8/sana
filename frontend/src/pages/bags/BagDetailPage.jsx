@@ -109,6 +109,7 @@ export default function BagDetailPage() {
 
   const parcels = bag?.parcels ?? []
   const status = bag?.status
+  const hasParcels = parcels.length > 0
 
   const canClose = status === 'ouvert'
   const canMarkDepartAirport = status === 'fermé'
@@ -174,13 +175,20 @@ export default function BagDetailPage() {
           {/* Actions */}
           <div className="grid grid-cols-1 gap-3 mt-5">
             {canClose && (
-              <button onClick={handleCloseBag} disabled={closeBag.isPending || updateBagStatus.isPending}
-                      className="w-full bg-[#0A1628] hover:bg-slate-800
-                                 disabled:opacity-60 text-white font-semibold
-                                 py-2.5 rounded-xl text-sm transition-colors
-                                 flex items-center justify-center gap-2">
-                {closeBag.isPending ? <><Spinner size="sm" color="white" /> Fermeture…</> : 'Fermer le sac'}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button onClick={handleCloseBag} disabled={closeBag.isPending || updateBagStatus.isPending || !hasParcels}
+                        className="w-full bg-[#0A1628] hover:bg-slate-800 disabled:hover:bg-[#0A1628]
+                                   disabled:opacity-60 text-white font-semibold
+                                   py-2.5 rounded-xl text-sm transition-colors
+                                   flex items-center justify-center gap-2">
+                  {closeBag.isPending ? <><Spinner size="sm" color="white" /> Fermeture…</> : 'Fermer le sac'}
+                </button>
+                {!hasParcels && (
+                  <p className="text-[11px] text-slate-500 text-center">
+                    Ajoutez au moins un colis avant de fermer ce sac.
+                  </p>
+                )}
+              </div>
             )}
             {canMarkDepartAirport && (
               <button onClick={handleDepartAirport}
@@ -188,7 +196,7 @@ export default function BagDetailPage() {
                       className="w-full bg-[#7C3AED] hover:bg-[#5B21B6]
                                  disabled:opacity-60 text-white font-semibold
                                  py-2.5 rounded-xl text-sm transition-colors">
-                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Parti aéroport'}
+                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'En vol'}
               </button>
             )}
             {canMarkArrived && (
