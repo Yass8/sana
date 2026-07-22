@@ -26,11 +26,11 @@ export default function Topbar() {
 
       {/* Logo mobile */}
       <div className="lg:hidden">
-        {/* <p style={{fontFamily:'var(--font-display)'}}
+        <p style={{fontFamily:'var(--font-display)'}}
            className="text-[#0A1628] font-bold text-base">
           SanaService
-        </p> */}
-        <img src="/logo.jpg" alt="SanaService" className="h-8 w-auto"/>
+        </p>
+        {/* <img src="/logo.jpg" alt="SanaService" className="h-8 w-auto"/> */}
       </div>
 
       <div className="flex-1"/>
