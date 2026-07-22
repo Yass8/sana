@@ -18,31 +18,54 @@ export const STATUS_CONFIG = {
   },
   issue: {
     label: 'Problème',
-    bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', step: -1,
+    bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', step: -1,
+  },
+  problème: {
+    label: 'Problème',
+    bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', step: -1,
   },
 
-  // ── Statuts sac (nouveau) ──
+  // ── Statuts sac ──
   open: {
     label: 'Ouvert',
-    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500',
+    bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500',
+  },
+  ouvert: {
+    label: 'Ouvert',
+    bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500',
   },
   closed: {
     label: 'Fermé',
-    bg: 'bg-slate-50', text: 'text-slate-700', dot: 'bg-slate-500',
+    bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-500',
+  },
+  fermé: {
+    label: 'Fermé',
+    bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-500',
   },
   in_transit: {
     label: 'En transit',
-    bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500',
+    bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500',
+  },
+  en_transit: {
+    label: 'En transit',
+    bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500',
   },
   arrived: {
     label: 'Arrivé',
-    bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500',
+    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500',
+  },
+  arrivé: {
+    label: 'Arrivé',
+    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500',
   },
 }
 
 export function getStatusConfig(status) {
-  return STATUS_CONFIG[status] ?? {
-    label: status,
+  const normalized = String(status ?? '').trim().toLowerCase()
+  const config = STATUS_CONFIG[normalized] ?? STATUS_CONFIG[status]
+
+  return config ?? {
+    label: status ?? 'Inconnu',
     bg: 'bg-gray-50',
     text: 'text-gray-600',
     dot: 'bg-gray-400',
