@@ -83,7 +83,7 @@ export default function LabelPrinter({
       const footerText = document.createElement('div')
       footerText.style.marginBottom = '2px'
       footerText.style.fontFamily = "'Courier New', Courier, monospace"
-      footerText.style.fontSize = '9px'
+      footerText.style.fontSize = '20px'
       footerText.style.fontWeight = '500'
       footerText.style.color = '#0A1628'
       footerText.style.textAlign = 'left'
