@@ -12,7 +12,7 @@ import {
   isValidUrl,
   resolveUrl,
   useLabelExport,
-} from './labelShared'
+} from './LabelShared'
 
 export function BagLabelPrinter({
   code = '',
