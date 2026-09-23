@@ -13,7 +13,7 @@ import {
   isValidUrl,
   resolveUrl,
   useLabelExport,
-} from './labelShared'
+} from './LabelShared'
 
 export function ParcelLabelPrinter({
   code = '',
