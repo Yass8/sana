@@ -58,7 +58,7 @@ export default function DashboardPage() {
         <div>
           <h1 style={{fontFamily:'var(--font-display)'}}
               className="text-xl md:text-2xl font-bold text-slate-900">
-            Bonjour, {user?.name?.split(' ')[0]} 👋
+            Bonjour, {user?.name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">
             {new Date().toLocaleDateString('fr-FR', {

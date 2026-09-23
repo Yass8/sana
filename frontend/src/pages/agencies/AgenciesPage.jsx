@@ -110,8 +110,8 @@ export default function AgenciesPage() {
               <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
                 <MapPin size={12} /> <span>{agency.city}, {agency.country}</span>
               </div>
-              {agency.address && (
-                <p className="text-[11px] text-slate-400 mt-0.5 truncate">{agency.address}</p>
+              {agency.address && ( 
+                <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{agency.address}</p>
               )}
             </div>
           </div>

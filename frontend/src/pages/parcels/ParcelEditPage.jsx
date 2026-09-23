@@ -51,6 +51,10 @@ export default function ParcelEditPage() {
     weight: '',
     recipientName: '',
     recipientPhone: '',
+    recipientAddress: '',
+    service: '',
+    urgent: false,
+    fragile: false,
   })
 
   useEffect(() => {
@@ -60,6 +64,10 @@ export default function ParcelEditPage() {
         weight: parcel.weight ?? '',
         recipientName: parcel.recipientName ?? '',
         recipientPhone: parcel.recipientPhone ?? '',
+        recipientAddress: parcel.recipientAddress ?? '',
+        service: parcel.service ?? '',
+        urgent: parcel.urgent ?? false,
+        fragile: parcel.fragile ?? false,
       })
     }
   }, [parcel])
@@ -186,6 +194,13 @@ export default function ParcelEditPage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Adresse destinataire
+                  </label>
+                  <input name="recipientAddress" value={form.recipientAddress} onChange={handleChange}
+                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                     Poids (kg)
                   </label>
                   <input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange}
@@ -200,6 +215,16 @@ export default function ParcelEditPage() {
                 <textarea name="description" value={form.description} onChange={handleChange} rows={3}
                           className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none resize-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
               </div>
+              <div className="flex items-center gap-4 col-span-2">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.urgent} onChange={(e) => setForm(p => ({ ...p, urgent: e.target.checked }))} />
+                <span className="text-sm text-slate-700">Urgent</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.fragile} onChange={(e) => setForm(p => ({ ...p, fragile: e.target.checked }))} />
+                <span className="text-sm text-slate-700">Fragile</span>
+              </label>
+            </div>
             </div>
 
             <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100">

@@ -97,7 +97,7 @@ const getById = async (req, res, next) => {
 // ─── POST /api/parcels ────────────────────────────────
 const create = async (req, res, next) => {
   try {
-    const { bagId, senderId, recipientName, recipientPhone, description, weight } = req.body
+    const { bagId, senderId, recipientName, recipientPhone, description, weight, service, urgent, fragile, recipientAddress } = req.body
 
     if (!senderId || !recipientName) {
       return res.status(400).json({ message: 'senderId et recipientName sont requis.' })
@@ -126,10 +126,14 @@ const create = async (req, res, next) => {
         senderId,
         recipientName,
         recipientPhone: recipientPhone ?? null,
+        recipientAddress: recipientAddress ?? null,
         description: description ?? null,
         weight: weight ?? null,
         qrcode,
         status: PARCEL_STATUS.RECEIVED,
+        service: service ?? 'standard',
+        urgent: urgent ?? false,
+        fragile: fragile ?? false,
       }, { transaction: t })
 
       await TrackingEvent.create({
@@ -398,7 +402,7 @@ const deleteParcel = async (req, res, next) => {
 // ─── PUT /api/parcels/:id ─────────────────────────────
 const update = async (req, res, next) => {
   try {
-    const { description, weight, recipientName, recipientPhone, bagId } = req.body
+    const { description, weight, recipientName, recipientPhone, bagId, service, urgent, fragile, recipientAddress } = req.body
 
     const parcel = await Parcel.findByPk(req.params.id)
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
@@ -429,6 +433,10 @@ const update = async (req, res, next) => {
         weight,
         recipientName,
         recipientPhone,
+        recipientAddress,
+        service: service ?? parcel.service,
+        urgent: urgent ?? parcel.urgent,
+        fragile: fragile ?? parcel.fragile,
         ...(Object.prototype.hasOwnProperty.call(req.body, 'bagId') ? { bagId: normalizedBagId } : {}),
       }, { transaction: t })
 

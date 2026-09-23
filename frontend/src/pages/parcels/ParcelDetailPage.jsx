@@ -14,6 +14,7 @@ import LabelPrinter from '../../components/ui/LabelPrinter'
 import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
 import { ArrowLeft, Copy, Download, AlertTriangle, ChevronUp, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
+import { ParcelLabelPrinter } from '../../components/ui/ParcelLabelPrinter'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
@@ -172,8 +173,12 @@ export default function ParcelDetailPage() {
               { label: 'Email exp.',  value: parcel.sender?.email ?? '—' },
               { label: 'Tél. exp.',   value: parcel.sender.phone ?? '—' },
               { label: 'Tél. dest.',   value: parcel.recipientPhone ?? '—' },
+              { label: 'Adresse dest.', value: parcel.recipientAddress ?? '—' },
               { label: 'Sac',          value: parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun') },
               { label: 'Destination',  value: parcel.bag?.destinationAgency?.city ?? '—' },
+              { label: 'Service',      value: parcel.service ?? '—' },
+              { label: 'Urgent',       value: parcel.urgent ? 'Oui' : 'Non' },
+              { label: 'Fragile',      value: parcel.fragile ? 'Oui' : 'Non' },
             ].map(({ label, value }) => (
               <div key={label} className="bg-slate-50 rounded-xl px-0 lg:px-1 py-1 lg:py-2.5">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
@@ -459,11 +464,26 @@ export default function ParcelDetailPage() {
                     />
                   </div>
 
-                  <LabelPrinter
+                  {/* <LabelPrinter
                     code={parcel.qrcode}
                     qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
                     className="w-full max-w-xs"
                     recipientInfo={parcel.recipientPhone ? `${parcel.recipientName} :  ${parcel.recipientPhone}` : parcel.recipientName  || 'Tél non renseigné'}
+                    pieceNumber={currentPiece}
+                    totalPieces={totalPieces}
+                  /> */}
+                  <ParcelLabelPrinter
+                    code={parcel.qrcode}
+                    qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
+                    recipientName={parcel.recipientName || 'Destinataire'}
+                    recipientAddress={parcel.recipientAddress || 'Adresse non renseignée'}
+                    recipientPhone={parcel.recipientPhone || 'Tél non renseigné'}
+                    weight={parcel.weight || 0}
+                    service={parcel.service || 'Standard'}
+                    fragile={parcel.fragile || false}
+                    date={new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    }).replace('.', '') }
                     pieceNumber={currentPiece}
                     totalPieces={totalPieces}
                   />

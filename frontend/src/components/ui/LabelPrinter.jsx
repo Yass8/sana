@@ -30,7 +30,8 @@ export default function LabelPrinter({
   const downloadPDF = async () => {
     if (isDisabled) return
 
-    const widthMm = 60
+    // dimensions 100*60 mm
+    const widthMm = 100
     const heightMm = 60
     const mmToPx = 3.78
     const widthPx = Math.round(widthMm * mmToPx)

@@ -6,6 +6,8 @@ const STATUSES = [
   'arrived_destination', 'collected', 'issue',
 ];
 
+const SERVICES = ['standard', 'express'];
+
 module.exports = (sequelize) => {
   const Parcel = sequelize.define('Parcel', {
     id: {
@@ -20,12 +22,20 @@ module.exports = (sequelize) => {
     senderId: { type: DataTypes.UUID, allowNull: false, field: 'sender_id' },
     recipientName: { type: DataTypes.STRING(100), allowNull: false, field: 'recipient_name' },
     recipientPhone: { type: DataTypes.STRING(20), allowNull: true, field: 'recipient_phone' },
+    recipientAddress: { type: DataTypes.STRING(255), allowNull: true, field: 'recipient_address' },
     qrcodeUrl: { type: DataTypes.STRING(255), allowNull: true, field: 'qrcode_url' },
     status: {
       ...enumType(STATUSES),
       allowNull: false,
       defaultValue: 'received',
     },
+    service: {
+      ...enumType(SERVICES),
+      allowNull: true,
+      defaultValue: 'standard',
+    },
+    urgent: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    fragile: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   }, {
     tableName: 'parcels',
     timestamps: true,

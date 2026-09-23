@@ -12,7 +12,7 @@ import { showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAler
 const EMPTY = {
   senderName: '', senderEmail: '', senderPhone: '',
   recipientName: '', recipientPhone: '',
-  description: '', weight: '', bagId: '',
+  description: '', weight: '', bagId: '', service: 'standard', urgent: false, fragile: false, recipientAddress: ''
 }
 
 const Field = ({ label, name, type = 'text', placeholder, required, full, value, onChange, error }) => (
@@ -160,12 +160,16 @@ export default function NewParcelPage() {
     }
 
     const payload = {
-      bagId: form.bagId || null,   // envoie null si vide
+      bagId: form.bagId || null,
       senderId,
       recipientName: form.recipientName,
       recipientPhone: form.recipientPhone || null,
+      recipientAddress: form.recipientAddress || null,
       description: form.description || null,
       weight: form.weight ? parseFloat(form.weight) : null,
+      service: form.service || 'standard',
+      urgent: form.urgent || false,
+      fragile: form.fragile || false,
     }
     createParcel.mutate(payload)
   }
@@ -241,6 +245,8 @@ export default function NewParcelPage() {
                    value={form.recipientName} onChange={set('recipientName')} error={errs.recipientName} />
             <Field label="Téléphone" name="recipientPhone" placeholder="+221 77 000 00 00"
                    value={form.recipientPhone} onChange={set('recipientPhone')} error={errs.recipientPhone} />
+            <Field label="Adresse" name="recipientAddress" placeholder="123 Rue de l'Exemple, Dakar"
+                   value={form.recipientAddress} onChange={set('recipientAddress')} error={errs.recipientAddress} full />
           </div>
         </Card>
 
@@ -279,6 +285,29 @@ export default function NewParcelPage() {
               <textarea value={form.description} onChange={set('description')}
                         placeholder="Vêtements, chaussures, médicaments…" rows={2}
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none resize-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"/>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Service
+              </label>
+              <select
+                value={form.service}
+                onChange={set('service')}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+              >
+                <option value="standard">Standard</option>
+                <option value="express">Express</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-4 col-span-2">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.urgent} onChange={(e) => setForm(p => ({ ...p, urgent: e.target.checked }))} />
+                <span className="text-sm text-slate-700">Urgent</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.fragile} onChange={(e) => setForm(p => ({ ...p, fragile: e.target.checked }))} />
+                <span className="text-sm text-slate-700">Fragile</span>
+              </label>
             </div>
           </div>
         </Card>

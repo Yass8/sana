@@ -11,6 +11,7 @@ import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../comp
 import { Copy, Download, Plus, Package } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
 import { useAvailableParcels } from '../../hooks/useParcels'
+import { BagLabelPrinter } from '../../components/ui/BagLabelPrinter'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
@@ -252,11 +253,21 @@ export default function BagDetailPage() {
             <div className="flex flex-col items-center gap-3">
               <img src={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`} alt={bag.qrcode}
                    className="w-40 h-40" />
-              <LabelPrinter
+              {/* <LabelPrinter
                 code={bag.qrcode}
                 qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
                 className="w-full max-w-xs"
                 bag={true}
+              /> */}
+              <BagLabelPrinter
+                code={bag.qrcode}
+                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
+                parcelCount={bag.parcels.length}
+                weight={bag.weight}
+                date={new Date(bag.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    }).replace('.', '') }
+                className="w-full max-w-xs"
               />
               <p className="text-[10px] text-slate-400 text-center">
                 Scannez pour avoir les détails de ce sac
