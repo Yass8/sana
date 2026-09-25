@@ -2,6 +2,7 @@
 import api from './axios'
 export const usersApi = {
   getAll:   (p)       => api.get('/users', { params: p }),
+  searchByName: (q) => api.get('/users/search', { params: { q } }),
   getById:  (id)      => api.get(`/users/${id}`),
   create:   (data)    => api.post('/users', data),
   update:   (id,data) => api.patch(`/users/${id}`, data),

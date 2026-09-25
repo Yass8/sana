@@ -9,6 +9,7 @@ const isAdmin = authorize(ROLES.ADMIN)
 const all = authorize(ROLES.ADMIN, ROLES.AGENT_FR, ROLES.AGENT_AF)
 
 router.get(   '/',     authenticate, isAdmin, ctrl.getAll)
+router.get(   '/search', authenticate, all, ctrl.searchByName)
 router.get(   '/me',   authenticate,          ctrl.getMe)
 router.get(   '/:id',  authenticate, all, ctrl.getById)
 router.post(  '/',     authenticate, isAdmin, ctrl.create)

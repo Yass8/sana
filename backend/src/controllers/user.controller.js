@@ -46,6 +46,33 @@ const getAll = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
+const searchByName = async (req, res, next) => {
+  try {
+    const q = String(req.query.q || req.query.query || '').trim()
+
+    if (!q) {
+      return res.json([])
+    }
+
+    const users = await User.findAll({
+      where: {
+        role: ROLES.CLIENT,
+        [Op.or]: [
+          { name: { [Op.like]: `%${q}%` } },
+          { email: { [Op.like]: `%${q}%` } },
+        ],
+      },
+      attributes: ['id', 'name', 'email', 'phone'],
+      order: [['name', 'ASC']],
+      limit: 10,
+    })
+
+    return res.json(users)
+  } catch (err) {
+    next(err)
+  }
+}
+
 // ─── GET /api/users/me ────────────────────────────────
 const getMe = async (req, res, next) => {
   try {
@@ -234,4 +261,4 @@ const updatePassword = async (req, res, next) => {
     
     
 
-module.exports = { getAll, getMe, getById, create, update, desactivate, deleteUser, updatePassword }
+module.exports = { getAll, getMe, getById, create, update, desactivate, deleteUser, updatePassword, searchByName }
