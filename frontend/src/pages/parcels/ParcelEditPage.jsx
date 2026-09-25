@@ -53,6 +53,7 @@ export default function ParcelEditPage() {
     recipientPhone: '',
     recipientAddress: '',
     service: '',
+    type: 'client',
     urgent: false,
     fragile: false,
   })
@@ -66,6 +67,7 @@ export default function ParcelEditPage() {
         recipientPhone: parcel.recipientPhone ?? '',
         recipientAddress: parcel.recipientAddress ?? '',
         service: parcel.service ?? '',
+        type: parcel.type ?? 'client',
         urgent: parcel.urgent ?? false,
         fragile: parcel.fragile ?? false,
       })
@@ -208,6 +210,24 @@ export default function ParcelEditPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  Type de colis
+                </label>
+                <select name="type" value={form.type} onChange={handleChange}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
+                  <option value="client">Dépôt par client</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="shein">Shein</option>
+                  <option value="temu">Temu</option>
+                  <option value="colissimo">Colissimo</option>
+                  <option value="chronopost">Chronopost</option>
+                  <option value="dhl">DHL</option>
+                  <option value="ups">UPS</option>
+                  <option value="fedex">FedEx</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Description

@@ -7,6 +7,8 @@ const STATUSES = [
 ];
 
 const SERVICES = ['standard', 'express'];
+//Ajout d'un const pour types/maniere du colis qui arrive à l'agence, ça peut être client qui est venu déposer le colis, arrivé par amazon, shein, temu, etc.
+const TYPES = ['client', 'amazon', 'shein', 'temu', 'colissimo', 'chronopost', 'dhl', 'ups', 'fedex', 'autre'];
 
 module.exports = (sequelize) => {
   const Parcel = sequelize.define('Parcel', {
@@ -33,6 +35,11 @@ module.exports = (sequelize) => {
       ...enumType(SERVICES),
       allowNull: true,
       defaultValue: 'standard',
+    },
+    type: {
+      ...enumType(TYPES),
+      allowNull: true,
+      defaultValue: 'client',
     },
     urgent: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     fragile: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

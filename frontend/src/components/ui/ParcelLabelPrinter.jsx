@@ -19,7 +19,7 @@ export function ParcelLabelPrinter({
   code = '',
   qrcodeUrl = '',
   senderName = 'SANA SERVICE',
-  senderPhone = '+33 7 59 01 33 76',
+  senderPhone = '+33 6 58 07 26 89',
   recipientName = '',
   recipientPhone = '',
   recipientAddress = '',

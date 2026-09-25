@@ -101,7 +101,7 @@ const baseLayout = (content, headerTitle = 'SanaService') => `
 /* ─────────────────────────────────────────
    TEMPLATE : MISE À JOUR DE STATUT (HTML)
    ───────────────────────────────────────── */
-const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, origin, destination, trackingUrl, notes, colis }) => {
+const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, origin, destination, trackingUrl, notes, colis, type }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.received;
 
   // Bloc agence
@@ -215,6 +215,20 @@ const statusUpdateTemplate = ({ parcelCode, status, recipientName, senderName, o
         </table>
       </td>
     </tr>
+
+    ${type ? `
+    <tr>
+      <td style="padding:8px 32px 0 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;">
+          <tr>
+            <td style="padding:12px 14px;">
+              <p style="margin:0;font-size:12px;color:#64748B;">Type de colis : <strong style="color:#0F172A;">${type}</strong></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    ` : ''}
 
     <!-- Agences -->
     ${origin || destination ? `

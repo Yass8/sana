@@ -177,6 +177,7 @@ export default function ParcelDetailPage() {
               { label: 'Sac',          value: parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun') },
               { label: 'Destination',  value: parcel.bag?.destinationAgency?.city ?? '—' },
               { label: 'Service',      value: parcel.service ?? '—' },
+              { label: 'Type',         value: parcel.type ?? '—' },
               { label: 'Urgent',       value: parcel.urgent ? 'Oui' : 'Non' },
               { label: 'Fragile',      value: parcel.fragile ? 'Oui' : 'Non' },
             ].map(({ label, value }) => (

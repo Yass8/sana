@@ -9,6 +9,7 @@ const { Op } = require('sequelize')
 const { generateCode } = require('../services/codeGenerator.service')
 const { sendStatusEmail } = require('../services/email.service');
 
+const PARCEL_TYPES = ['client', 'amazon', 'shein', 'temu', 'colissimo', 'chronopost', 'dhl', 'ups', 'fedex', 'autre']
 
 // IDs des agences fixes (à remplacer si besoin)
 const DEFAULT_ORIGIN_AGENCY_ID = '69ab1a3a-0989-485b-851b-a7430a6e38e0';
@@ -30,11 +31,12 @@ const INCLUDE_FULL = [
 // ─── GET /api/parcels ─────────────────────────────────
 const getAll = async (req, res, next) => {
   try {
-    const { status, search, bagId, page = 1, limit = 15,
+    const { status, search, bagId, type, page = 1, limit = 15,
             sortBy = 'createdAt', sortDir = 'DESC' } = req.query
 
     const where = {}
     if (status) where.status = status
+    if (type) where.type = type
     if (bagId !== undefined) {
       where.bagId = bagId === 'null' ? null : bagId;
     }
@@ -97,11 +99,13 @@ const getById = async (req, res, next) => {
 // ─── POST /api/parcels ────────────────────────────────
 const create = async (req, res, next) => {
   try {
-    const { bagId, senderId, recipientName, recipientPhone, description, weight, service, urgent, fragile, recipientAddress } = req.body
+    const { bagId, senderId, recipientName, recipientPhone, description, weight, service, type, urgent, fragile, recipientAddress } = req.body
 
     if (!senderId || !recipientName) {
       return res.status(400).json({ message: 'senderId et recipientName sont requis.' })
     }
+
+    const normalizedType = (type && PARCEL_TYPES.includes(type)) ? type : 'client'
 
     const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone'] })
     if (!sender) {
@@ -132,6 +136,7 @@ const create = async (req, res, next) => {
         qrcode,
         status: PARCEL_STATUS.RECEIVED,
         service: service ?? 'standard',
+        type: normalizedType,
         urgent: urgent ?? false,
         fragile: fragile ?? false,
       }, { transaction: t })
@@ -204,6 +209,7 @@ const create = async (req, res, next) => {
         status: PARCEL_STATUS.RECEIVED,
         recipientName: recipientName,
         senderName: sender.name,
+        type: parcel.type,
         notes: 'Colis réceptionné en agence.',
         date: new Date(),
         origin: originAgency ? {
@@ -216,7 +222,7 @@ const create = async (req, res, next) => {
           adresse: destinationAgency.address,
           phone: destinationAgency.phone
         } : null,
-        colis: { weight: parcel.weight, description: parcel.description },
+        colis: { weight: parcel.weight, description: parcel.description, type: parcel.type },
         bagCode: bagCode
       })
 
@@ -332,6 +338,7 @@ const updateStatus = async (req, res, next) => {
         status: nextStatus,
         recipientName: parcel.recipientName,
         senderName: parcel.sender.name,
+        type: parcel.type,
         notes: notes || '',
         date: new Date(),
         origin: originAgency ? {
@@ -344,7 +351,7 @@ const updateStatus = async (req, res, next) => {
           adresse: destinationAgency.address,
           phone: destinationAgency.phone
         } : null,
-        colis: { weight: parcel.weight, description: parcel.description }
+        colis: { weight: parcel.weight, description: parcel.description, type: parcel.type }
       })
       await Notification.update(
         { status: NOTIF_STATUS.SENT, sentAt: new Date() },
@@ -402,7 +409,7 @@ const deleteParcel = async (req, res, next) => {
 // ─── PUT /api/parcels/:id ─────────────────────────────
 const update = async (req, res, next) => {
   try {
-    const { description, weight, recipientName, recipientPhone, bagId, service, urgent, fragile, recipientAddress } = req.body
+    const { description, weight, recipientName, recipientPhone, bagId, service, type, urgent, fragile, recipientAddress } = req.body
 
     const parcel = await Parcel.findByPk(req.params.id)
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
@@ -435,6 +442,7 @@ const update = async (req, res, next) => {
         recipientPhone,
         recipientAddress,
         service: service ?? parcel.service,
+        type: type && PARCEL_TYPES.includes(type) ? type : parcel.type,
         urgent: urgent ?? parcel.urgent,
         fragile: fragile ?? parcel.fragile,
         ...(Object.prototype.hasOwnProperty.call(req.body, 'bagId') ? { bagId: normalizedBagId } : {}),

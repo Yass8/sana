@@ -12,7 +12,7 @@ import { showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAler
 const EMPTY = {
   senderName: '', senderEmail: '', senderPhone: '',
   recipientName: '', recipientPhone: '',
-  description: '', weight: '', bagId: '', service: 'standard', urgent: false, fragile: false, recipientAddress: ''
+  description: '', weight: '', bagId: '', service: 'standard', type: 'client', urgent: false, fragile: false, recipientAddress: ''
 }
 
 const Field = ({ label, name, type = 'text', placeholder, required, full, value, onChange, error }) => (
@@ -168,6 +168,7 @@ export default function NewParcelPage() {
       description: form.description || null,
       weight: form.weight ? parseFloat(form.weight) : null,
       service: form.service || 'standard',
+      type: form.type || 'client',
       urgent: form.urgent || false,
       fragile: form.fragile || false,
     }
@@ -278,15 +279,7 @@ export default function NewParcelPage() {
               </select>
               {errs.bagId && <p className="text-xs text-red-500 mt-1">{errs.bagId}</p>}
             </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                Contenu déclaré
-              </label>
-              <textarea value={form.description} onChange={set('description')}
-                        placeholder="Vêtements, chaussures, médicaments…" rows={2}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none resize-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"/>
-            </div>
-            <div className="col-span-2">
+            <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                 Service
               </label>
@@ -298,6 +291,35 @@ export default function NewParcelPage() {
                 <option value="standard">Standard</option>
                 <option value="express">Express</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Type de colis
+              </label>
+              <select
+                value={form.type}
+                onChange={set('type')}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+              >
+                <option value="client">Dépôt par client</option>
+                <option value="amazon">Amazon</option>
+                <option value="shein">Shein</option>
+                <option value="temu">Temu</option>
+                <option value="colissimo">Colissimo</option>
+                <option value="chronopost">Chronopost</option>
+                <option value="dhl">DHL</option>
+                <option value="ups">UPS</option>
+                <option value="fedex">FedEx</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Contenu déclaré
+              </label>
+              <textarea value={form.description} onChange={set('description')}
+                        placeholder="Vêtements, chaussures, médicaments…" rows={2}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none resize-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"/>
             </div>
             <div className="flex items-center gap-4 col-span-2">
               <label className="flex items-center gap-2">

@@ -245,7 +245,7 @@ export function BrandHeader({ logoUrl, right }) {
             LA POSTE COMORES
           </div>
           <div style={{ fontSize: '4.5pt', fontWeight: 700, letterSpacing: '0.6px', marginTop: '0.7mm', whiteSpace: 'nowrap' }}>
-            MORONI PORT · TÉL: 773 43 43 / 326 85 86
+            MORONI PORT · TÉL: 773 43 43 / 380 67 40
           </div>
         </div>
       </div>
