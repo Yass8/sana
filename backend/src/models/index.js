@@ -8,6 +8,7 @@ const models = {
   Parcel:        require('./Parcel')(sequelize),
   TrackingEvent: require('./TrackingEvent')(sequelize),
   Notification:  require('./Notification')(sequelize),
+  Invoice:       require('./Invoice')(sequelize),
 }
 
 Object.values(models).forEach(model => {

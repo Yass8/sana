@@ -53,6 +53,7 @@ module.exports = (sequelize) => {
     Parcel.belongsTo(models.User, { foreignKey: 'senderId', as: 'sender' });
     Parcel.hasMany(models.TrackingEvent, { foreignKey: 'parcelId', as: 'trackingEvents' });
     Parcel.hasMany(models.Notification, { foreignKey: 'parcelId', as: 'notifications' });
+    Parcel.hasOne(models.Invoice, { foreignKey: 'parcelId', as: 'invoice' });
   };
 
   return Parcel;

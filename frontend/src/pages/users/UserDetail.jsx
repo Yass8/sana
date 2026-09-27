@@ -6,7 +6,8 @@ import UserAvatar from '../../components/ui/UserAvatar'
 import UserStatsCards from '../../components/users/UserStatsCards'
 import {
   ArrowLeft, Mail, Phone, Building2, Calendar, Edit, Trash2,
-  CheckCircle, XCircle
+  CheckCircle, XCircle,
+  MapPin
 } from 'lucide-react'
 import { confirmDeleteAlert, showErrorAlert, showSuccessAlert } from '../../components/ui/SweetsAlert'
 import { useState } from 'react'
@@ -124,6 +125,15 @@ export default function UserDetail() {
                 <div>
                   <p className="text-xs text-slate-400">Téléphone</p>
                   <p className="text-sm font-medium text-slate-800">{user.phone || '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <MapPin size={18} className="text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Adresse</p>
+                  <p className="text-sm font-medium text-slate-800">{user.adresse || '—'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

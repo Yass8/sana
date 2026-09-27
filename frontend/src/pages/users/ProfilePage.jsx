@@ -14,7 +14,7 @@ export default function ProfilePage() {
   const updateUser = useUpdateUser()
   const updatePassword = useUpdatePassword()
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', adresse: '' })
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -27,6 +27,7 @@ export default function ProfilePage() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        adresse: user.adresse || '',
       })
     }
   }, [user])
@@ -218,6 +219,22 @@ export default function ProfilePage() {
                          bg-white text-slate-900"
             />
           </div>
+          <div>
+            <label htmlFor="adresse" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+              Adresse
+            </label>
+            <input
+              id="adresse"
+              name="adresse"
+              type="text"
+              value={form.adresse}
+              onChange={handleChange}
+              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
+                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
+                         bg-white text-slate-900"
+            />
+          </div>
+          
           </div>
           <div className="flex justify-center p-5">
             <button

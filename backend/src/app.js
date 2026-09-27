@@ -25,6 +25,7 @@ app.use('/api/bags',          require('./routes/bag.routes'))
 app.use('/api/parcels',       require('./routes/parcel.routes'))
 app.use('/api/dashboard',     require('./routes/dashboard.routes'))
 app.use('/api/notifications', require('./routes/notification.routes'))
+app.use('/api/invoices',      require('./routes/invoice.routes'))
 
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {

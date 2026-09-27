@@ -37,6 +37,7 @@ export default function UserForm() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        adresse: user.adresse || '',
         role: user.role || 'client',
         agencyId: user.agencyId || '',
         isActive: user.isActive ?? true,
@@ -71,6 +72,7 @@ export default function UserForm() {
       name: form.name,
       email: form.email,
       phone: form.phone || null,
+      adresse: form.adresse || null,
       role: form.role,
       agencyId: form.agencyId || null,
       isActive: form.isActive,
@@ -147,6 +149,14 @@ export default function UserForm() {
                   Téléphone
                 </label>
                 <input type="tel" value={form.phone} onChange={setField('phone')}
+                       className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  Adresse
+                </label>
+                <input type="text" value={form.adresse} onChange={setField('adresse')}
                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
               </div>
             </div>

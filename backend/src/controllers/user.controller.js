@@ -120,7 +120,7 @@ const getById = async (req, res, next) => {
 // Création d'un agent par l'admin
 const create = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role, agencyId, sendMail } = req.body
+    const { name, email, password, phone, adresse, role, agencyId, sendMail } = req.body
 
     if (!name || !email || !role) {
       return res.status(400).json({ message: 'Nom, email et rôle requis.' })
@@ -142,7 +142,7 @@ const create = async (req, res, next) => {
     if (existing) return res.status(409).json({ message: 'Cet email est déjà utilisé.' })
 
     const user = await User.create({
-      name, email, phone, role, agencyId: agencyId ?? null,
+      name, email, phone, adresse, role, agencyId: agencyId ?? null,
       passwordHash: finallyPassword,
     })
 
@@ -171,8 +171,8 @@ const update = async (req, res, next) => {
     const user = await User.findByPk(req.params.id)
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
 
-    const { name, phone, role, agencyId, isActive } = req.body
-    await user.update({ name, phone, role, agencyId, isActive })
+    const { name, phone, adresse, role, agencyId, isActive } = req.body
+    await user.update({ name, phone, adresse, role, agencyId, isActive })
 
     res.json(user.toSafeJSON())
   } catch (err) { next(err) }
