@@ -89,7 +89,7 @@ export default function NewParcelPage() {
       queryClient.invalidateQueries({ queryKey: ['parcels'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       await showSuccessAlert({ text: 'Colis ajouté.' })
-      navigate(`/parcels/${p.id}`)
+      navigate(`/invoices/new`)
     },
   })
 

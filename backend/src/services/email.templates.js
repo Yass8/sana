@@ -507,6 +507,48 @@ const bulkCustomMessageText = ({ name, message }) => {
   return `Bonjour ${name || ''},\n\n${message}\n\nCordialement,\nSanaService`;
 };
 
+/* ─────────────────────────────────────────
+   TEMPLATE : ENVOI DE FACTURE
+   ───────────────────────────────────────── */
+const invoiceTemplate = ({ name, invoiceNumber, invoiceUrl }) => {
+  const content = `
+    <tr>
+      <td style="padding:24px 32px 0 32px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F3E8FF;border-radius:12px;padding:16px;">
+          <tr>
+            <td width="48" valign="middle" style="background:#EDE9FE;border-radius:50%;width:40px;height:40px;text-align:center;">
+              <span style="font-size:18px;">🧾</span>
+            </td>
+            <td style="padding-left:14px;" valign="middle">
+              <h1 style="margin:0;font-size:16px;font-weight:700;color:#0F172A;">Votre facture</h1>
+              <p style="margin:6px 0 0 0;font-size:13px;color:#64748B;">Facture N° <strong>${invoiceNumber}</strong></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:20px 32px 24px 32px;">
+        <p style="margin:0 0 12px 0;font-size:14px;color:#0F172A;line-height:1.6;">Bonjour ${name || ''},</p>
+        <p style="margin:0 0 12px 0;font-size:13px;color:#64748B;">Vous pouvez consulter et télécharger votre facture en cliquant sur le bouton ci-dessous.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            <td style="background:#7C3AED;border-radius:30px;text-align:center;">
+              <a href="${invoiceUrl}" style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:30px;">Voir la facture</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0 0;font-size:11px;color:#94A3B8;">Si le bouton ne fonctionne pas :<br><span style="color:#7C3AED;word-break:break-all;">${invoiceUrl}</span></p>
+      </td>
+    </tr>
+  `;
+  return baseLayout(content);
+};
+
+const invoiceText = ({ name, invoiceNumber, invoiceUrl }) => {
+  return `Bonjour ${name || ''},\n\nVotre facture N° ${invoiceNumber} est disponible : ${invoiceUrl}\n\nCordialement,\nSanaService`;
+};
+
 module.exports = {
   statusUpdateTemplate,
   statusUpdateText,
@@ -518,5 +560,8 @@ module.exports = {
   welcomeText,
   bulkCustomMessageTemplate,
   bulkCustomMessageText,
+  /* Templates pour factures */
+  invoiceTemplate,
+  invoiceText,
   STATUS_CONFIG
 };

@@ -1,6 +1,7 @@
 // src/controllers/invoice.controller.js
 const { Invoice, Parcel } = require('../models');
 const invoiceService = require('../services/invoice.service');
+const emailService = require('../services/email.service');
 
 // ═══════════════════════════════════════════════════════════
 // GET /invoices
@@ -15,11 +16,24 @@ const getAll = async (req, res, next) => {
       where,
       order: [['createdAt', 'DESC']],
       include: [
-        { association: 'parcel', attributes: ['id', 'qrcode', 'recipientName', 'status'] },
+        {
+          association: 'parcel',
+          attributes: ['id', 'qrcode', 'recipientName', 'status'],
+          include: [
+            { association: 'sender', attributes: ['id', 'name', 'email'] },
+          ],
+        },
       ],
     });
 
-    res.json(invoices);
+    // Ajout de l'URL publique du PDF si présent
+    const result = invoices.map(inv => {
+      const plain = inv.toJSON();
+      plain.pdfPublicUrl = inv.pdfUrl ? invoiceService.getInvoicePdfPublicUrl(inv.pdfUrl) : null;
+      return plain;
+    });
+
+    res.json(result);
   } catch (err) { next(err); }
 };
 
@@ -40,7 +54,9 @@ const getById = async (req, res, next) => {
     });
 
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
-    res.json(invoice);
+    const plain = invoice.toJSON();
+    plain.pdfPublicUrl = invoice.pdfUrl ? invoiceService.getInvoicePdfPublicUrl(invoice.pdfUrl) : null;
+    res.json(plain);
   } catch (err) { next(err); }
 };
 
@@ -168,4 +184,99 @@ const deleteInvoice = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getById, create, update, deleteInvoice };
+// Envoi par email : POST /invoices/:id/send-email
+const sendEmail = async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findByPk(req.params.id, {
+      include: [
+        { association: 'parcel', include: [{ association: 'sender' }] },
+      ],
+    });
+    if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
+
+    const publicUrl = invoiceService.getInvoicePdfPublicUrl(invoice.pdfUrl);
+
+    const to = req.body.to || invoice.parcel?.sender?.email;
+    if (!to) return res.status(400).json({ message: 'Adresse email destinataire requise.' });
+
+    // Télécharger le PDF depuis Supabase et l'envoyer en pièce jointe
+    let attachment = null
+    try {
+      if (invoice.pdfUrl) {
+        const fileName = String(invoice.pdfUrl).split('/').pop()
+        const buffer = await invoiceService.downloadInvoicePDF(fileName)
+        if (buffer) attachment = { fileName, buffer }
+      }
+    } catch (downloadErr) {
+      console.error('⚠️ Échec téléchargement PDF pour envoi email :', downloadErr.message)
+    }
+
+    const info = await emailService.sendInvoiceEmail({
+      to,
+      name: req.body.name || invoice.parcel?.sender?.name,
+      invoiceNumber: invoice.number,
+      invoiceUrl: publicUrl,
+      parcelId: invoice.parcelId,
+      attachment,
+    });
+
+    res.json({ message: 'Email envoyé', info, attached: !!attachment });
+  } catch (err) { next(err); }
+};
+
+// ═══════════════════════════════════════════════════════════
+// GET /invoices/available-parcels
+// Retourne uniquement les colis SANS facture
+// ═══════════════════════════════════════════════════════════
+const getAvailableParcels = async (req, res, next) => {
+  try {
+    const { Op } = require('sequelize');
+    const { search, limit = 200 } = req.query;
+
+    const where = {};
+
+    // Restriction client : ne voit que ses propres colis
+    if (req.user?.role === 'client') {
+      where.senderId = req.user.id;
+    }
+
+    // Exclure les colis déjà facturés
+    where['$invoice.id$'] = null;
+
+    if (search) {
+      where[Op.or] = [
+        { qrcode:        { [Op.like]: `%${search}%` } },
+        { recipientName: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const parcels = await Parcel.findAll({
+      where,
+      include: [
+        {
+          association: 'invoice',
+          attributes: ['id'],
+          required: false,          // LEFT JOIN
+        },
+        {
+          association: 'sender',
+          attributes: ['id', 'name', 'email', 'phone'],
+        },
+        {
+          association: 'bag',
+          attributes: ['id', 'qrcode'],
+          include: [
+            { association: 'destinationAgency', attributes: ['id', 'name', 'city'] },
+          ],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit, 10),
+      subQuery: false,              // indispensable pour le filtre $invoice.id$
+    });
+
+    res.json(parcels);
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getById, create, update, deleteInvoice, sendEmail, getAvailableParcels };

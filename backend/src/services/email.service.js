@@ -11,6 +11,8 @@ const {
   welcomeText,
   bulkCustomMessageTemplate,
   bulkCustomMessageText,
+  invoiceTemplate,
+  invoiceText,
   STATUS_CONFIG
 } = require('./email.templates');
 
@@ -165,4 +167,43 @@ async function sendBulkCustomEmail({ to, name, message }) {
   return await transporter.sendMail(mailOptions);
 }
 
-module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail, sendWelcomeEmail, sendBulkCustomEmail };
+/**
+ * Envoi d'une facture par email (lien public vers le PDF)
+ */
+async function sendInvoiceEmail({ to, name, invoiceNumber, invoiceUrl, attachment }) {
+  const html = invoiceTemplate({ name, invoiceNumber, invoiceUrl });
+  const text = invoiceText({ name, invoiceNumber, invoiceUrl });
+
+  const mailOptions = {
+    from: FROM_ADDRESS,
+    to,
+    replyTo: REPLY_TO,
+    subject: `🧾 Facture ${invoiceNumber} — SanaService`,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+
+  if (attachment && attachment.buffer) {
+    mailOptions.attachments = [
+      {
+        filename: attachment.fileName || `facture_${invoiceNumber}.pdf`,
+        content: attachment.buffer,
+        contentType: 'application/pdf',
+      }
+    ];
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error('Erreur Nodemailer (invoice):', error);
+    throw new Error('Échec de l\'envoi de la facture');
+  }
+}
+
+module.exports = { sendStatusEmail, sendBulkAlertEmail, sendResetEmail, sendWelcomeEmail, sendBulkCustomEmail, sendInvoiceEmail };

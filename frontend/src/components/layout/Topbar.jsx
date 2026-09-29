@@ -7,6 +7,7 @@ import { ScanLine, User, Users, Bell, LogOut, Building2, History, Link } from 'l
 const MENU_ITEMS = [
   { to: '/profile',       label: 'Mon compte',    icon: User,  roles: ['agent_fr','agent_af','admin'] },
   { to: '/daily-history', label: 'Historique',    icon: History,  roles: ['agent_fr','agent_af','admin'] },
+  { to: '/invoices',      label: 'Factures',      icon: History,  roles: ['agent_fr','agent_af','admin'] },
   { to: '/users',         label: 'Utilisateurs',  icon: Users, roles: ['admin'] },
   { to: '/agencies',      label: 'Agences',       icon: Building2, roles: ['admin'] },
   { to: '/notifications', label: 'Notifications', icon: Bell,  roles: ['admin'] },

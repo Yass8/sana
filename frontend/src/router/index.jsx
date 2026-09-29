@@ -12,6 +12,8 @@ import ScanPage             from '../pages/scan/ScanPage'
 import BagsPage             from '../pages/bags/BagsPage'
 import BagDetailPage        from '../pages/bags/BagDetailPage'
 import NotificationsPage    from '../pages/notifications/NotificationsPage'
+import InvoicesPage from '../pages/invoices/InvoicesPage'
+import ShowFacture from '../pages/invoices/ShowFacture'
 import UsersPage from '../pages/users/UsersPage'
 import UsersForm from '../pages/users/UsersForm'
 import UserDetail from '../pages/users/UserDetail'
@@ -21,6 +23,7 @@ import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import ProfilePage from '../pages/users/ProfilePage'
 import DailyHistoryPage from '../pages/dashboard/DailyHistoryPage'
+import NewInvoicePage from '../pages/invoices/NewInvoicePage'
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -53,6 +56,9 @@ const router = createBrowserRouter([
         { path: '/bags/:id',     element: <BagDetailPage /> },
         { path: '/notifications',element: <NotificationsPage /> },
         { path: '/agencies',     element: <AgenciesPage /> },
+        { path: '/invoices',      element: <InvoicesPage /> },
+        { path: '/invoices/new',  element: <NewInvoicePage /> },
+        { path: '/invoices/:id',  element: <ShowFacture /> },
 
         { path: '/users',        element: <UsersPage /> },
         { path: '/users/new',    element: <UsersForm /> },

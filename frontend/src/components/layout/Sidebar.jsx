@@ -12,13 +12,15 @@ import {
   LogOut, 
   Building2,
   History,
-  Link
+  Link,
+  Receipt
 } from 'lucide-react'
 
 const NAV = [
   { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, roles: ['agent_fr','agent_af','admin'] },
   { to: '/scan',          label: 'Scanner',       icon: ScanLine,        roles: ['agent_fr','agent_af','admin'] },
   { to: '/parcels',       label: 'Colis',         icon: Package,         roles: ['agent_fr','agent_af','admin'] },
+  { to: '/invoices',      label: 'Factures',      icon: Receipt,         roles: ['agent_fr','agent_af','admin'] },
   { to: '/bags',          label: 'Sacs',          icon: ShoppingBag,     roles: ['agent_fr','agent_af','admin'] },
   { to: '/users',         label: 'Utilisateurs',  icon: Users,           roles: ['admin'] },
   { to: '/agencies',      label: 'Agences',       icon: Building2,       roles: ['admin'] },

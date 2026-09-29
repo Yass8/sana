@@ -18,6 +18,16 @@ import { ParcelLabelPrinter } from '../../components/ui/ParcelLabelPrinter'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
+// ═══════════════════════════════════════════════════════════
+// Config statuts facture
+// ═══════════════════════════════════════════════════════════
+const INVOICE_STATUS_CONFIG = {
+  paid:           { label: 'Payée',               color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  partially_paid: { label: 'Partiellement payée', color: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-500' },
+  draft:          { label: 'Brouillon',           color: 'bg-slate-50 text-slate-600 border-slate-200',       dot: 'bg-slate-400' },
+  overdue:        { label: 'En retard',           color: 'bg-red-50 text-red-700 border-red-200',             dot: 'bg-red-500' },
+  none:           { label: 'Aucune facture',      color: 'bg-slate-50 text-slate-500 border-slate-200',       dot: 'bg-slate-300' },
+}
 
 export default function ParcelDetailPage() {
   const { id } = useParams()
@@ -34,6 +44,13 @@ export default function ParcelDetailPage() {
   const { data: parcel, isLoading, isError } = useParcel(id)
   const { data: openBags = [], isLoading: loadingBags } = useBags({ status: 'ouvert' })
   const effectiveSelectedBagId = selectedBagId || parcel?.bagId || ''
+
+  // ═══════════════════════════════════════════════════════════
+  // État de la facture
+  // ═══════════════════════════════════════════════════════════
+  const invoiceStatus = parcel?.invoice?.status || 'none'
+  const isInvoicePaid = invoiceStatus === 'paid'
+  const invoiceCfg    = INVOICE_STATUS_CONFIG[invoiceStatus] || INVOICE_STATUS_CONFIG.none
 
   const bagMutation = useMutation({
     mutationFn: (bagId) => parcelsApi.update(id, { bagId }),
@@ -66,6 +83,16 @@ export default function ParcelDetailPage() {
   }
 
   const handleConfirmCollection = async () => {
+    // 🔒 Blocage côté frontend (le backend rejette aussi)
+    if (!isInvoicePaid) {
+      return showErrorAlert({
+        title: 'Facture non payée',
+        text: invoiceStatus === 'none'
+          ? 'Aucune facture n\'est associée à ce colis. Générez la facture avant de confirmer le retrait.'
+          : `La facture est ${invoiceCfg.label.toLowerCase()}. Le paiement complet est requis pour confirmer le retrait.`,
+      })
+    }
+
     const confirmed = await confirmActionAlert({
       message: 'Voulez-vous confirmer le retrait de ce colis ?',
       confirmButtonText: 'Oui, confirmer'
@@ -99,7 +126,6 @@ export default function ParcelDetailPage() {
     bagMutation.mutate(selectedBagId)
   }
 
-  // Nouvelles fonctions pour le colis individuel
   const handleDepartAirport = async () => {
     try {
       await updateStatus.mutateAsync({ id, status: 'departed_airport' })
@@ -118,8 +144,7 @@ export default function ParcelDetailPage() {
     }
   }
 
-  // Confirmer le retrait est possible si le statut est arrived_destination et que l'utilisateur est agent_af/admin
-  const canConfirmCollection = parcel?.status === 'arrived_destination' && 
+  const canConfirmCollection = parcel?.status === 'arrived_destination' &&
                                (user?.role === 'agent_af' || user?.role === 'admin')
 
   if (isLoading) return (
@@ -304,6 +329,25 @@ export default function ParcelDetailPage() {
               <div className="p-5">
                 <h2 style={{fontFamily:'var(--font-display)'}}
                     className="font-bold text-slate-900 mb-4">Gestion du colis individuel</h2>
+
+                {/* ═══ Bloc statut facture ═══ */}
+                <div className={`mb-4 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border ${invoiceCfg.color}`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${invoiceCfg.dot}`} />
+                    <span className="text-xs font-semibold truncate">
+                      Facture : {invoiceCfg.label}
+                    </span>
+                  </div>
+                  {parcel.invoice && (
+                    <button
+                      onClick={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                      className="text-[11px] font-semibold underline hover:no-underline whitespace-nowrap"
+                    >
+                      Voir
+                    </button>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   {parcel.status === 'received' && (
                     <button onClick={handleDepartAirport} disabled={updateStatus.isPending}
@@ -318,10 +362,23 @@ export default function ParcelDetailPage() {
                     </button>
                   )}
                   {canConfirmCollection && (
-                    <button onClick={handleConfirmCollection} disabled={updateStatus.isPending}
-                            className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                      {updateStatus.isPending ? <Spinner size="sm" color="white"/> : '✓ Confirmer le retrait'}
-                    </button>
+                    <>
+                      <button
+                        onClick={handleConfirmCollection}
+                        disabled={updateStatus.isPending || !isInvoicePaid}
+                        title={!isInvoicePaid ? 'Le paiement complet de la facture est requis' : ''}
+                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        {updateStatus.isPending
+                          ? <Spinner size="sm" color="white"/>
+                          : '✓ Confirmer le retrait'}
+                      </button>
+                      {!isInvoicePaid && (
+                        <p className="text-[11px] text-red-600 text-center leading-snug">
+                          🔒 Le retrait ne peut être confirmé que si la facture est entièrement payée.
+                        </p>
+                      )}
+                    </>
                   )}
                   {parcel.status !== 'issue' && (
                     <div>
@@ -358,16 +415,45 @@ export default function ParcelDetailPage() {
                     className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                   Confirmer le retrait
                 </h2>
-                <button onClick={handleConfirmCollection} disabled={updateStatus.isPending}
-                        className="w-full bg-green-600 hover:bg-green-500
-                                   disabled:opacity-60 text-white font-semibold
-                                   py-2.5 rounded-xl text-sm transition-colors
-                                   flex items-center justify-center gap-2">
+
+                {/* Bloc statut facture */}
+                <div className={`mb-3 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border ${invoiceCfg.color}`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${invoiceCfg.dot}`} />
+                    <span className="text-xs font-semibold truncate">
+                      Facture : {invoiceCfg.label}
+                    </span>
+                  </div>
+                  {parcel.invoice && (
+                    <button
+                      onClick={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                      className="text-[11px] font-semibold underline hover:no-underline whitespace-nowrap"
+                    >
+                      Voir
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleConfirmCollection}
+                  disabled={updateStatus.isPending || !isInvoicePaid}
+                  title={!isInvoicePaid ? 'Le paiement complet de la facture est requis' : ''}
+                  className="w-full bg-green-600 hover:bg-green-500
+                             disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold
+                             py-2.5 rounded-xl text-sm transition-colors
+                             flex items-center justify-center gap-2"
+                >
                   {updateStatus.isPending
                     ? <><Spinner size="sm" color="white"/> Confirmation…</>
                     : '✓ Confirmer le retrait du colis'
                   }
                 </button>
+
+                {!isInvoicePaid && (
+                  <p className="text-[11px] text-red-600 text-center mt-2 leading-snug">
+                    🔒 Le retrait ne peut être confirmé que si la facture est entièrement payée.
+                  </p>
+                )}
               </div>
             </Card>
           )}
@@ -465,14 +551,6 @@ export default function ParcelDetailPage() {
                     />
                   </div>
 
-                  {/* <LabelPrinter
-                    code={parcel.qrcode}
-                    qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
-                    className="w-full max-w-xs"
-                    recipientInfo={parcel.recipientPhone ? `${parcel.recipientName} :  ${parcel.recipientPhone}` : parcel.recipientName  || 'Tél non renseigné'}
-                    pieceNumber={currentPiece}
-                    totalPieces={totalPieces}
-                  /> */}
                   <ParcelLabelPrinter
                     code={parcel.qrcode}
                     qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}

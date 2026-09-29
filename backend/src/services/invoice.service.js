@@ -371,6 +371,27 @@ function getInvoicePdfPublicUrl(fileName) {
   return data?.publicUrl || null;
 }
 
+/**
+ * Télécharge le PDF de la facture depuis Supabase Storage et retourne un Buffer.
+ * Accepte soit un nom de fichier simple, soit une URL publique complète.
+ * @returns {Promise<Buffer>}
+ */
+async function downloadInvoicePDF(pdfUrlOrName) {
+  if (!pdfUrlOrName) return null;
+
+  const fileName = String(pdfUrlOrName).split('/').pop();
+
+  const { data, error } = await getSupabase()
+    .storage
+    .from(config.bucket)
+    .download(fileName);
+
+  if (error) throw new Error(`Erreur téléchargement Supabase : ${error.message}`);
+
+  const arrayBuffer = await data.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 // ═══════════════════════════════════════════════════════════
 // 6. EXPORT
 // ═══════════════════════════════════════════════════════════
@@ -379,6 +400,7 @@ module.exports = {
   uploadInvoicePDF,
   deleteInvoicePDF,
   getInvoicePdfPublicUrl,
+  downloadInvoicePDF,
   generateInvoiceNumber,
   config,
 };

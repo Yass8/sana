@@ -1,3 +1,5 @@
+// components/ui/SweetsAlert.jsx
+
 import Swal from 'sweetalert2'
 
 // Classes Tailwind pour les boutons

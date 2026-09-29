@@ -1,6 +1,6 @@
 // src/controllers/parcel.controller.js
 const { Parcel, Bag, TrackingEvent,
-        Notification, User, Agency, sequelize } = require('../models')
+        Notification, User, Agency, Invoice, sequelize } = require('../models')
 const { PARCEL_STATUS, NOTIF_TYPE,
         NOTIF_CHANNEL, NOTIF_STATUS,
         ROLES, canTransition } = require('../constants')
@@ -17,6 +17,7 @@ const DEFAULT_DESTINATION_AGENCY_ID = 'bf0ff001-79b5-4aef-bcce-3038aac4165b';
 
 const INCLUDE_FULL = [
   { association: 'sender',  attributes: ['id','name','email','phone'] },
+  { association: 'invoice' },
   { association: 'bag', include: [
       { association: 'originAgency', attributes: ['id','name','city','country'] },
       { association: 'destinationAgency', attributes: ['id','name','city','country'] },
@@ -252,6 +253,7 @@ const updateStatus = async (req, res, next) => {
     const parcel = await Parcel.findByPk(req.params.id, {
       include: [
         { association: 'sender', attributes: ['id','name','email','phone'] },
+        { association: 'invoice' },
       ],
     })
     if (!parcel) return res.status(404).json({ message: 'Colis introuvable.' })
