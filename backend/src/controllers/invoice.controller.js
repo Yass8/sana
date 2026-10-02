@@ -102,6 +102,19 @@ const create = async (req, res, next) => {
     );
     const computedTotal = total ?? (computedSubtotal * (1 + Number(taxRate) / 100));
 
+    // Status du facture
+    const status = 'draft';
+    if (Number(montantPaye) >= computedTotal) {
+      status = 'paid';
+    }
+    if (Number(montantPaye) > 0 && Number(montantPaye) < computedTotal) {
+      status = 'partially_paid';
+    }
+    if (Number(montantPaye) === 0 && computedTotal > 0) {
+      status = 'overdue';
+    }
+
+
     // 1. Création de l'enregistrement
     const invoice = await Invoice.create({
       number: invoiceService.generateInvoiceNumber(),
@@ -111,6 +124,8 @@ const create = async (req, res, next) => {
       total: computedTotal,
       currency,
       notes,
+      montantPaye: Number(montantPaye) || 0,
+      status,
     });
 
     // 2. Blocs variables pour le PDF
@@ -151,7 +166,7 @@ const update = async (req, res, next) => {
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
 
-    const allowed = ['status', 'subtotal', 'taxRate', 'total', 'currency', 'notes'];
+    const allowed = ['status', 'subtotal', 'taxRate', 'total', 'currency', 'notes', 'montantPaye'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -194,8 +209,6 @@ const sendEmail = async (req, res, next) => {
     });
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
 
-    const publicUrl = invoiceService.getInvoicePdfPublicUrl(invoice.pdfUrl);
-
     const to = req.body.to || invoice.parcel?.sender?.email;
     if (!to) return res.status(400).json({ message: 'Adresse email destinataire requise.' });
 
@@ -215,8 +228,6 @@ const sendEmail = async (req, res, next) => {
       to,
       name: req.body.name || invoice.parcel?.sender?.name,
       invoiceNumber: invoice.number,
-      invoiceUrl: publicUrl,
-      parcelId: invoice.parcelId,
       attachment,
     });
 

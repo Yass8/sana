@@ -168,11 +168,11 @@ async function sendBulkCustomEmail({ to, name, message }) {
 }
 
 /**
- * Envoi d'une facture par email (lien public vers le PDF)
+ * Envoi d'une facture par email (PDF en pièce jointe, pas de lien public)
  */
-async function sendInvoiceEmail({ to, name, invoiceNumber, invoiceUrl, attachment }) {
-  const html = invoiceTemplate({ name, invoiceNumber, invoiceUrl });
-  const text = invoiceText({ name, invoiceNumber, invoiceUrl });
+async function sendInvoiceEmail({ to, name, invoiceNumber, attachment }) {
+  const html = invoiceTemplate({ name, invoiceNumber });
+  const text = invoiceText({ name, invoiceNumber });
 
   const mailOptions = {
     from: FROM_ADDRESS,

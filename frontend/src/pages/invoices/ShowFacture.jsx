@@ -69,29 +69,40 @@ export default function ShowFacture() {
 
   const [status, setStatus] = useState('')
   const [email, setEmail]   = useState('')
+  const [montantPaye, setMontantPaye] = useState('')
+  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     if (inv) {
       setStatus(inv.status)
       setEmail(inv.parcel?.sender?.email || '')
+      setMontantPaye(inv.montantPaye != null ? String(inv.montantPaye) : '0')
+      setNotes(inv.notes || '')
     }
   }, [inv])
 
   // ── Handlers ──────────────────────────────────────────────
   const handleUpdate = async () => {
-    if (status === inv.status) {
-      return showErrorAlert({
-        title: 'Aucun changement',
-        text: 'Le statut est identique.',
-      })
+    const payload = {
+      status,
+      montantPaye: Number(montantPaye) || 0,
+      notes: notes || null,
     }
+
+    // detect if nothing changed
+    const nothingChanged = (
+      status === inv.status &&
+      (Number(montantPaye) || 0) === (Number(inv.montantPaye) || 0) &&
+      (notes || '') === (inv.notes || '')
+    )
+    if (nothingChanged) {
+      return showErrorAlert({ title: 'Aucun changement', text: 'Aucune modification détectée.' })
+    }
+
     try {
-      await updateMutation.mutateAsync({ id, data: { status } })
+      await updateMutation.mutateAsync({ id, data: payload })
       await refetch()
-      showSuccessAlert({
-        title: 'Statut mis à jour',
-        text: `Nouveau statut : ${STATUS_CONFIG[status]?.label}`,
-      })
+      showSuccessAlert({ title: 'Facture mise à jour', text: 'Les informations ont été enregistrées.' })
     } catch (err) {
       console.error(err)
       showErrorAlert({ title: 'Échec', text: 'Impossible de mettre à jour la facture.' })
@@ -150,7 +161,11 @@ export default function ShowFacture() {
   const isSaving    = updateMutation.isPending
   const isSending   = sendMutation.isPending
   const isDeleting  = deleteMutation.isPending
-  const statusDirty = status !== inv.status
+  const hasChanges = (
+    status !== inv.status ||
+    (Number(montantPaye) || 0) !== (Number(inv.montantPaye) || 0) ||
+    (notes || '') !== (inv.notes || '')
+  )
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -254,13 +269,35 @@ export default function ShowFacture() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+              {/* Montant payé */}
+              <div className="mt-3">
+                <label className="text-xs font-medium text-slate-600">Montant payé</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={montantPaye}
+                  onChange={(e) => setMontantPaye(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition"
+                />
+              </div>
+
+              {/* Note */}
+              <div className="mt-3">
+                <label className="text-xs font-medium text-slate-600">Note</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition"
+                />
+              </div>
               <button
                 onClick={handleUpdate}
-                disabled={isSaving || !statusDirty}
+                disabled={isSaving || !hasChanges}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                {isSaving ? 'Enregistrement...' : 'Enregistrer le statut'}
+                {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
               </button>
             </div>
 

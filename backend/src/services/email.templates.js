@@ -508,9 +508,9 @@ const bulkCustomMessageText = ({ name, message }) => {
 };
 
 /* ─────────────────────────────────────────
-   TEMPLATE : ENVOI DE FACTURE
+   TEMPLATE : ENVOI DE FACTURE (PIÈCE JOINTE)
    ───────────────────────────────────────── */
-const invoiceTemplate = ({ name, invoiceNumber, invoiceUrl }) => {
+const invoiceTemplate = ({ name, invoiceNumber }) => {
   const content = `
     <tr>
       <td style="padding:24px 32px 0 32px;">
@@ -530,23 +530,16 @@ const invoiceTemplate = ({ name, invoiceNumber, invoiceUrl }) => {
     <tr>
       <td style="padding:20px 32px 24px 32px;">
         <p style="margin:0 0 12px 0;font-size:14px;color:#0F172A;line-height:1.6;">Bonjour ${name || ''},</p>
-        <p style="margin:0 0 12px 0;font-size:13px;color:#64748B;">Vous pouvez consulter et télécharger votre facture en cliquant sur le bouton ci-dessous.</p>
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-          <tr>
-            <td style="background:#7C3AED;border-radius:30px;text-align:center;">
-              <a href="${invoiceUrl}" style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:30px;">Voir la facture</a>
-            </td>
-          </tr>
-        </table>
-        <p style="margin:16px 0 0 0;font-size:11px;color:#94A3B8;">Si le bouton ne fonctionne pas :<br><span style="color:#7C3AED;word-break:break-all;">${invoiceUrl}</span></p>
+        <p style="margin:0 0 12px 0;font-size:13px;color:#64748B;">Veuillez trouver votre facture en pièce jointe à cet email.</p>
+        <p style="margin:8px 0 0 0;font-size:12px;color:#94A3B8;"></p>
       </td>
     </tr>
   `;
   return baseLayout(content);
 };
 
-const invoiceText = ({ name, invoiceNumber, invoiceUrl }) => {
-  return `Bonjour ${name || ''},\n\nVotre facture N° ${invoiceNumber} est disponible : ${invoiceUrl}\n\nCordialement,\nSanaService`;
+const invoiceText = ({ name, invoiceNumber }) => {
+  return `Bonjour ${name || ''},\n\nVeuillez trouver votre facture N° ${invoiceNumber} en pièce jointe à cet email. Pour des raisons de sécurité, nous n'envoyons pas de lien public vers le fichier.\n\nCordialement,\nSanaService`;
 };
 
 module.exports = {

@@ -34,6 +34,12 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 0,
     },
+    montantPaye: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      field: 'montant_paye',
+    },
     taxRate: {
       type: DataTypes.DECIMAL(5, 2),
       allowNull: false,
