@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Receipt, Package, Plus, Trash2, Loader2,
@@ -14,6 +14,18 @@ import {
 } from '../../components/ui/SweetsAlert'
 
 const CURRENCIES = ['EUR', 'USD', 'XOF', 'MAD', 'KMF']
+
+// ────────────────────────────────────────────────────────────
+// Item par défaut (pré-rempli)
+// ────────────────────────────────────────────────────────────
+const DEFAULT_ITEM = {
+  description: 'COLIS EXPRESS',
+  subDescription: 'Envoi Express de colis au départ de CDG à destination de MORONI.',
+  quantite: 1,
+  unite: 'kg',
+  prixUnitaire: 17,
+  tva: 0,
+}
 
 // ────────────────────────────────────────────────────────────
 // Ligne d'info colis
@@ -50,14 +62,12 @@ function ItemRow({ item, index, onChange, onRemove, canRemove }) {
           type="text"
           value={item.description}
           onChange={e => update('description', e.target.value)}
-          placeholder="COLIS EXPRESS"
           className="w-full mt-1 px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none bg-white"
         />
         <input
           type="text"
           value={item.subDescription}
           onChange={e => update('subDescription', e.target.value)}
-          placeholder="Sous-description (optionnel)"
           className="w-full mt-1 px-2.5 py-1.5 border border-slate-200 rounded-md text-[11px] text-slate-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none bg-white"
         />
       </div>
@@ -82,7 +92,6 @@ function ItemRow({ item, index, onChange, onRemove, canRemove }) {
           type="text"
           value={item.unite}
           onChange={e => update('unite', e.target.value)}
-          placeholder="kg"
           className="w-full mt-1 px-2.5 py-1.5 border border-slate-200 rounded-md text-xs text-center focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none bg-white"
         />
       </div>
@@ -154,9 +163,7 @@ export default function NewInvoicePage() {
 
   const [parcelId, setParcelId]   = useState(preselectedParcelId)
   const [search, setSearch]       = useState('')
-  const [items, setItems]         = useState([
-    { description: '', subDescription: '', quantite: 1, unite: 'kg', prixUnitaire: 0, tva: 0 },
-  ])
+  const [items, setItems]         = useState([{ ...DEFAULT_ITEM }])
   const [taxRate, setTaxRate]     = useState(0)
   const [currency, setCurrency]   = useState('EUR')
   const [notes, setNotes]         = useState('')
@@ -169,6 +176,17 @@ export default function NewInvoicePage() {
     () => allParcels.find(p => p.id === parcelId),
     [allParcels, parcelId]
   )
+
+  // ── Pré-remplit la quantité du 1er article avec le poids du colis sélectionné
+  useEffect(() => {
+    if (!selectedParcel) return
+    const weight = Number(selectedParcel.weight)
+    if (!weight) return
+    setItems(prev =>
+      prev.map((it, i) => (i === 0 ? { ...it, quantite: weight } : it))
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedParcel?.id])
 
   // Parcels filtrés par recherche
   const filteredParcels = useMemo(() => {
@@ -201,7 +219,13 @@ export default function NewInvoicePage() {
     setItems(prev => prev.map((it, i) => i === index ? newItem : it))
   }
   const handleAddItem = () => {
-    setItems(prev => [...prev, { description: '', subDescription: '', quantite: 1, unite: 'kg', prixUnitaire: 0, tva: 0 }])
+    setItems(prev => [
+      ...prev,
+      {
+        ...DEFAULT_ITEM,
+        quantite: Number(selectedParcel?.weight) || DEFAULT_ITEM.quantite,
+      },
+    ])
   }
   const handleRemoveItem = (index) => {
     setItems(prev => prev.filter((_, i) => i !== index))

@@ -108,7 +108,7 @@ const create = async (req, res, next) => {
 
     const normalizedType = (type && PARCEL_TYPES.includes(type)) ? type : 'client'
 
-    const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone'] })
+    const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'phone', 'adresse'] })
     if (!sender) {
       return res.status(404).json({ message: 'Expéditeur introuvable.' })
     }

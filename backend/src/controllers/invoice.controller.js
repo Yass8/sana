@@ -103,14 +103,15 @@ const create = async (req, res, next) => {
     const computedTotal = total ?? (computedSubtotal * (1 + Number(taxRate) / 100));
 
     // Status du facture
-    const status = 'draft';
-    if (Number(montantPaye) >= computedTotal) {
+    let status = 'draft';
+
+    if (computedTotal <= 0) {
+      status = 'draft';
+    } else if (Number(montantPaye) >= computedTotal) {
       status = 'paid';
-    }
-    if (Number(montantPaye) > 0 && Number(montantPaye) < computedTotal) {
+    } else if (Number(montantPaye) > 0) {
       status = 'partially_paid';
-    }
-    if (Number(montantPaye) === 0 && computedTotal > 0) {
+    } else {
       status = 'overdue';
     }
 

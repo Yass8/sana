@@ -112,6 +112,7 @@ export default function NewParcelPage() {
       senderName: option.name || '',
       senderEmail: option.email || '',
       senderPhone: option.phone || '',
+      senderAdress: option.address || '',
     }))
   }
 
@@ -142,6 +143,7 @@ export default function NewParcelPage() {
           name: form.senderName,
           email: form.senderEmail,
           phone: form.senderPhone || null,
+          adresse: form.senderAddress || null,
           password: randomPassword,
           role: 'client',
           isActive: true,
@@ -240,7 +242,14 @@ export default function NewParcelPage() {
               value={form.senderEmail}
               onChange={set('senderEmail')}
               error={errs.senderEmail}
-              full
+            />
+            <Field
+              label="Adresse"
+              name="senderAddress"
+              placeholder="123 Rue de l'Exemple, Dakar"
+              value={form.senderAddress}
+              onChange={set('senderAddress')}
+              error={errs.senderAddress}
             />
 
             {selectedClient && (
