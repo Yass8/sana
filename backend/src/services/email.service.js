@@ -44,7 +44,7 @@ async function sendStatusEmail(params) {
     from: FROM_ADDRESS,
     to: params.to,
     replyTo: REPLY_TO,
-    subject: `📦 ${params.parcelCode} : ${config.label}`,
+    subject: `${params.parcelCode} : ${config.label}`,
     text: text,
     html: html,
     headers: {
@@ -74,7 +74,7 @@ async function sendBulkAlertEmail(params) {
     from: FROM_ADDRESS,
     to: params.to,
     replyTo: REPLY_TO,
-    subject: `⚠️ Information importante — ${params.parcelCode}`,
+    subject: `Information importante — ${params.parcelCode}`,
     text: text,
     html: html,
     headers: {
@@ -97,7 +97,7 @@ async function sendResetEmail(params) {
     from: FROM_ADDRESS,
     to: params.to,
     replyTo: REPLY_TO,
-    subject: `🔐 Réinitialisation de votre mot de passe — SanaService`,
+    subject: `Réinitialisation de votre mot de passe — SanaService`,
     text: text,
     html: html,
     headers: {
@@ -126,7 +126,7 @@ async function sendWelcomeEmail(params) {
     from: FROM_ADDRESS,
     to: params.to,
     replyTo: REPLY_TO,
-    subject: `🎉 Bienvenue chez SanaService, ${params.name} !`,
+    subject: `Bienvenue chez SanaService, ${params.name} !`,
     text: text,
     html: html,
     headers: {
@@ -155,7 +155,7 @@ async function sendBulkCustomEmail({ to, name, message }) {
     from: FROM_ADDRESS,
     to,
     replyTo: REPLY_TO,
-    subject: `📬 Message de SanaService`,
+    subject: `Message de SanaService`,
     text: text,
     html: html,
     headers: {
@@ -178,7 +178,7 @@ async function sendInvoiceEmail({ to, name, invoiceNumber, attachment }) {
     from: FROM_ADDRESS,
     to,
     replyTo: REPLY_TO,
-    subject: `🧾 Facture ${invoiceNumber} — SanaService`,
+    subject: `Facture ${invoiceNumber} — SanaService`,
     text,
     html,
     headers: {
