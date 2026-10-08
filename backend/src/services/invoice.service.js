@@ -316,6 +316,8 @@ async function generateInvoicePDF(data = {}) {
   textCenter('IBAN : FR76 3000 4000 5000 6000 7000 800',  footerY + 30);
   textCenter('BIC : QWERTYUIOP',                          footerY + 45);
 
+
+
   return Buffer.from(await pdfDoc.save());
 }
 
@@ -334,10 +336,14 @@ async function uploadInvoicePDF(buffer, noFacture) {
     .from(config.bucket)
     .upload(fileName, buffer, {
       contentType: 'application/pdf',
+      cacheControl: '0',
       upsert: true,
     });
 
-  if (error) throw new Error(`Erreur upload Supabase : ${error.message}`);
+  if (error) {
+    throw new Error(`Erreur upload Supabase : ${error.message}`);
+  }
+
   return fileName;
 }
 
@@ -363,11 +369,15 @@ async function deleteInvoicePDF(pdfUrlOrName) {
  * Construit l'URL publique d'une facture.
  */
 function getInvoicePdfPublicUrl(fileName) {
-  if (!fileName) return null;
+  if (!fileName) {
+    return null;
+  }
+
   const { data } = getSupabase()
     .storage
     .from(config.bucket)
     .getPublicUrl(fileName);
+
   return data?.publicUrl || null;
 }
 
@@ -392,15 +402,102 @@ async function downloadInvoicePDF(pdfUrlOrName) {
   return Buffer.from(arrayBuffer);
 }
 
-// ═══════════════════════════════════════════════════════════
-// 6. EXPORT
-// ═══════════════════════════════════════════════════════════
+
+function buildInvoiceItems({
+  invoice,
+  parcel,
+}) {
+  const quantity =
+    Number(parcel?.weight) || 0;
+
+  const total =
+    Number(invoice?.total) || 0;
+
+  const unitPrice =
+    quantity > 0
+      ? total / quantity
+      : 0;
+
+  return [
+    {
+      description: 'COLIS EXPRESS',
+
+      subDescription:
+        `Envoi Express de colis au départ de CDG à destination de ${
+          parcel?.recipientCity || 'MORONI'
+        }`,
+
+      quantite: quantity,
+
+      unite: 'kg',
+
+      prixUnitaire: unitPrice,
+
+      tva: 0,
+    },
+  ];
+}
+
+async function regenerateInvoicePDF(invoice, options = {}) {
+  const {
+    parcel: parcelOption,
+    ...invoiceUpdates
+  } = options;
+
+  const parcel = parcelOption || invoice.parcel;
+
+  if (!parcel) {
+    throw new Error('Le colis associé à la facture est requis.');
+  }
+
+  // On prend les valeurs actuelles de la facture
+  // puis on applique les modifications reçues.
+  const effectiveInvoice = {
+    ...invoice.toJSON(),
+    ...invoiceUpdates,
+  };
+
+  const items = buildInvoiceItems({
+    invoice: effectiveInvoice,
+    parcel,
+  });
+
+  const pdfBuffer = await generateInvoicePDF({
+    expediteur: {
+      nom: parcel.sender?.name,
+      email: parcel.sender?.email,
+      telephone: parcel.sender?.phone,
+    },
+
+    destinataire: {
+      nom: parcel.recipientName,
+      adresse: parcel.recipientAddress,
+      telephone: parcel.recipientPhone,
+    },
+
+    noFacture: invoice.number,
+
+    dateEmission: invoice.createdAt
+      ? new Date(invoice.createdAt).toLocaleDateString('fr-FR')
+      : undefined,
+
+    items,
+
+    montantPaye: Number(effectiveInvoice.montantPaye) || 0,
+  });
+
+  // Remplace le fichier existant.
+  // Exemple : facture_19572.pdf
+  return await uploadInvoicePDF(pdfBuffer, invoice.number);
+}
+
 module.exports = {
   generateInvoicePDF,
   uploadInvoicePDF,
   deleteInvoicePDF,
   getInvoicePdfPublicUrl,
   downloadInvoicePDF,
+  regenerateInvoicePDF,
   generateInvoiceNumber,
   config,
 };

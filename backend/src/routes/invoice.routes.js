@@ -15,5 +15,6 @@ router.patch('/:id',authenticate, authorize(ROLES.ADMIN, ROLES.AGENT_FR, ROLES.A
 router.delete('/:id', authenticate, authorize(ROLES.ADMIN), ctrl.deleteInvoice);
 // Envoi de la facture par email
 router.post('/:id/send-email', authenticate, authorize(ROLES.ADMIN, ROLES.AGENT_FR, ROLES.AGENT_AF), ctrl.sendEmail);
+router.post('/:id/pay', authenticate, authorize(ROLES.ADMIN, ROLES.AGENT_FR, ROLES.AGENT_AF), ctrl.pay);
 
 module.exports = router;

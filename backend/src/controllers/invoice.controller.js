@@ -1,7 +1,8 @@
 // src/controllers/invoice.controller.js
 const { Invoice, Parcel } = require('../models');
 const invoiceService = require('../services/invoice.service');
-const emailService = require('../services/email.service');
+const emailService   = require('../services/email.service');
+const { computeShares, computeStatus } = require('../utils/invoice.helpers');
 
 // ═══════════════════════════════════════════════════════════
 // GET /invoices
@@ -9,8 +10,9 @@ const emailService = require('../services/email.service');
 const getAll = async (req, res, next) => {
   try {
     const where = {};
-    if (req.query.status)   where.status   = req.query.status;
-    if (req.query.parcelId) where.parcelId = req.query.parcelId;
+    if (req.query.status)      where.status      = req.query.status;
+    if (req.query.parcelId)    where.parcelId    = req.query.parcelId;
+    if (req.query.paymentMode) where.paymentMode = req.query.paymentMode;
 
     const invoices = await Invoice.findAll({
       where,
@@ -26,10 +28,11 @@ const getAll = async (req, res, next) => {
       ],
     });
 
-    // Ajout de l'URL publique du PDF si présent
     const result = invoices.map(inv => {
       const plain = inv.toJSON();
-      plain.pdfPublicUrl = inv.pdfUrl ? invoiceService.getInvoicePdfPublicUrl(inv.pdfUrl) : null;
+      plain.pdfPublicUrl = inv.pdfUrl
+        ? invoiceService.getInvoicePdfPublicUrl(inv.pdfUrl)
+        : null;
       return plain;
     });
 
@@ -55,14 +58,16 @@ const getById = async (req, res, next) => {
 
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
     const plain = invoice.toJSON();
-    plain.pdfPublicUrl = invoice.pdfUrl ? invoiceService.getInvoicePdfPublicUrl(invoice.pdfUrl) : null;
+    plain.pdfPublicUrl = invoice.pdfUrl
+      ? invoiceService.getInvoicePdfPublicUrl(invoice.pdfUrl)
+      : null;
     res.json(plain);
   } catch (err) { next(err); }
 };
 
 // ═══════════════════════════════════════════════════════════
 // POST /invoices
-// Crée la facture, génère le PDF, l'upload et stocke pdfUrl
+// Crée la facture avec répartition + paiements initiaux
 // ═══════════════════════════════════════════════════════════
 const create = async (req, res, next) => {
   try {
@@ -74,12 +79,15 @@ const create = async (req, res, next) => {
       total,
       currency = 'EUR',
       notes,
-      montantPaye = 0,
+      // ── Nouveaux champs ────────────────────────────────
+      paymentMode     = 'recipient_full',
+      paymentLocation = null,
+      senderShare     = 0,
+      senderPaid      = 0,
+      recipientPaid   = 0,
     } = req.body;
 
-    if (!parcelId) {
-      return res.status(400).json({ message: 'parcelId est requis.' });
-    }
+    if (!parcelId) return res.status(400).json({ message: 'parcelId est requis.' });
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Au moins un item est requis.' });
     }
@@ -95,26 +103,31 @@ const create = async (req, res, next) => {
     if (!parcel)        return res.status(404).json({ message: 'Colis introuvable.' });
     if (parcel.invoice) return res.status(409).json({ message: 'Une facture existe déjà pour ce colis.' });
 
-    // Calculs
+    // Calculs montants
     const computedSubtotal = subtotal ?? items.reduce(
       (sum, it) => sum + (Number(it.quantite) || 0) * (Number(it.prixUnitaire) || 0),
       0
     );
     const computedTotal = total ?? (computedSubtotal * (1 + Number(taxRate) / 100));
 
-    // Status du facture
-    let status = 'draft';
+    // Répartition selon le mode
+    const shares = computeShares({
+      paymentMode,
+      total: computedTotal,
+      senderShare,
+    });
 
-    if (computedTotal <= 0) {
-      status = 'draft';
-    } else if (Number(montantPaye) >= computedTotal) {
-      status = 'paid';
-    } else if (Number(montantPaye) > 0) {
-      status = 'partially_paid';
-    } else {
-      status = 'overdue';
-    }
+    // Garde-fous sur les montants payés
+    const sPaid = Math.max(0, Math.min(Number(senderPaid) || 0,    shares.senderShare));
+    const rPaid = Math.max(0, Math.min(Number(recipientPaid) || 0, shares.recipientShare));
+    const montantPaye = sPaid + rPaid;
 
+    // Statut calculé
+    const status = computeStatus({
+      total: computedTotal,
+      senderPaid: sPaid,
+      recipientPaid: rPaid,
+    });
 
     // 1. Création de l'enregistrement
     const invoice = await Invoice.create({
@@ -125,7 +138,13 @@ const create = async (req, res, next) => {
       total: computedTotal,
       currency,
       notes,
-      montantPaye: Number(montantPaye) || 0,
+      paymentMode,
+      paymentLocation,
+      senderShare:    shares.senderShare,
+      recipientShare: shares.recipientShare,
+      senderPaid:     sPaid,
+      recipientPaid:  rPaid,
+      montantPaye,
       status,
     });
 
@@ -142,7 +161,7 @@ const create = async (req, res, next) => {
       telephone: parcel.recipientPhone,
     };
 
-    // 3. Génération PDF (agence lue dans le service via .env)
+    // 3. Génération PDF
     const pdfBuffer = await invoiceService.generateInvoicePDF({
       expediteur,
       destinataire,
@@ -160,18 +179,48 @@ const create = async (req, res, next) => {
 };
 
 // ═══════════════════════════════════════════════════════════
-// PATCH /invoices/:id
+// POST /invoices/:id/pay
+// Enregistre un encaissement (acompte ou solde)
 // ═══════════════════════════════════════════════════════════
-const update = async (req, res, next) => {
+const pay = async (req, res, next) => {
   try {
+    const { payerType, amount } = req.body;
+    
+
+    if (!['sender', 'recipient'].includes(payerType)) {
+      return res.status(400).json({ message: 'payerType doit être "sender" ou "recipient".' });
+    }
+    const amt = Number(amount);
+    if (!amt || amt <= 0) {
+      return res.status(400).json({ message: 'Montant invalide.' });
+    }
+
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
 
-    const allowed = ['status', 'subtotal', 'taxRate', 'total', 'currency', 'notes', 'montantPaye'];
-    const updates = {};
-    for (const key of allowed) {
-      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    // Part due selon le payeur
+    const share      = payerType === 'sender' ? Number(invoice.senderShare)    : Number(invoice.recipientShare);
+    const alreadyPaid = payerType === 'sender' ? Number(invoice.senderPaid)    : Number(invoice.recipientPaid);
+
+    if (alreadyPaid + amt > share + 0.001) {
+      return res.status(409).json({
+        message: `Le montant dépasse la part due (${share.toFixed(2)} ${invoice.currency}).`,
+      });
     }
+
+    const updates = payerType === 'sender'
+      ? { senderPaid:    alreadyPaid + amt }
+      : { recipientPaid: alreadyPaid + amt };
+
+    const newSenderPaid    = payerType === 'sender'    ? updates.senderPaid    : Number(invoice.senderPaid);
+    const newRecipientPaid = payerType === 'recipient' ? updates.recipientPaid : Number(invoice.recipientPaid);
+
+    updates.montantPaye = newSenderPaid + newRecipientPaid;
+    updates.status = computeStatus({
+      total: Number(invoice.total),
+      senderPaid: newSenderPaid,
+      recipientPaid: newRecipientPaid,
+    });
 
     await invoice.update(updates);
     res.json(invoice);
@@ -179,8 +228,191 @@ const update = async (req, res, next) => {
 };
 
 // ═══════════════════════════════════════════════════════════
+// PATCH /invoices/:id
+// ═══════════════════════════════════════════════════════════
+const update = async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findByPk(req.params.id);
+
+    if (!invoice) {
+      return res.status(404).json({
+        message: 'Facture introuvable.'
+      });
+    }
+
+    const allowed = [
+      'subtotal',
+      'taxRate',
+      'total',
+      'currency',
+      'notes',
+      'paymentMode',
+      'paymentLocation',
+      'senderShare',
+      'senderPaid',
+      'recipientPaid',
+    ];
+
+    const updates = {};
+
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        updates[key] = req.body[key];
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Valeurs finales de la facture
+    // ─────────────────────────────────────────────
+
+    const finalTotal =
+      updates.total !== undefined
+        ? Number(updates.total)
+        : Number(invoice.total);
+
+    const finalPaymentMode =
+      updates.paymentMode !== undefined
+        ? updates.paymentMode
+        : invoice.paymentMode;
+
+    const finalSenderPaid =
+      updates.senderPaid !== undefined
+        ? Number(updates.senderPaid)
+        : Number(invoice.senderPaid);
+
+    const finalRecipientPaid =
+      updates.recipientPaid !== undefined
+        ? Number(updates.recipientPaid)
+        : Number(invoice.recipientPaid);
+
+    // ─────────────────────────────────────────────
+    // Recalcul des parts
+    // ─────────────────────────────────────────────
+
+    if (
+      updates.paymentMode !== undefined ||
+      updates.senderShare !== undefined ||
+      updates.total !== undefined
+    ) {
+      const shares = computeShares({
+        paymentMode: finalPaymentMode,
+        total: finalTotal,
+        senderShare:
+          updates.senderShare !== undefined
+            ? Number(updates.senderShare)
+            : Number(invoice.senderShare),
+      });
+
+      updates.senderShare = shares.senderShare;
+      updates.recipientShare = shares.recipientShare;
+    }
+
+    // ─────────────────────────────────────────────
+    // Vérification des paiements
+    // ─────────────────────────────────────────────
+
+    const finalSenderShare =
+      updates.senderShare !== undefined
+        ? Number(updates.senderShare)
+        : Number(invoice.senderShare);
+
+    const finalRecipientShare =
+      updates.recipientShare !== undefined
+        ? Number(updates.recipientShare)
+        : Number(invoice.recipientShare);
+
+    if (finalSenderPaid < 0 || finalRecipientPaid < 0) {
+      return res.status(400).json({
+        message: 'Les montants payés ne peuvent pas être négatifs.'
+      });
+    }
+
+    if (finalSenderPaid > finalSenderShare + 0.001) {
+      return res.status(400).json({
+        message: 'Le montant payé par l’expéditeur dépasse sa part.'
+      });
+    }
+
+    if (finalRecipientPaid > finalRecipientShare + 0.001) {
+      return res.status(400).json({
+        message: 'Le montant payé par le destinataire dépasse sa part.'
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // Montant total payé
+    // ─────────────────────────────────────────────
+
+    const montantPaye =
+      finalSenderPaid + finalRecipientPaid;
+
+    updates.senderPaid = finalSenderPaid;
+    updates.recipientPaid = finalRecipientPaid;
+    updates.montantPaye = montantPaye;
+
+    // ─────────────────────────────────────────────
+    // Statut calculé par le backend
+    // ─────────────────────────────────────────────
+
+    updates.status = computeStatus({
+      total: finalTotal,
+      senderPaid: finalSenderPaid,
+      recipientPaid: finalRecipientPaid,
+    });
+
+    // ─────────────────────────────────────────────
+    // Récupération du colis pour le PDF
+    // ─────────────────────────────────────────────
+
+    const parcel = await Parcel.findByPk(invoice.parcelId, {
+      include: [
+        {
+          association: 'sender',
+        },
+      ],
+    });
+
+    if (!parcel) {
+      return res.status(404).json({
+        message: 'Colis introuvable.'
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // Régénération du PDF
+    // ─────────────────────────────────────────────
+
+    if (
+      updates.paymentMode !== undefined ||
+      updates.total !== undefined
+    ) {
+      const fileName =
+        await invoiceService.regenerateInvoicePDF(
+          invoice,
+          {
+            ...updates,
+            parcel: parcel.toJSON(),
+          }
+        );
+
+      updates.pdfUrl = fileName;
+    }
+
+    // ─────────────────────────────────────────────
+    // Sauvegarde
+    // ─────────────────────────────────────────────
+
+    await invoice.update(updates);
+
+    res.json(invoice);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
 // DELETE /invoices/:id
-// Supprime le PDF Supabase + l'enregistrement
 // ═══════════════════════════════════════════════════════════
 const deleteInvoice = async (req, res, next) => {
   try {
@@ -200,7 +432,9 @@ const deleteInvoice = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Envoi par email : POST /invoices/:id/send-email
+// ═══════════════════════════════════════════════════════════
+// POST /invoices/:id/send-email
+// ═══════════════════════════════════════════════════════════
 const sendEmail = async (req, res, next) => {
   try {
     const invoice = await Invoice.findByPk(req.params.id, {
@@ -213,16 +447,15 @@ const sendEmail = async (req, res, next) => {
     const to = req.body.to || invoice.parcel?.sender?.email;
     if (!to) return res.status(400).json({ message: 'Adresse email destinataire requise.' });
 
-    // Télécharger le PDF depuis Supabase et l'envoyer en pièce jointe
-    let attachment = null
+    let attachment = null;
     try {
       if (invoice.pdfUrl) {
-        const fileName = String(invoice.pdfUrl).split('/').pop()
-        const buffer = await invoiceService.downloadInvoicePDF(fileName)
-        if (buffer) attachment = { fileName, buffer }
+        const fileName = String(invoice.pdfUrl).split('/').pop();
+        const buffer = await invoiceService.downloadInvoicePDF(fileName);
+        if (buffer) attachment = { fileName, buffer };
       }
     } catch (downloadErr) {
-      console.error('⚠️ Échec téléchargement PDF pour envoi email :', downloadErr.message)
+      console.error('⚠️ Échec téléchargement PDF pour envoi email :', downloadErr.message);
     }
 
     const info = await emailService.sendInvoiceEmail({
@@ -238,7 +471,6 @@ const sendEmail = async (req, res, next) => {
 
 // ═══════════════════════════════════════════════════════════
 // GET /invoices/available-parcels
-// Retourne uniquement les colis SANS facture
 // ═══════════════════════════════════════════════════════════
 const getAvailableParcels = async (req, res, next) => {
   try {
@@ -246,13 +478,7 @@ const getAvailableParcels = async (req, res, next) => {
     const { search, limit = 200 } = req.query;
 
     const where = {};
-
-    // Restriction client : ne voit que ses propres colis
-    if (req.user?.role === 'client') {
-      where.senderId = req.user.id;
-    }
-
-    // Exclure les colis déjà facturés
+    if (req.user?.role === 'client') where.senderId = req.user.id;
     where['$invoice.id$'] = null;
 
     if (search) {
@@ -265,15 +491,8 @@ const getAvailableParcels = async (req, res, next) => {
     const parcels = await Parcel.findAll({
       where,
       include: [
-        {
-          association: 'invoice',
-          attributes: ['id'],
-          required: false,          // LEFT JOIN
-        },
-        {
-          association: 'sender',
-          attributes: ['id', 'name', 'email', 'phone'],
-        },
+        { association: 'invoice', attributes: ['id'], required: false },
+        { association: 'sender',  attributes: ['id', 'name', 'email', 'phone'] },
         {
           association: 'bag',
           attributes: ['id', 'qrcode'],
@@ -284,11 +503,20 @@ const getAvailableParcels = async (req, res, next) => {
       ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit, 10),
-      subQuery: false,              // indispensable pour le filtre $invoice.id$
+      subQuery: false,
     });
 
     res.json(parcels);
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getById, create, update, deleteInvoice, sendEmail, getAvailableParcels };
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  deleteInvoice,
+  sendEmail,
+  getAvailableParcels,
+  pay,
+};

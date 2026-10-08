@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Eye, Plus, Search, FileText, CheckCircle2, Clock,
-  AlertTriangle, XCircle, Filter, Loader2,
+  AlertTriangle, Filter, Loader2, Receipt, UserCheck, User, Users,
 } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import { useInvoices } from '../../hooks/useInvoices'
 
 // ────────────────────────────────────────────────────────────
-// Config statuts
+// Config
 // ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   draft:          { label: 'Brouillon',     color: 'bg-slate-100 text-slate-700 border-slate-200' },
@@ -25,6 +25,17 @@ const STATUS_FILTERS = [
   { value: 'overdue',        label: 'En retard' },
 ]
 
+const PAYMENT_MODE_CONFIG = {
+  sender_full:    { label: 'Expéditeur',   icon: UserCheck, color: 'text-violet-600 bg-violet-50 border-violet-100' },
+  recipient_full: { label: 'Destinataire', icon: User,      color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+  split:          { label: 'Partagé',       icon: Users,     color: 'text-amber-600 bg-amber-50 border-amber-100' },
+}
+
+const fmt = (n) =>
+  Number(n || 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  })
+
 // ────────────────────────────────────────────────────────────
 // Badge statut
 // ────────────────────────────────────────────────────────────
@@ -38,7 +49,60 @@ function StatusBadge({ status }) {
 }
 
 // ────────────────────────────────────────────────────────────
-// KPI Card
+// Badge mode de paiement
+// ────────────────────────────────────────────────────────────
+function PaymentModeBadge({ mode }) {
+  const cfg = PAYMENT_MODE_CONFIG[mode] || PAYMENT_MODE_CONFIG.recipient_full
+  const Icon = cfg.icon
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${cfg.color}`}>
+      <Icon size={10} />
+      {cfg.label}
+    </span>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Mini barre paiement
+// ────────────────────────────────────────────────────────────
+function PaymentMiniBar({ paid, total }) {
+  const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0
+  const isFull = pct >= 100 && total > 0
+  const color = isFull ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-slate-200'
+
+  return (
+    <div className="w-full">
+      <div className="flex items-baseline justify-between gap-2 mb-1">
+        <span className="font-semibold text-slate-800">
+          {fmt(total)}
+          <span className="text-[10px] font-normal text-slate-400 ml-1">EUR</span>
+        </span>
+      </div>
+      {paid > 0 && paid < total && (
+        <div className="flex items-center gap-1.5">
+          <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className="text-[10px] text-slate-400 tabular-nums">{Math.round(pct)}%</span>
+        </div>
+      )}
+      {paid >= total && total > 0 && (
+        <div className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+          <CheckCircle2 size={10} />
+          Soldée
+        </div>
+      )}
+      {paid > 0 && paid < total && (
+        <div className="text-[10px] text-amber-600">
+          Reste {fmt(total - paid)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// KPI
 // ────────────────────────────────────────────────────────────
 function KpiCard({ icon: Icon, label, value, accent = 'slate', suffix }) {
   const accents = {
@@ -65,12 +129,12 @@ function KpiCard({ icon: Icon, label, value, accent = 'slate', suffix }) {
 }
 
 // ────────────────────────────────────────────────────────────
-// Skeleton ligne
+// Skeleton
 // ────────────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
     <tr className="border-b last:border-0">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <td key={i} className="px-5 py-4">
           <div className="h-3 bg-slate-100 rounded animate-pulse" style={{ width: `${60 + i * 8}%` }} />
         </td>
@@ -84,14 +148,15 @@ function SkeletonRow() {
 // ────────────────────────────────────────────────────────────
 export default function InvoicesPage() {
   const nav = useNavigate()
-  const [statusFilter, setStatusFilter] = useState('')
-  const [search, setSearch]             = useState('')
+  const [statusFilter, setStatusFilter]           = useState('')
+  const [paymentModeFilter, setPaymentModeFilter] = useState('')
+  const [search, setSearch]                       = useState('')
 
   const { data: invoices = [], isLoading } = useInvoices(
     statusFilter ? { status: statusFilter } : {}
   )
 
-  // ── Stats ─────────────────────────────────────────────────
+  // ── Stats ────────────────────────────────────────────────
   const stats = useMemo(() => {
     const total     = invoices.length
     const paid      = invoices.filter(i => i.status === 'paid').length
@@ -101,36 +166,43 @@ export default function InvoicesPage() {
       .filter(i => i.status === 'paid')
       .reduce((s, i) => s + Number(i.total || 0), 0)
 
-    return { total, paid, pending, overdue, amountSum }
+    const encaisse = invoices.reduce(
+      (s, i) => s + Number(i.montantPaye || 0), 0
+    )
+
+    return { total, paid, pending, overdue, amountSum, encaisse }
   }, [invoices])
 
-  // ── Recherche locale ──────────────────────────────────────
+  // ── Filtre local ─────────────────────────────────────────
   const filtered = useMemo(() => {
+    let list = invoices
+    if (paymentModeFilter) {
+      list = list.filter(i => i.paymentMode === paymentModeFilter)
+    }
     const q = search.trim().toLowerCase()
-    if (!q) return invoices
-    return invoices.filter(i =>
-      (i.number || '').toLowerCase().includes(q) ||
-      (i.parcel?.qrcode || '').toLowerCase().includes(q) ||
-      (i.parcel?.recipientName || '').toLowerCase().includes(q)
-    )
-  }, [invoices, search])
+    if (q) {
+      list = list.filter(i =>
+        (i.number || '').toLowerCase().includes(q) ||
+        (i.parcel?.qrcode || '').toLowerCase().includes(q) ||
+        (i.parcel?.recipientName || '').toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [invoices, search, paymentModeFilter])
 
-  const hasFilters = Boolean(search || statusFilter)
+  const hasFilters = Boolean(search || statusFilter || paymentModeFilter)
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
 
-      {/* ═════ HEADER ═════ */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Factures</h1>
-            <p className="text-sm text-slate-500">
-              {stats.total} facture{stats.total > 1 ? 's' : ''} au total
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Factures</h1>
+          <p className="text-sm text-slate-500">
+            {stats.total} facture{stats.total > 1 ? 's' : ''} au total
+          </p>
         </div>
-
         <Link
           to="/invoices/new"
           className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition self-start sm:self-auto"
@@ -140,38 +212,17 @@ export default function InvoicesPage() {
         </Link>
       </div>
 
-      {/* ═════ KPI CARDS ═════ */}
+      {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={FileText}
-          label="Total"
-          value={stats.total}
-          accent="slate"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          label="Payées"
-          value={stats.paid}
-          accent="emerald"
-        />
-        <KpiCard
-          icon={Clock}
-          label="En attente"
-          value={stats.pending}
-          accent="amber"
-        />
-        <KpiCard
-          icon={AlertTriangle}
-          label="En retard"
-          value={stats.overdue}
-          accent="red"
-        />
+        <KpiCard icon={FileText}      label="Total"       value={stats.total}   accent="slate" />
+        <KpiCard icon={CheckCircle2}  label="Payées"      value={stats.paid}    accent="emerald" />
+        <KpiCard icon={Clock}         label="En attente"  value={stats.pending} accent="amber" />
+        <KpiCard icon={AlertTriangle} label="En retard"   value={stats.overdue} accent="red" />
       </div>
 
-      {/* ═════ FILTRES ═════ */}
+      {/* Filtres */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Recherche */}
+        <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -183,8 +234,7 @@ export default function InvoicesPage() {
             />
           </div>
 
-          {/* Statut */}
-          <div className="relative sm:w-56">
+          <div className="relative sm:w-52">
             <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={statusFilter}
@@ -196,10 +246,24 @@ export default function InvoicesPage() {
               ))}
             </select>
           </div>
+
+          <div className="relative sm:w-52">
+            <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              value={paymentModeFilter}
+              onChange={e => setPaymentModeFilter(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition appearance-none"
+            >
+              <option value="">Tous modes de paiement</option>
+              <option value="sender_full">Expéditeur paie</option>
+              <option value="recipient_full">Destinataire paie</option>
+              <option value="split">Partagé</option>
+            </select>
+          </div>
         </div>
       </Card>
 
-      {/* ═════ TABLEAU ═════ */}
+      {/* Tableau */}
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -207,18 +271,16 @@ export default function InvoicesPage() {
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">N° facture</th>
                 <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Colis</th>
-                <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Nom</th>
-                <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Date</th>
+                <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Client</th>
+                <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Paiement</th>
                 <th className="text-right px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Montant</th>
                 <th className="text-left  px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Statut</th>
                 <th className="text-right px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {/* Loading */}
               {isLoading && Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
 
-              {/* Vide (pas de données) */}
               {!isLoading && filtered.length === 0 && !hasFilters && (
                 <tr>
                   <td colSpan={7}>
@@ -240,7 +302,6 @@ export default function InvoicesPage() {
                 </tr>
               )}
 
-              {/* Vide (filtré) */}
               {!isLoading && filtered.length === 0 && hasFilters && (
                 <tr>
                   <td colSpan={7}>
@@ -251,7 +312,7 @@ export default function InvoicesPage() {
                       <p className="text-sm font-medium text-slate-600">Aucun résultat</p>
                       <p className="text-xs text-slate-400 mt-1">Essayez de modifier vos filtres ou votre recherche.</p>
                       <button
-                        onClick={() => { setSearch(''); setStatusFilter('') }}
+                        onClick={() => { setSearch(''); setStatusFilter(''); setPaymentModeFilter('') }}
                         className="mt-4 text-xs text-violet-600 font-semibold hover:underline"
                       >
                         Réinitialiser les filtres
@@ -261,7 +322,6 @@ export default function InvoicesPage() {
                 </tr>
               )}
 
-              {/* Lignes */}
               {!isLoading && filtered.map(inv => (
                 <tr
                   key={inv.id}
@@ -281,16 +341,14 @@ export default function InvoicesPage() {
                   <td className="px-5 py-4 hidden md:table-cell text-slate-700">
                     {inv.parcel?.sender?.name ?? '—'}
                   </td>
-                  <td className="px-5 py-4 hidden lg:table-cell text-slate-500 text-xs">
-                    {inv.createdAt
-                      ? new Date(inv.createdAt).toLocaleDateString('fr-FR', {
-                          day: '2-digit', month: 'short', year: 'numeric',
-                        })
-                      : '—'}
+                  <td className="px-5 py-4 hidden lg:table-cell">
+                    <PaymentModeBadge mode={inv.paymentMode} />
                   </td>
-                  <td className="px-5 py-4 text-right font-semibold text-slate-800">
-                    {Number(inv.total).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-                    <span className="text-xs font-normal text-slate-400 ml-1">{inv.currency}</span>
+                  <td className="px-5 py-4 text-right min-w-[140px]">
+                    <PaymentMiniBar
+                      paid={Number(inv.montantPaye) || 0}
+                      total={Number(inv.total) || 0}
+                    />
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={inv.status} />
@@ -310,16 +368,15 @@ export default function InvoicesPage() {
           </table>
         </div>
 
-        {/* Footer count */}
         {!isLoading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 flex items-center justify-between">
             <span>
               {filtered.length} facture{filtered.length > 1 ? 's' : ''} affichée{filtered.length > 1 ? 's' : ''}
               {hasFilters && stats.total !== filtered.length && ` sur ${stats.total}`}
             </span>
-            {stats.amountSum > 0 && (
+            {stats.encaisse > 0 && (
               <span className="font-medium text-emerald-600">
-                Total encaissé : {stats.amountSum.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+                Total encaissé : {fmt(stats.encaisse)} €
               </span>
             )}
           </div>

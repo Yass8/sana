@@ -9,6 +9,7 @@ export const invoicesApi = {
   delete: (id) => api.delete(`/invoices/${id}`),
   sendEmail: (id, data) => api.post(`/invoices/${id}/send-email`, data),
   getAvailableParcels: (params) => api.get('/invoices/available-parcels', { params }),
+  pay: (id, data) => api.post(`/invoices/${id}/pay`, data),
 }
 
 export default invoicesApi
