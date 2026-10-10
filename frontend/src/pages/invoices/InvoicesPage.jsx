@@ -6,6 +6,7 @@ import {
   Download,
   Eye,
   Plus,
+  Receipt,
   Search,
   User,
   UserCheck,
