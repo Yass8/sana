@@ -1,45 +1,134 @@
 // src/pages/notifications/NotificationsPage.jsx
 import { useState } from 'react'
-import { useNotifications, useNotificationStats } from '../../hooks/useNotifications'
-import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
+import {
+  ArrowDown,
+  ArrowUp,
+  Bell,
+  ChevronRight,
+  Mail,
+  MessageSquare,
+  Search,
+  X,
+} from 'lucide-react'
+import {
+  useNotifications,
+  useNotificationStats,
+} from '../../hooks/useNotifications'
 
-const STATUS_CFG = {
-  sent:    { bg:'bg-emerald-50', text:'text-emerald-700', dot:'bg-emerald-500', label:'Envoyée'    },
-  pending: { bg:'bg-amber-50',   text:'text-amber-700',   dot:'bg-amber-400',   label:'En attente' },
-  failed:  { bg:'bg-red-50',     text:'text-red-700',     dot:'bg-red-500',     label:'Échouée'    },
-}
-const CHANNEL_CFG = {
-  email: { bg:'bg-blue-50',   text:'text-blue-700',   label:'Email' },
-  sms:   { bg:'bg-purple-50', text:'text-purple-700', label:'SMS'   },
-}
-const TYPE_CFG = {
-  status_update: { bg:'bg-slate-100', text:'text-slate-600', label:'Suivi'  },
-  issue:         { bg:'bg-red-50',    text:'text-red-600',   label:'Alerte' },
-  bulk_alert:    { bg:'bg-violet-50', text:'text-violet-700',label:'Groupé' },
-}
-
-function Pill({ cfg }) {
-  return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-      {cfg.label}
-    </span>
-  )
+// ────────────────────────────────────────────────────────────
+// Config
+// ────────────────────────────────────────────────────────────
+const STATUS_META = {
+  sent:    { label: 'Envoyée',    dot: 'bg-emerald-500' },
+  pending: { label: 'En attente', dot: 'bg-amber-500' },
+  failed:  { label: 'Échouée',    dot: 'bg-rose-500' },
 }
 
-const STATUS_FILTERS = [
+const CHANNEL_META = {
+  email: { label: 'Email', icon: Mail },
+  sms:   { label: 'SMS',   icon: MessageSquare },
+}
+
+const TYPE_META = {
+  status_update: { label: 'Suivi',   tone: 'text-slate-600' },
+  issue:         { label: 'Alerte',  tone: 'text-rose-600' },
+  bulk_alert:    { label: 'Groupé',  tone: 'text-slate-600' },
+}
+
+const STATUS_TABS = [
   { label: 'Toutes',     value: '' },
   { label: 'Envoyées',   value: 'sent' },
   { label: 'En attente', value: 'pending' },
   { label: 'Échouées',   value: 'failed' },
 ]
 
-const CHANNEL_FILTERS = [
+const CHANNEL_TABS = [
   { label: 'Tous',  value: '' },
   { label: 'Email', value: 'email' },
   { label: 'SMS',   value: 'sms' },
 ]
 
+// ────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────
+const formatDate = (value) => {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+// ────────────────────────────────────────────────────────────
+// Primitives
+// ────────────────────────────────────────────────────────────
+function StatusDot({ status = 'pending' }) {
+  const meta = STATUS_META[status] || STATUS_META.pending
+  return (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-700">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  )
+}
+
+function ChannelLabel({ channel }) {
+  const meta = CHANNEL_META[channel]
+  if (!meta) return <span className="text-xs text-slate-400">—</span>
+  const Icon = meta.icon
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
+      <Icon size={12} className="text-slate-400" />
+      {meta.label}
+    </span>
+  )
+}
+
+function TypeLabel({ type }) {
+  const meta = TYPE_META[type] || TYPE_META.status_update
+  return (
+    <span className={`text-xs font-medium ${meta.tone}`}>{meta.label}</span>
+  )
+}
+
+function Stat({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3 bg-white px-5 py-4">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <Icon size={14} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
+          {value ?? '—'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-slate-100 last:border-0">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <td key={i} className="px-4 py-3.5">
+          <div
+            className="h-3 animate-pulse rounded bg-slate-100"
+            style={{ width: `${55 + i * 8}%` }}
+          />
+        </td>
+      ))}
+    </tr>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Page
+// ────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [channelFilter, setChannelFilter] = useState('')
@@ -58,198 +147,334 @@ export default function NotificationsPage() {
   const data = notifs.data ?? []
   const s = stats.data ?? {}
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—'
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
-    })
+  const hasFilters = Boolean(search || statusFilter || channelFilter)
+
+  const resetFilters = () => {
+    setSearch('')
+    setStatusFilter('')
+    setChannelFilter('')
   }
 
+  const toggleSort = () =>
+    setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))
+
+  const toggleRow = (id) =>
+    setExpandedId((prev) => (prev === id ? null : id))
+
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn mb-10 md:mb-25 lg:mb-0">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
+      {/* En-tête */}
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Notifications
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Historique des emails et SMS envoyés aux clients.
+        </p>
+      </header>
 
-      <div>
-        <h1 style={{fontFamily:'var(--font-display)'}}
-            className="text-xl md:text-2xl font-bold text-slate-900">Notifications</h1>
-        <p className="text-xs text-slate-400 mt-0.5">Historique des emails et SMS</p>
+      {/* Bandeau de stats */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 lg:grid-cols-4">
+        <Stat icon={Bell}          label="Total"      value={s.total} />
+        <Stat icon={Mail}          label="Envoyées"   value={s.sent} />
+        <Stat icon={MessageSquare} label="En attente" value={s.pending} />
+        <Stat icon={Bell}          label="Échouées"   value={s.failed} />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Total',      value: s.total,   color: 'text-slate-900' },
-          { label: 'Envoyées',   value: s.sent,    color: 'text-emerald-500' },
-          { label: 'En attente', value: s.pending, color: 'text-amber-500' },
-          { label: 'Échouées',   value: s.failed,  color: 'text-red-500' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white border border-slate-100
-                                      rounded-2xl px-4 md:px-5 py-4 shadow-sm">
-            <p style={{fontFamily:'var(--font-display)'}}
-               className={`text-2xl font-bold ${color}`}>{value ?? '—'}</p>
-            <p className="text-xs text-slate-400 mt-1">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Barre de recherche + filtres */}
-      <div className="flex flex-col md:flex-row gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-white border-2 border-slate-200
-                        rounded-xl px-4 py-3 focus-within:border-violet-500
-                        focus-within:ring-4 focus-within:ring-violet-100 transition-all">
-          <span className="text-slate-300">⌕</span>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                 placeholder="Code colis, email…"
-                 className="flex-1 text-sm outline-none bg-transparent text-slate-900"/>
-          {search && (
-            <button onClick={() => setSearch('')}
-                    className="text-slate-300 hover:text-slate-500 transition-colors">✕</button>
-          )}
-        </div>
-
-        <div className="flex gap-2 items-center flex-wrap">
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 outline-none focus:border-violet-500"
-          >
-            {STATUS_FILTERS.map(f => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
-          </select>
-          <select
-            value={channelFilter}
-            onChange={e => setChannelFilter(e.target.value)}
-            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 outline-none focus:border-violet-500"
-          >
-            {CHANNEL_FILTERS.map(f => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-            className="text-xs border-2 border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-700 hover:border-violet-500 transition-colors flex items-center gap-1"
-          >
-            {sortOrder === 'desc' ? 'Plus récent' : 'Plus ancien'}
-            <span className="text-[10px]">▼</span>
-          </button>
-        </div>
-      </div>
-
-      {notifs.isLoading ? (
-        <div className="flex justify-center py-16"><Spinner/></div>
-      ) : (
-        <Card>
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
-            <p style={{fontFamily:'var(--font-display)'}}
-               className="font-bold text-slate-900 flex-1">Historique</p>
-            <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
-              {data.length} notification{data.length > 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {/* Mobile */}
-          <div className="md:hidden divide-y divide-slate-100">
-            {data.length === 0 && (
-              <p className="text-center text-sm text-slate-400 py-12">Aucune notification.</p>
-            )}
-            {data.map(n => {
-              const sc = STATUS_CFG[n.status]
+      {/* Section liste + toolbar */}
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1">
+            {STATUS_TABS.map((tab) => {
+              const active = statusFilter === tab.value
               return (
-                <div key={n.id} className="px-4 py-3.5" onClick={() => setExpandedId(prev => prev === n.id ? null : n.id)}>
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <p style={{fontFamily:'var(--font-display)'}}
-                       className="text-sm font-bold text-violet-600">
-                      {n.parcel?.qrcode ?? '—'}
-                    </p>
-                    <span className={`inline-flex items-center gap-1.5 text-[10px]
-                                      font-semibold px-2 py-0.5 rounded-full
-                                      ${sc.bg} ${sc.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}/>
-                      {sc.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Pill cfg={CHANNEL_CFG[n.channel]}/>
-                    <Pill cfg={TYPE_CFG[n.type]}/>
-                    <span className="text-[11px] text-slate-400">
-                      {n.recipientEmail ?? n.recipientPhone ?? '—'}
-                    </span>
-                  </div>
-                  {expandedId === n.id && (
-                    <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
-                      <p><span className="font-medium">Date :</span> {formatDate(n.sentAt ?? n.createdAt)}</p>
+                <button
+                  key={tab.value || 'all'}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {/* Canal */}
+            <div className="flex items-center gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1">
+              {CHANNEL_TABS.map((tab) => {
+                const active = channelFilter === tab.value
+                return (
+                  <button
+                    key={tab.value || 'all-channels'}
+                    type="button"
+                    onClick={() => setChannelFilter(tab.value)}
+                    className={`shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Recherche */}
+            <div className="relative">
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Code colis, email, téléphone…"
+                className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-8 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 sm:w-64"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Effacer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Tri */}
+            <button
+              type="button"
+              onClick={toggleSort}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              title={sortOrder === 'desc' ? 'Plus récent' : 'Plus ancien'}
+            >
+              {sortOrder === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
+              <span className="hidden sm:inline">
+                {sortOrder === 'desc' ? 'Plus récent' : 'Plus ancien'}
+              </span>
+            </button>
+
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="h-9 rounded-lg px-3 text-xs font-medium text-slate-500 transition hover:text-slate-800"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Chargement */}
+        {notifs.isLoading && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonRow key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* État vide */}
+        {!notifs.isLoading && data.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              {hasFilters ? <Search size={18} /> : <Bell size={18} />}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">
+                {hasFilters
+                  ? 'Aucune notification ne correspond à ces critères'
+                  : 'Aucune notification'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {hasFilters
+                  ? 'Modifiez les filtres ou la recherche pour élargir les résultats.'
+                  : "Les notifications envoyées apparaîtront ici."}
+              </p>
+            </div>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Vue mobile */}
+        {!notifs.isLoading && data.length > 0 && (
+          <div className="divide-y divide-slate-100 md:hidden">
+            {data.map((n) => {
+              const expanded = expandedId === n.id
+              return (
+                <div key={n.id} className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleRow(n.id)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm font-medium text-slate-900">
+                        {n.parcel?.qrcode ?? '—'}
+                      </span>
+                      <StatusDot status={n.status} />
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <ChannelLabel channel={n.channel} />
+                      <span className="text-slate-300">·</span>
+                      <TypeLabel type={n.type} />
+                      <span className="text-slate-300">·</span>
+                      <span className="truncate text-xs text-slate-500">
+                        {n.recipientEmail ?? n.recipientPhone ?? '—'}
+                      </span>
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="mt-3 space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Date</span>
+                        <span className="tabular-nums text-slate-700">
+                          {formatDate(n.sentAt ?? n.createdAt)}
+                        </span>
+                      </div>
                       {n.errorMessage && (
-                        <p className="text-red-500 mt-1"><span className="font-medium">Erreur :</span> {n.errorMessage}</p>
+                        <div className="flex items-start justify-between gap-3 border-t border-slate-200 pt-1.5">
+                          <span className="text-rose-600">Erreur</span>
+                          <span className="text-right text-rose-600">
+                            {n.errorMessage}
+                          </span>
+                        </div>
                       )}
-                      {/* <p><span className="font-medium">ID :</span> {n.id}</p> */}
                     </div>
                   )}
                 </div>
               )
             })}
           </div>
+        )}
 
-          {/* Desktop */}
-          <div className="hidden md:block overflow-x-auto">
+        {/* Vue desktop */}
+        {!notifs.isLoading && data.length > 0 && (
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['Colis','Destinataire','Canal','Type','Statut','Date',''].map(h => (
-                    <th key={h} className="text-left text-[10px] font-semibold text-slate-400
-                                           uppercase tracking-wide px-5 py-3">{h}</th>
-                  ))}
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-2.5 text-left font-medium">Colis</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Destinataire</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Canal</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Type</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Statut</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Date</th>
+                  <th className="w-10 px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody>
-                {data.length === 0 && (
-                  <tr><td colSpan="7"
-                          className="text-center py-14 text-sm text-slate-400">
-                    Aucune notification.
-                  </td></tr>
-                )}
-                {data.map(n => {
-                  const sc = STATUS_CFG[n.status]
+                {data.map((n) => {
+                  const expanded = expandedId === n.id
                   return (
-                    <tr key={n.id}
-                        className="border-b border-slate-50 last:border-0
-                                   hover:bg-slate-50/50 transition-colors cursor-pointer"
-                        onClick={() => setExpandedId(prev => prev === n.id ? null : n.id)}>
-                      <td className="px-5 py-3.5">
-                        <span style={{fontFamily:'var(--font-display)'}}
-                              className="text-xs font-bold text-violet-600">
-                          {n.parcel?.qrcode ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-xs text-slate-600">
-                        {n.recipientEmail ?? n.recipientPhone ?? '—'}
-                      </td>
-                      <td className="px-5 py-3.5"><Pill cfg={CHANNEL_CFG[n.channel]}/></td>
-                      <td className="px-5 py-3.5"><Pill cfg={TYPE_CFG[n.type]}/></td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 text-[10px]
-                                          font-semibold px-2.5 py-1 rounded-full
-                                          ${sc.bg} ${sc.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}/>
-                          {sc.label}
-                        </span>
-                        {n.errorMessage && (
-                          <p className="text-[10px] text-red-500 mt-0.5">{n.errorMessage}</p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-[11px] text-slate-400">
-                        {formatDate(n.sentAt ?? n.createdAt)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {/* Aucune action de relancement */}
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={n.id}
+                        onClick={() => toggleRow(n.id)}
+                        className={`cursor-pointer border-b transition ${
+                          expanded
+                            ? 'border-slate-100 bg-slate-50/60'
+                            : 'border-slate-100 hover:bg-slate-50/70'
+                        }`}
+                      >
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-sm font-medium text-slate-900">
+                            {n.parcel?.qrcode ?? '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-slate-600">
+                          {n.recipientEmail ?? n.recipientPhone ?? '—'}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <ChannelLabel channel={n.channel} />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <TypeLabel type={n.type} />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <StatusDot status={n.status} />
+                        </td>
+                        <td className="px-4 py-3.5 text-xs tabular-nums text-slate-500">
+                          {formatDate(n.sentAt ?? n.createdAt)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <ChevronRight
+                            size={14}
+                            className={`text-slate-400 transition-transform ${
+                              expanded ? 'rotate-90' : ''
+                            }`}
+                          />
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr key={`${n.id}-detail`} className="border-b border-slate-100">
+                          <td colSpan={7} className="bg-slate-50/60 px-4 py-3">
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                                  Date d'envoi
+                                </p>
+                                <p className="mt-0.5 text-xs tabular-nums text-slate-700">
+                                  {formatDate(n.sentAt ?? n.createdAt)}
+                                </p>
+                              </div>
+                              {n.errorMessage && (
+                                <div>
+                                  <p className="text-[10px] font-medium uppercase tracking-wider text-rose-400">
+                                    Erreur
+                                  </p>
+                                  <p className="mt-0.5 text-xs text-rose-600">
+                                    {n.errorMessage}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>
             </table>
           </div>
-        </Card>
-      )}
+        )}
+
+        {/* Pied */}
+        {!notifs.isLoading && data.length > 0 && (
+          <div className="border-t border-slate-200 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500">
+            <span className="tabular-nums">{data.length}</span> notification
+            {data.length > 1 ? 's' : ''} affichée
+            {data.length > 1 ? 's' : ''}
+            {hasFilters ? ' (filtrées)' : ''}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

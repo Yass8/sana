@@ -1,27 +1,150 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Calendar,
+  Check,
+  Copy,
+  Download,
+  Package,
+  Pencil,
+  Plus,
+  QrCode,
+  Scale,
+  Search,
+  X,
+} from 'lucide-react'
 import { bagsApi } from '../../api/bags.api'
 import StatusBadge from '../../components/ui/StatusBadge'
-import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
-import Skeleton from '../../components/ui/Skeleton'
-import LabelPrinter from '../../components/ui/LabelPrinter'
-import { confirmDeleteAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
-import { Copy, Download, Plus, Package } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
-import { useAvailableParcels } from '../../hooks/useParcels'
 import { BagLabelPrinter } from '../../components/ui/BagLabelPrinter'
+import {
+  confirmDeleteAlert,
+  showSuccessAlert,
+  showErrorAlert,
+} from '../../components/ui/SweetsAlert'
+import { useAvailableParcels } from '../../hooks/useParcels'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
+// ────────────────────────────────────────────────────────────
+// Primitives
+// ────────────────────────────────────────────────────────────
+function Section({ title, description, icon: Icon, action, children, className = '' }) {
+  return (
+    <section className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
+      {(title || action) && (
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              {Icon ? <Icon size={14} className="text-slate-400" /> : null}
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+            ) : null}
+          </div>
+          {action}
+        </header>
+      )}
+      {children}
+    </section>
+  )
+}
+
+function PrimaryButton({ icon: Icon, loading, children, className = '', tone = 'default', ...props }) {
+  const toneClass =
+    tone === 'violet'
+      ? 'bg-violet-600 hover:bg-violet-500 focus:ring-violet-600'
+      : tone === 'emerald'
+      ? 'bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-600'
+      : tone === 'rose'
+      ? 'bg-rose-600 hover:bg-rose-500 focus:ring-rose-600'
+      : 'bg-slate-900 hover:bg-slate-800 focus:ring-slate-900'
+
+  return (
+    <button
+      {...props}
+      disabled={props.disabled || loading}
+      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      ) : Icon ? (
+        <Icon size={15} />
+      ) : null}
+      {children}
+    </button>
+  )
+}
+
+function GhostButton({ icon: Icon, loading, children, className = '', tone = 'default', ...props }) {
+  const toneClass =
+    tone === 'danger'
+      ? 'text-rose-600 hover:bg-rose-50 border-rose-200'
+      : 'text-slate-700 hover:bg-slate-50 border-slate-300'
+
+  return (
+    <button
+      {...props}
+      disabled={props.disabled || loading}
+      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border bg-white px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+      ) : Icon ? (
+        <Icon size={15} />
+      ) : null}
+      {children}
+    </button>
+  )
+}
+
+function InlineButton({ icon: Icon, children, className = '', ...props }) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    >
+      {Icon ? <Icon size={13} /> : null}
+      {children}
+    </button>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Skeleton
+// ────────────────────────────────────────────────────────────
+function DetailSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5 pb-10">
+      <div className="h-3 w-32 animate-pulse rounded bg-slate-100" />
+      <div className="h-28 animate-pulse rounded-xl bg-slate-100" />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-5">
+          <div className="h-48 animate-pulse rounded-xl bg-slate-100" />
+          <div className="h-72 animate-pulse rounded-xl bg-slate-100" />
+        </div>
+        <div className="space-y-5">
+          <div className="h-64 animate-pulse rounded-xl bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// Page
+// ═══════════════════════════════════════════════════════════
 export default function BagDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+
   const [alertMsg, setAlertMsg] = useState('')
   const [showAlert, setShowAlert] = useState(false)
-
   const [selectedParcels, setSelectedParcels] = useState(new Set())
   const [searchAvailable, setSearchAvailable] = useState('')
 
@@ -30,6 +153,7 @@ export default function BagDetailPage() {
     queryFn: () => bagsApi.getById(id),
   })
 
+  // ── Mutations ─────────────────────────────────────────────
   const closeBag = useMutation({
     mutationFn: () => bagsApi.close(id),
     onSuccess: async () => {
@@ -47,10 +171,10 @@ export default function BagDetailPage() {
     onSuccess: async () => {
       setShowAlert(false)
       setAlertMsg('')
-      await showSuccessAlert({ text: `Message envoyé aux clients du sac.` })
+      await showSuccessAlert({ text: 'Message envoyé aux clients du sac.' })
     },
     onError: async (err) => {
-      await showErrorAlert({ text: err?.message || 'Impossible d’envoyer l’alerte.' })
+      await showErrorAlert({ text: err?.message || "Impossible d'envoyer l'alerte." })
     },
   })
 
@@ -68,7 +192,6 @@ export default function BagDetailPage() {
 
   const availableParcels = useAvailableParcels()
 
-  // mutation pour ajouter des colis
   const addParcelsMutation = useMutation({
     mutationFn: (parcelIds) => bagsApi.addParcels(id, parcelIds),
     onSuccess: () => {
@@ -77,46 +200,11 @@ export default function BagDetailPage() {
       setSelectedParcels(new Set())
       showSuccessAlert({ text: 'Colis ajoutés au sac.' })
     },
-    onError: (err) => showErrorAlert({ text: err.message || 'Erreur lors de l\'ajout.'})
-  })  
+    onError: (err) =>
+      showErrorAlert({ text: err.message || "Erreur lors de l'ajout." }),
+  })
 
-  if (isLoading) return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <Skeleton className="h-5 w-28" />
-      </div>
-      <Card>
-        <div className="p-5 space-y-4">
-          <Skeleton className="h-8 w-2/3" />
-          <div className="grid grid-cols-3 gap-3">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-          </div>
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </Card>
-      <Card>
-        <div className="p-5 space-y-3">
-          <Skeleton className="h-5 w-1/2 mx-auto" />
-          <Skeleton className="h-40 mx-auto w-40" />
-          <Skeleton className="h-5 w-40 mx-auto" />
-        </div>
-      </Card>
-    </div>
-  )
-
-  const parcels = bag?.parcels ?? []
-  const status = bag?.status
-  const hasParcels = parcels.length > 0
-
-  const canClose = status === 'ouvert'
-  const canMarkDepartAirport = status === 'fermé'
-  const canMarkArrived = status === 'en_transit'
-  const canAlert = ['fermé', 'en_transit', 'arrivé'].includes(status)
-
+  // ── Handlers ──────────────────────────────────────────────
   const handleCloseBag = async () => {
     const confirmed = await confirmDeleteAlert({
       message: 'Voulez-vous vraiment fermer ce sac ? Cette action est définitive.',
@@ -126,342 +214,530 @@ export default function BagDetailPage() {
     closeBag.mutate()
   }
 
-  const handleDepartAirport = async () => {
-    updateBagStatus.mutate({ action: 'airport' })
-  }
+  const handleDepartAirport = () => updateBagStatus.mutate({ action: 'airport' })
+  const handleArrived = () => updateBagStatus.mutate({ action: 'destination' })
+
+  // ── États dérivés ─────────────────────────────────────────
+  const parcels = bag?.parcels ?? []
+  const status = bag?.status
+  const hasParcels = parcels.length > 0
+
+  const canClose = status === 'ouvert'
+  const canMarkDepartAirport = status === 'fermé'
+  const canMarkArrived = status === 'en_transit'
+  const canAlert = ['fermé', 'en_transit', 'arrivé'].includes(status)
+
+  const isMutating =
+    closeBag.isPending || updateBagStatus.isPending || sendAlert.isPending
+
+  // ── Rendu : loading ───────────────────────────────────────
+  if (isLoading) return <DetailSkeleton />
+
+  const qrUrl = bag?.qrcodeUrl
+    ? bag.qrcodeUrl.startsWith('http')
+      ? bag.qrcodeUrl
+      : `${BASE_API_URL}${bag.qrcodeUrl}`
+    : null
+
+  // ── Filtre colis disponibles ──────────────────────────────
+  const availableFiltered =
+    availableParcels.data?.filter((p) => {
+      if (!searchAvailable.trim()) return true
+      const term = searchAvailable.toLowerCase()
+      return (
+        p.qrcode?.toLowerCase().includes(term) ||
+        p.sender?.name?.toLowerCase().includes(term) ||
+        p.recipientName?.toLowerCase().includes(term)
+      )
+    }) ?? []
+
+  const selectedWeightKg = availableFiltered
+    .filter((p) => selectedParcels.has(p.id))
+    .reduce((sum, p) => sum + (Number(p.weight) || 0), 0)
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
+      {/* Fil d'Ariane */}
+      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+        <button
+          type="button"
+          onClick={() => navigate('/bags')}
+          className="transition hover:text-slate-800"
+        >
+          Sacs
+        </button>
+        <span className="text-slate-300">/</span>
+        <span className="font-mono font-medium text-slate-900">{bag?.qrcode}</span>
+      </nav>
 
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <button onClick={() => navigate('/bags')}
-                className="hover:text-violet-600 transition-colors">Sacs</button>
-        <span>/</span>
-        <span style={{ fontFamily: 'var(--font-display)' }}
-              className="text-violet-600 font-bold">{bag?.qrcode}</span>
-      </div>
+      {/* En-tête */}
+      <header className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="font-mono text-xl font-semibold text-slate-900">
+                {bag?.qrcode}
+              </h1>
+              <StatusBadge status={bag?.status} size="md" updatedAt={bag?.updatedAt} />
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
+              <span className="inline-flex items-center gap-1">
+                {bag?.originAgency?.city ?? '—'}
+                <ArrowRight size={12} className="text-slate-400" />
+                <span className="font-medium text-slate-700">
+                  {bag?.destinationAgency?.city ?? '—'}
+                </span>
+              </span>
+              {bag?.weight ? (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="tabular-nums">{bag.weight} kg</span>
+                </>
+              ) : null}
+            </p>
+          </div>
 
-      {/* Header sac */}
-      <Card>
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/parcels/new?bagId=${id}`)}
+              disabled={bag?.status !== 'ouvert'}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-900 px-3.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus size={14} />
+              Ajouter un colis
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/bags/${id}/edit`)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+            >
+              <Pencil size={14} />
+              Modifier
+            </button>
+            <DeleteButton type="bag" id={id} />
+          </div>
+        </div>
+
+        {/* Statistiques */}
+        <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-3">
+          <div className="flex items-center gap-3 bg-white px-5 py-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+              <Package size={14} />
+            </div>
             <div>
-              <h1 style={{ fontFamily: 'var(--font-display)' }}
-                  className="text-2xl font-bold text-slate-900">{bag?.qrcode}</h1>
-              <p className="text-xs text-slate-400 mt-1">
-                {bag?.originAgency?.city} → {bag?.destinationAgency?.city}
-                {bag?.weight ? ` · ${bag.weight} kg` : ''}
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                Colis
+              </p>
+              <p className="text-lg font-semibold tabular-nums text-slate-900">
+                {parcels.length}
               </p>
             </div>
-            <StatusBadge status={bag?.status} size="md" updatedAt={bag?.updatedAt} />
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            {[
-              { num: parcels.length, label: 'Colis' },
-              {
-                num: new Date(bag?.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                label: 'Créé le'
-              },
-            ].map(({ num, label }) => (
-              <div key={label} className="bg-slate-50 rounded-xl p-3 text-center">
-                <p style={{ fontFamily: 'var(--font-display)' }}
-                   className="text-base font-bold text-slate-900 truncate">{num}</p>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">{label}</p>
-              </div>
-            ))}
+          <div className="flex items-center gap-3 bg-white px-5 py-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+              <Scale size={14} />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                Poids total
+              </p>
+              <p className="text-lg font-semibold tabular-nums text-slate-900">
+                {bag?.weight ?? '—'}
+                {bag?.weight ? (
+                  <span className="ml-1 text-sm font-normal text-slate-400">kg</span>
+                ) : null}
+              </p>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="grid grid-cols-1 gap-3 mt-5">
-            {canClose && (
-              <div className="flex flex-col gap-2">
-                <button onClick={handleCloseBag} disabled={closeBag.isPending || updateBagStatus.isPending || !hasParcels}
-                        className="w-full bg-[#0A1628] hover:bg-slate-800 disabled:hover:bg-[#0A1628]
-                                   disabled:opacity-60 text-white font-semibold
-                                   py-2.5 rounded-xl text-sm transition-colors
-                                   flex items-center justify-center gap-2">
-                  {closeBag.isPending ? <><Spinner size="sm" color="white" /> Fermeture…</> : 'Fermer le sac'}
-                </button>
-                {!hasParcels && (
-                  <p className="text-[11px] text-slate-500 text-center">
-                    Ajoutez au moins un colis avant de fermer ce sac.
-                  </p>
+          <div className="flex items-center gap-3 bg-white px-5 py-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+              <Calendar size={14} />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                Créé le
+              </p>
+              <p className="text-lg font-semibold text-slate-900">
+                {new Date(bag?.createdAt).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Corps */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/* Colonne principale */}
+        <div className="flex flex-col gap-5">
+          {/* Actions selon statut */}
+          {(canClose || canMarkDepartAirport || canMarkArrived) && (
+            <Section
+              title="Progression du sac"
+              description="Faites avancer le sac dans le flux logistique."
+            >
+              <div className="space-y-3 px-5 py-4">
+                {canClose && (
+                  <div className="space-y-2">
+                    <PrimaryButton
+                      onClick={handleCloseBag}
+                      loading={closeBag.isPending}
+                      disabled={!hasParcels || isMutating}
+                    >
+                      Fermer le sac
+                    </PrimaryButton>
+                    {!hasParcels && (
+                      <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        Ajoutez au moins un colis avant de fermer ce sac.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {canMarkDepartAirport && (
+                  <PrimaryButton
+                    tone="violet"
+                    onClick={handleDepartAirport}
+                    loading={updateBagStatus.isPending}
+                    disabled={isMutating}
+                  >
+                    Marquer « En vol »
+                  </PrimaryButton>
+                )}
+
+                {canMarkArrived && (
+                  <PrimaryButton
+                    tone="emerald"
+                    icon={Check}
+                    onClick={handleArrived}
+                    loading={updateBagStatus.isPending}
+                    disabled={isMutating}
+                  >
+                    Confirmer l'arrivée
+                  </PrimaryButton>
                 )}
               </div>
-            )}
-            {canMarkDepartAirport && (
-              <button onClick={handleDepartAirport}
-                      disabled={updateBagStatus.isPending}
-                      className="w-full bg-[#7C3AED] hover:bg-[#5B21B6]
-                                 disabled:opacity-60 text-white font-semibold
-                                 py-2.5 rounded-xl text-sm transition-colors">
-                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'En vol'}
-              </button>
-            )}
-            {canMarkArrived && (
-              <button onClick={() => updateBagStatus.mutate({ action: 'destination' })}
-                      disabled={updateBagStatus.isPending}
-                      className="w-full bg-[#34D399] hover:bg-[#059669]
-                                 disabled:opacity-60 text-white font-semibold
-                                 py-2.5 rounded-xl text-sm transition-colors">
-                {updateBagStatus.isPending ? <><Spinner size="sm" color="white" /> Mise à jour…</> : 'Confirmé arrivé'}
-              </button>
-            )}
-            {canAlert && (
-              <button onClick={() => setShowAlert(v => !v)}
-                      className="w-full border-2 border-red-200 text-red-600
-                                 hover:bg-red-50 font-semibold py-2.5 rounded-xl
-                                 text-sm transition-colors">
-                Alerte groupée
-              </button>
-            )}
-          </div>
+            </Section>
+          )}
 
-          {/* Formulaire alerte */}
-          {showAlert && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-3 animate-fadeIn">
-              <p className="text-xs font-semibold text-red-700">
-                Message envoyé par email et SMS aux {parcels.length} clients de ce sac.
-              </p>
-              <textarea value={alertMsg} onChange={e => setAlertMsg(e.target.value)}
-                        placeholder="Ex: Retard douanier…" rows={3}
-                        className="w-full px-3 py-2.5 border-2 border-red-200 rounded-xl text-sm outline-none resize-none bg-white focus:border-red-400 transition-all" />
-              <div className="flex gap-2">
-                <button onClick={() => setShowAlert(false)}
-                        className="flex-1 border-2 border-slate-200 text-slate-500 py-2 rounded-xl text-sm font-semibold transition-colors">
-                  Annuler
-                </button>
-                <button onClick={() => alertMsg.trim() && sendAlert.mutate(alertMsg)}
+          {/* Alerte groupée */}
+          {canAlert && (
+            <Section
+              title="Alerte groupée"
+              description={`Notifier les ${parcels.length} client${parcels.length > 1 ? 's' : ''} du sac par email et SMS.`}
+              icon={AlertTriangle}
+            >
+              <div className="space-y-3 px-5 py-4">
+                {!showAlert ? (
+                  <GhostButton
+                    tone="danger"
+                    icon={AlertTriangle}
+                    onClick={() => setShowAlert(true)}
+                    disabled={isMutating}
+                  >
+                    Rédiger une alerte
+                  </GhostButton>
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={alertMsg}
+                      onChange={(e) => setAlertMsg(e.target.value)}
+                      placeholder="Ex : Retard douanier, livraison reportée…"
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <GhostButton
+                        type="button"
+                        onClick={() => {
+                          setShowAlert(false)
+                          setAlertMsg('')
+                        }}
+                      >
+                        Annuler
+                      </GhostButton>
+                      <button
+                        type="button"
+                        onClick={() => alertMsg.trim() && sendAlert.mutate(alertMsg)}
                         disabled={!alertMsg.trim() || sendAlert.isPending}
-                        className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                  {sendAlert.isPending ? <><Spinner size="sm" color="white" /> Envoi…</> : `Envoyer à ${parcels.length} clients`}
-                </button>
+                        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {sendAlert.isPending ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        ) : null}
+                        Envoyer à {parcels.length} client
+                        {parcels.length > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            </Section>
           )}
-        </div>
-      </Card>
 
-      {/* QR Code */}
-      <Card>
-        <div className='flex-col justify-center p-5'>
-          <h2 style={{ fontFamily: 'var(--font-display)' }}
-              className="font-bold text-slate-900 mb-4 text-center">QR Code du sac : {bag.qrcode}</h2>
-          {bag.qrcodeUrl ? (
-            <div className="flex flex-col items-center gap-3">
-              <img src={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`} alt={bag.qrcode}
-                   className="w-40 h-40" />
-              {/* <LabelPrinter
-                code={bag.qrcode}
-                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
-                className="w-full max-w-xs"
-                bag={true}
-              /> */}
-              <BagLabelPrinter
-                code={bag.qrcode}
-                qrcodeUrl={bag.qrcodeUrl.startsWith('http') ? bag.qrcodeUrl : `${BASE_API_URL}${bag.qrcodeUrl}`}
-                parcelCount={bag.parcels.length}
-                weight={bag.weight}
-                date={new Date(bag.createdAt).toLocaleDateString('fr-FR', {
-                      day: 'numeric', month: 'short', year: 'numeric'
-                    }).replace('.', '') }
-                className="w-full max-w-xs"
-              />
-              <p className="text-[10px] text-slate-400 text-center">
-                Scannez pour avoir les détails de ce sac
-              </p>
-              <a href={bag.qrcodeUrl} download={`${bag.qrcode}.png`}
-                 className="text-xs text-violet-600 hover:underline font-semibold flex items-center gap-1">
-                <Download size={14} /> Télécharger PNG
-              </a>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 text-center py-6">
-              QR code non disponible.
-            </p>
-          )}
-        </div>
-      </Card>
+          {/* Colis disponibles — sac ouvert */}
+          {bag?.status === 'ouvert' && (
+            <Section
+              title="Colis disponibles"
+              description="Colis individuels sans sac, disponibles à l'assignation."
+            >
+              <div className="space-y-3 px-5 py-4">
+                {/* Recherche */}
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    value={searchAvailable}
+                    onChange={(e) => setSearchAvailable(e.target.value)}
+                    placeholder="Rechercher un colis…"
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-8 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                  {searchAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchAvailable('')}
+                      className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="Effacer"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
 
-      {/* Barre d'outils : Ajouter colis, Modifier, Supprimer */}
-      <div className="flex flex-wrap gap-4 bg-white border border-slate-100 rounded-2xl px-5 py-3.5 shadow-sm">
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => navigate(`/parcels/new?bagId=${id}`)}
-            className="text-xs bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-xl transition-all font-semibold flex items-center gap-1"
-          >
-            <Plus size={14} /> Ajouter un colis dans ce sac
-          </button>
-          <button onClick={() => navigate(`/bags/${id}/edit`)}
-                  className="text-xs bg-slate-50 border-2 border-slate-200 hover:border-violet-500 hover:text-violet-600 text-slate-500 px-3 py-1.5 rounded-xl transition-all font-semibold flex items-center gap-1">
-            <Copy size={14} /> Modifier
-          </button>
-          <DeleteButton type="bag" id={id} />
-        </div>
-      </div>
+                {availableParcels.isLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-14 animate-pulse rounded-lg bg-slate-100"
+                      />
+                    ))}
+                  </div>
+                ) : availableFiltered.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-8 text-center">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <Package size={14} />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {searchAvailable
+                        ? 'Aucun colis ne correspond à la recherche.'
+                        : 'Aucun colis individuel en attente.'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Bandeau poids sélectionné */}
+                    {selectedParcels.size > 0 && (
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                        <span className="font-medium text-slate-600">
+                          {selectedParcels.size} colis sélectionné
+                          {selectedParcels.size > 1 ? 's' : ''}
+                        </span>
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          {selectedWeightKg.toFixed(1).replace(/\.0$/, '')} kg
+                        </span>
+                      </div>
+                    )}
 
-      {/* Section colis disponibles */}
-      
-      {bag?.status === 'ouvert' && (
-        <Card>
-          <div className="p-5">
-            <h2 style={{ fontFamily: 'var(--font-display)' }} className="font-bold text-slate-900 mb-3">
-              Colis disponibles (sans sac)
-            </h2>
-
-            {/* Champ de recherche instantanée */}
-            <div className="relative mb-4">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm">⌕</span>
-              <input
-                type="text"
-                value={searchAvailable}
-                onChange={e => setSearchAvailable(e.target.value)}
-                placeholder="Rechercher un colis..."
-                className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-              />
-              {searchAvailable && (
-                <button
-                  onClick={() => setSearchAvailable('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {availableParcels.isLoading ? (
-              <div className="flex justify-center py-8"><Spinner /></div>
-            ) : (
-              <>
-                {/* Filtrage des colis par le terme de recherche */}
-                {(() => {
-                  const filtered = availableParcels.data?.filter(p => {
-                    if (!searchAvailable.trim()) return true
-                    const term = searchAvailable.toLowerCase()
-                    return (
-                      p.qrcode?.toLowerCase().includes(term) ||
-                      p.sender?.name?.toLowerCase().includes(term) ||
-                      p.recipientName?.toLowerCase().includes(term)
-                    )
-                  }) ?? []
-
-                  if (filtered.length === 0) {
-                    return (
-                      <p className="text-sm text-slate-400 text-center py-8">
-                        {searchAvailable ? 'Aucun colis trouvé.' : 'Aucun colis individuel en attente.'}
-                      </p>
-                    )
-                  }
-
-                  return (
-                    <>
-                      <div className="max-h-72 overflow-y-auto space-y-2 mb-4 pr-1">
-                        {filtered.map(p => (
-                          <label key={p.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                    <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                      {availableFiltered.map((p) => {
+                        const checked = selectedParcels.has(p.id)
+                        return (
+                          <label
+                            key={p.id}
+                            className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition ${
+                              checked
+                                ? 'border-slate-900 bg-slate-50'
+                                : 'border-slate-200 bg-white hover:bg-slate-50/70'
+                            }`}
+                          >
                             <input
                               type="checkbox"
-                              checked={selectedParcels.has(p.id)}
-                              onChange={() => {
-                                setSelectedParcels(prev => {
+                              checked={checked}
+                              onChange={() =>
+                                setSelectedParcels((prev) => {
                                   const next = new Set(prev)
                                   next.has(p.id) ? next.delete(p.id) : next.add(p.id)
                                   return next
                                 })
-                              }}
-                              className="accent-violet-600 w-4 h-4"
+                              }
+                              className="h-4 w-4 accent-slate-900"
                             />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{p.qrcode}</p>
-                              <p className="text-xs text-slate-500 mt-0.5">
-                                {p.sender?.name || '?'} → {p.recipientName}
-                                {p.weight ? ` · ${p.weight}kg` : ''}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-mono text-sm font-medium text-slate-900">
+                                {p.qrcode}
+                              </p>
+                              <p className="mt-0.5 truncate text-xs text-slate-500">
+                                {p.sender?.name || '?'} → {p.recipientName || '?'}
+                                {p.weight ? ` · ${p.weight} kg` : ''}
                               </p>
                             </div>
                           </label>
-                        ))}
+                        )
+                      })}
+                    </div>
+
+                    <PrimaryButton
+                      icon={Package}
+                      onClick={() => {
+                        const ids = [...selectedParcels]
+                        if (ids.length === 0) return
+                        addParcelsMutation.mutate(ids)
+                      }}
+                      disabled={selectedParcels.size === 0}
+                      loading={addParcelsMutation.isPending}
+                    >
+                      Ajouter {selectedParcels.size > 0 ? `(${selectedParcels.size})` : ''} au sac
+                    </PrimaryButton>
+                  </>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* Liste des colis du sac */}
+          <Section
+            title="Colis dans ce sac"
+            description={
+              bag?.weight
+                ? `${parcels.length} colis · ${bag.weight} kg`
+                : `${parcels.length} colis`
+            }
+          >
+            {parcels.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <Package size={14} />
+                </div>
+                <p className="text-xs text-slate-500">
+                  Aucun colis dans ce sac pour le moment.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Mobile */}
+                <div className="divide-y divide-slate-100 md:hidden">
+                  {parcels.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => navigate(`/parcels/${p.id}`)}
+                      className="cursor-pointer px-4 py-3.5 transition hover:bg-slate-50/70"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-medium text-slate-900">
+                          {p.qrcode}
+                        </span>
+                        <StatusBadge status={p.status} updatedAt={p.updatedAt} />
                       </div>
-                      <button
-                        onClick={() => {
-                          const ids = [...selectedParcels]
-                          if (ids.length === 0) return
-                          addParcelsMutation.mutate(ids)
-                        }}
-                        disabled={selectedParcels.size === 0 || addParcelsMutation.isPending}
-                        className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors w-full justify-center"
-                      >
-                        {addParcelsMutation.isPending ? (
-                          <Spinner size="sm" color="white" />
-                        ) : (
-                          <Package size={16} />
-                        )}
-                        Ajouter {selectedParcels.size > 0 ? `(${selectedParcels.size})` : ''} au sac
-                      </button>
-                    </>
-                  )
-                })()}
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {p.sender?.name ?? '—'} → {p.recipientName ?? '—'}
+                        {p.weight ? ` · ${p.weight} kg` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop */}
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-2.5 text-left font-medium">Code</th>
+                        <th className="px-4 py-2.5 text-left font-medium">Expéditeur</th>
+                        <th className="px-4 py-2.5 text-left font-medium">Destinataire</th>
+                        <th className="px-4 py-2.5 text-right font-medium">Poids</th>
+                        <th className="px-4 py-2.5 text-left font-medium">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parcels.map((p) => (
+                        <tr
+                          key={p.id}
+                          onClick={() => navigate(`/parcels/${p.id}`)}
+                          className="cursor-pointer border-b border-slate-100 transition last:border-0 hover:bg-slate-50/70"
+                        >
+                          <td className="px-4 py-3.5">
+                            <span className="font-mono text-sm font-medium text-slate-900">
+                              {p.qrcode}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-700">
+                            {p.sender?.name ?? '—'}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-700">
+                            {p.recipientName ?? '—'}
+                          </td>
+                          <td className="px-4 py-3.5 text-right tabular-nums text-slate-600">
+                            {p.weight ? `${p.weight} kg` : '—'}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <StatusBadge status={p.status} updatedAt={p.updatedAt} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
-          </div>
-        </Card>
-      )}
-
-      {/* Liste colis */}
-      <Card className='mb-10 md:mb-20 lg:mb-0'>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 style={{ fontFamily: 'var(--font-display)' }}
-              className="font-bold text-slate-900">Colis dans ce sac </h2>
-          <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
-            {parcels.length} colis {bag.weight ? ` | ${bag.weight} kg` : ''} 
-          </span>
+          </Section>
         </div>
 
-        {/* Mobile */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {parcels.map(p => (
-            <div key={p.id} onClick={() => navigate(`/parcels/${p.id}`)}
-                 className="px-4 py-3.5 cursor-pointer hover:bg-violet-50/50 transition-colors">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p style={{ fontFamily: 'var(--font-display)' }}
-                   className="text-sm font-bold text-violet-600">{p.qrcode}</p>
-                <StatusBadge status={p.status} updatedAt={p.updatedAt} />
-              </div>
-              <p className="text-xs text-slate-500">{p.sender?.name} → {p.recipientName}. <span className='text-black'>{p.weight ? `${p.weight} kg` : ''}</span></p>
+        {/* Colonne latérale */}
+        <aside className="flex flex-col gap-5">
+          <Section
+            title="Étiquette & QR code"
+            icon={QrCode}
+            description="À imprimer et coller sur le sac."
+          >
+            <div className="flex flex-col items-center gap-4 px-5 py-5">
+              {qrUrl ? (
+                <>
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <img src={qrUrl} alt={bag.qrcode} className="h-40 w-40" />
+                  </div>
+
+                  <BagLabelPrinter
+                    code={bag.qrcode}
+                    qrcodeUrl={qrUrl}
+                    parcelCount={parcels.length}
+                    weight={bag.weight}
+                    date={new Date(bag.createdAt)
+                      .toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                      .replace('.', '')}
+                    className="w-full max-w-xs"
+                  />
+
+                  <a
+                    href={qrUrl}
+                    download={`${bag.qrcode}.png`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline"
+                  >
+                    <Download size={13} />
+                    Télécharger le PNG
+                  </a>
+                </>
+              ) : (
+                <p className="py-6 text-center text-xs text-slate-400">
+                  QR code non disponible.
+                </p>
+              )}
             </div>
-          ))}
-        </div>
-
-        {/* Desktop */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                {['Code', 'Expéditeur', 'Destinataire', 'Poids', 'Statut'].map(h => (
-                  <th key={h} className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-5 py-3">{h}</th>
-                ))}
-               </tr>
-            </thead>
-            <tbody>
-              {parcels.map(p => (
-                <tr key={p.id} onClick={() => navigate(`/parcels/${p.id}`)}
-                    className="border-b border-slate-50 hover:bg-violet-50/50 cursor-pointer transition-colors last:border-0">
-                  <td className="px-5 py-3.5">
-                    <span style={{ fontFamily: 'var(--font-display)' }}
-                          className="text-xs font-bold text-violet-600">{p.qrcode}</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-600 text-xs">{p.sender?.name ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-slate-600 text-xs">{p.recipientName}</td>
-                  <td className="px-5 py-3.5 text-slate-400 text-xs">
-                    {p.weight ? `${p.weight} kg` : '—'}
-                  </td>
-                  <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+          </Section>
+        </aside>
+      </div>
     </div>
   )
 }

@@ -1,40 +1,191 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowUpRight,
+  Check,
+  Copy,
+  Download,
+  Lock,
+  Package,
+  Pencil,
+  Plus,
+  QrCode,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useParcel, useUpdateParcelStatus } from '../../hooks/useParcels'
 import { useBags } from '../../hooks/useBags'
 import { parcelsApi } from '../../api/parcels.api'
 import TrackingTimeline from '../../components/ui/TrackingTimeline'
 import StatusBadge from '../../components/ui/StatusBadge'
-import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
-import Skeleton from '../../components/ui/Skeleton'
-import LabelPrinter from '../../components/ui/LabelPrinter'
-import { confirmActionAlert, showSuccessAlert, showErrorAlert } from '../../components/ui/SweetsAlert'
-import { ArrowLeft, Copy, Download, AlertTriangle, ChevronUp, Plus } from 'lucide-react'
 import DeleteButton from '../../components/ui/DeleteButton'
 import { ParcelLabelPrinter } from '../../components/ui/ParcelLabelPrinter'
+import {
+  confirmActionAlert,
+  showSuccessAlert,
+  showErrorAlert,
+} from '../../components/ui/SweetsAlert'
 
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
-// ═══════════════════════════════════════════════════════════
-// Config statuts facture
-// ═══════════════════════════════════════════════════════════
+// ────────────────────────────────────────────────────────────
+// Config factures
+// ────────────────────────────────────────────────────────────
 const INVOICE_STATUS_CONFIG = {
-  paid:           { label: 'Payée',               color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  partially_paid: { label: 'Partiellement payée', color: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-500' },
-  draft:          { label: 'Brouillon',           color: 'bg-slate-50 text-slate-600 border-slate-200',       dot: 'bg-slate-400' },
-  overdue:        { label: 'En retard',           color: 'bg-red-50 text-red-700 border-red-200',             dot: 'bg-red-500' },
-  none:           { label: 'Aucune facture',      color: 'bg-slate-50 text-slate-500 border-slate-200',       dot: 'bg-slate-300' },
+  paid:           { label: 'Payée',               dot: 'bg-emerald-500', tone: 'text-emerald-700' },
+  partially_paid: { label: 'Partiellement payée', dot: 'bg-amber-500',   tone: 'text-amber-700' },
+  draft:          { label: 'Brouillon',           dot: 'bg-slate-400',   tone: 'text-slate-700' },
+  overdue:        { label: 'En retard',           dot: 'bg-rose-500',    tone: 'text-rose-700' },
+  none:           { label: 'Aucune facture',      dot: 'bg-slate-300',   tone: 'text-slate-500' },
 }
 
+// ────────────────────────────────────────────────────────────
+// Primitives
+// ────────────────────────────────────────────────────────────
+function Section({ title, description, icon: Icon, action, children, className = '' }) {
+  return (
+    <section className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
+      {(title || action) && (
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              {Icon ? <Icon size={14} className="text-slate-400" /> : null}
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+            ) : null}
+          </div>
+          {action}
+        </header>
+      )}
+      {children}
+    </section>
+  )
+}
+
+function Field({ label, value, empty = 'Non renseigné' }) {
+  const isEmpty = value === null || value === undefined || value === '' || value === '—'
+  return (
+    <div className="border-b border-slate-100 px-4 py-3 last:border-0 sm:border-b-0 sm:border-r sm:px-4 sm:py-3 sm:last:border-r-0">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+      <p className={`mt-0.5 truncate text-sm ${isEmpty ? 'text-slate-400' : 'font-medium text-slate-800'}`}>
+        {isEmpty ? empty : value}
+      </p>
+    </div>
+  )
+}
+
+function InvoiceBanner({ status, invoiceId, onView }) {
+  const cfg = INVOICE_STATUS_CONFIG[status] || INVOICE_STATUS_CONFIG.none
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <span className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-slate-700">
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cfg.dot}`} />
+        <span className="truncate">Facture : {cfg.label}</span>
+      </span>
+      {invoiceId ? (
+        <button
+          type="button"
+          onClick={onView}
+          className="shrink-0 text-[11px] font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline"
+        >
+          Voir
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function PrimaryButton({ icon: Icon, loading, children, className = '', ...props }) {
+  return (
+    <button
+      {...props}
+      disabled={props.disabled || loading}
+      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      ) : Icon ? (
+        <Icon size={15} />
+      ) : null}
+      {children}
+    </button>
+  )
+}
+
+function GhostButton({ icon: Icon, loading, children, className = '', tone = 'default', ...props }) {
+  const toneClass =
+    tone === 'danger'
+      ? 'text-rose-600 hover:bg-rose-50'
+      : tone === 'success'
+      ? 'text-emerald-700 hover:bg-emerald-50'
+      : 'text-slate-700 hover:bg-slate-100'
+
+  return (
+    <button
+      {...props}
+      disabled={props.disabled || loading}
+      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+      ) : Icon ? (
+        <Icon size={15} />
+      ) : null}
+      {children}
+    </button>
+  )
+}
+
+function InlineButton({ icon: Icon, children, className = '', ...props }) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    >
+      {Icon ? <Icon size={13} /> : null}
+      {children}
+    </button>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Skeleton
+// ────────────────────────────────────────────────────────────
+function DetailSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5 pb-10">
+      <div className="h-3 w-40 animate-pulse rounded bg-slate-100" />
+      <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-4">
+          <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+          <div className="h-64 animate-pulse rounded-xl bg-slate-100" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-52 animate-pulse rounded-xl bg-slate-100" />
+          <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// Page
+// ═══════════════════════════════════════════════════════════
 export default function ParcelDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const updateStatus = useUpdateParcelStatus()
+
   const [alertReason, setAlertReason] = useState('')
   const [showAlert, setShowAlert] = useState(false)
   const [totalPieces, setTotalPieces] = useState(1)
@@ -45,13 +196,11 @@ export default function ParcelDetailPage() {
   const { data: openBags = [], isLoading: loadingBags } = useBags({ status: 'ouvert' })
   const effectiveSelectedBagId = selectedBagId || parcel?.bagId || ''
 
-  // ═══════════════════════════════════════════════════════════
-  // État de la facture
-  // ═══════════════════════════════════════════════════════════
+  // ── État de la facture ────────────────────────────────────
   const invoiceStatus = parcel?.invoice?.status || 'none'
   const isInvoicePaid = invoiceStatus === 'paid'
-  const invoiceCfg    = INVOICE_STATUS_CONFIG[invoiceStatus] || INVOICE_STATUS_CONFIG.none
 
+  // ── Mutation sac ──────────────────────────────────────────
   const bagMutation = useMutation({
     mutationFn: (bagId) => parcelsApi.update(id, { bagId }),
     onSuccess: async () => {
@@ -61,59 +210,66 @@ export default function ParcelDetailPage() {
       await showSuccessAlert({ text: 'Sac mis à jour avec succès.' })
     },
     onError: async (err) => {
-      await showErrorAlert({ text: err?.message || 'Erreur lors de la modification du sac.' })
+      await showErrorAlert({
+        text: err?.message || 'Erreur lors de la modification du sac.',
+      })
     },
   })
 
+  // ── Handlers ──────────────────────────────────────────────
   const handleReportIssue = async () => {
     const confirmed = await confirmActionAlert({
       message: 'Voulez-vous marquer ce colis comme problématique ?',
-      confirmButtonText: 'Oui, signaler'
+      confirmButtonText: 'Oui, signaler',
     })
     if (!confirmed) return
-
     try {
-      await updateStatus.mutateAsync({ id, status: 'issue', notes: alertReason || undefined })
+      await updateStatus.mutateAsync({
+        id,
+        status: 'issue',
+        notes: alertReason || undefined,
+      })
       setAlertReason('')
       setShowAlert(false)
       await showSuccessAlert({ text: 'Colis marqué comme problématique.' })
     } catch (err) {
-      await showErrorAlert({ text: err?.message || 'Impossible de signaler le problème.' })
+      await showErrorAlert({
+        text: err?.message || 'Impossible de signaler le problème.',
+      })
     }
   }
 
   const handleConfirmCollection = async () => {
-    // 🔒 Blocage côté frontend (le backend rejette aussi)
     if (!isInvoicePaid) {
       return showErrorAlert({
         title: 'Facture non payée',
-        text: invoiceStatus === 'none'
-          ? 'Aucune facture n\'est associée à ce colis. Générez la facture avant de confirmer le retrait.'
-          : `La facture est ${invoiceCfg.label.toLowerCase()}. Le paiement complet est requis pour confirmer le retrait.`,
+        text:
+          invoiceStatus === 'none'
+            ? "Aucune facture n'est associée à ce colis. Générez la facture avant de confirmer le retrait."
+            : `La facture est ${INVOICE_STATUS_CONFIG[invoiceStatus].label.toLowerCase()}. Le paiement complet est requis pour confirmer le retrait.`,
       })
     }
-
     const confirmed = await confirmActionAlert({
       message: 'Voulez-vous confirmer le retrait de ce colis ?',
-      confirmButtonText: 'Oui, confirmer'
+      confirmButtonText: 'Oui, confirmer',
     })
     if (!confirmed) return
-
     try {
       await updateStatus.mutateAsync({ id, status: 'collected', notes: undefined })
       await showSuccessAlert({ text: 'Retrait confirmé avec succès.' })
     } catch (err) {
-      await showErrorAlert({ text: err?.message || 'Impossible de confirmer le retrait.' })
+      await showErrorAlert({
+        text: err?.message || 'Impossible de confirmer le retrait.',
+      })
     }
   }
 
   const handleRemoveBag = async () => {
     const confirmed = await confirmActionAlert({
       message: 'Voulez-vous retirer ce colis du sac actuel ?',
-      confirmButtonText: 'Oui, retirer'
+      confirmButtonText: 'Oui, retirer',
     })
     if (!confirmed) return
-
     bagMutation.mutate(null)
   }
 
@@ -122,14 +278,13 @@ export default function ParcelDetailPage() {
       await showErrorAlert({ text: 'Veuillez sélectionner un sac ouvert.' })
       return
     }
-
     bagMutation.mutate(selectedBagId)
   }
 
   const handleDepartAirport = async () => {
     try {
       await updateStatus.mutateAsync({ id, status: 'departed_airport' })
-      await showSuccessAlert({ text: 'Colis marqué comme parti de l\'aéroport.' })
+      await showSuccessAlert({ text: "Colis marqué comme parti de l'aéroport." })
     } catch (err) {
       await showErrorAlert({ text: err?.message || 'Erreur' })
     }
@@ -144,385 +299,412 @@ export default function ParcelDetailPage() {
     }
   }
 
-  const canConfirmCollection = parcel?.status === 'arrived_destination' &&
-                               (user?.role === 'agent_af' || user?.role === 'admin')
+  // ── États dérivés ─────────────────────────────────────────
+  const canConfirmCollection =
+    parcel?.status === 'arrived_destination' &&
+    (user?.role === 'agent_af' || user?.role === 'admin')
 
-  if (isLoading) return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
-      {/* ... skeleton inchangé ... */}
-    </div>
-  )
-  if (isError) return (
-    <div className="text-center py-20">
-      <p className="text-slate-400 text-sm mb-4">Colis introuvable.</p>
-      <button onClick={() => navigate('/parcels')}
-              className="text-violet-600 text-sm hover:underline flex items-center justify-center gap-1 mx-auto">
-        <ArrowLeft size={14} /> Retour
-      </button>
-    </div>
-  )
+  // ── Rendu ─────────────────────────────────────────────────
+  if (isLoading) return <DetailSkeleton />
+
+  if (isError) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <Package size={18} />
+        </div>
+        <p className="text-sm font-medium text-slate-700">Colis introuvable</p>
+        <button
+          type="button"
+          onClick={() => navigate('/parcels')}
+          className="mt-1 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <ArrowLeft size={14} />
+          Retour aux colis
+        </button>
+      </div>
+    )
+  }
+
+  const qrUrl = parcel.qrcodeUrl
+    ? parcel.qrcodeUrl.startsWith('http')
+      ? parcel.qrcodeUrl
+      : `${BASE_API_URL}${parcel.qrcodeUrl}`
+    : null
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-5 animate-fadeIn">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
+      {/* Fil d'Ariane */}
+      <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+        <button
+          type="button"
+          onClick={() => navigate('/parcels')}
+          className="transition hover:text-slate-800"
+        >
+          Colis
+        </button>
+        <span className="text-slate-300">/</span>
+        <span className="font-mono font-medium text-slate-900">{parcel.qrcode}</span>
+      </nav>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <button onClick={() => navigate('/parcels')}
-                className="hover:text-violet-600 transition-colors">Colis</button>
-        <span>/</span>
-        <span style={{fontFamily:'var(--font-display)'}}
-              className="text-violet-600 font-bold">{parcel.qrcode}</span>
-      </div>
-
-      {/* Header */}
-      <Card>
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <h1 style={{fontFamily:'var(--font-display)'}}
-                  className=" font-bold text-slate-900">{parcel.qrcode}</h1>
-              <p className="text-xs text-slate-400 mt-1">
-                Déposé le {new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
-                  day: 'numeric', month: 'long', year: 'numeric'
-                })}
-                {parcel.weight ? ` · ${parcel.weight} kg` : ''}
-              </p>
+      {/* En-tête */}
+      <header className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="font-mono text-xl font-semibold text-slate-900">
+                {parcel.qrcode}
+              </h1>
+              <StatusBadge
+                status={parcel.status}
+                size="md"
+                updatedAt={parcel.updatedAt}
+              />
             </div>
-            <StatusBadge status={parcel.status} size="md" updatedAt={parcel.updatedAt} />
+            <p className="mt-1 text-sm text-slate-500">
+              Déposé le{' '}
+              {new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+              {parcel.weight ? (
+                <>
+                  {' · '}
+                  <span className="tabular-nums">{parcel.weight} kg</span>
+                </>
+              ) : null}
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {[
-              { label: 'Expéditeur',   value: parcel.sender?.name },
-              { label: 'Destinataire', value: parcel.recipientName },
-              { label: 'Email exp.',  value: parcel.sender?.email ?? '—' },
-              { label: 'Tél. exp.',   value: parcel.sender.phone ?? '—' },
-              { label: 'Tél. dest.',   value: parcel.recipientPhone ?? '—' },
-              { label: 'Adresse dest.', value: parcel.recipientAddress ?? '—' },
-              { label: 'Sac',          value: parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun') },
-              { label: 'Destination',  value: parcel.bag?.destinationAgency?.city ?? '—' },
-              { label: 'Service',      value: parcel.service ?? '—' },
-              { label: 'Type',         value: parcel.type ?? '—' },
-              { label: 'Urgent',       value: parcel.urgent ? 'Oui' : 'Non' },
-              { label: 'Fragile',      value: parcel.fragile ? 'Oui' : 'Non' },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-slate-50 rounded-xl px-0 lg:px-1 py-1 lg:py-2.5">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
-                <p className="text-xs lg:text-sm text-slate-800 font-semibold mt-0.5 truncate">{value === '—' ? 'Non renseigné' : value}</p>
-              </div>
-            ))}
-          </div>
-
-          {parcel.description && (
-            <div className="mt-2 bg-slate-50 rounded-xl px-0 lg:px-3 py-2.5">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Contenu</p>
-              <p className="text-xs lg:text-sm text-slate-700 mt-0.5">{parcel.description}</p>
-            </div>
-          )}
-          <div className="mt-4 flex items-center gap-3">
-            {parcel.bagId && (
-              <button onClick={() => navigate(`/bags/${parcel.bagId}`)}
-                      className="text-xs bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-xl
-                                 transition-all font-semibold flex items-center gap-1">
-                <ChevronUp size={14} /> Accéder au sac
+          <div className="flex flex-wrap items-center gap-2">
+            {parcel.bagId ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/bags/${parcel.bagId}`)}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-900 px-3.5 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                <ArrowUpRight size={14} />
+                Accéder au sac
               </button>
-            )}
-            <button onClick={() => navigate(`/parcels/${id}/edit`)}
-                    className="text-xs bg-slate-50 border-2 border-slate-200
-                               hover:border-violet-500 hover:text-violet-600
-                               text-slate-500 px-3 py-1.5 rounded-xl
-                               transition-all font-semibold flex items-center gap-1">
-              <Copy size={14} /> Modifier
+            ) : null}
+            <button
+              type="button"
+              onClick={() => navigate(`/parcels/${id}/edit`)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              <Pencil size={14} />
+              Modifier
             </button>
             <DeleteButton type="parcel" id={id} />
           </div>
         </div>
-      </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10 md:mb-24 lg:mb-0">
+        {/* Grille de champs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Expéditeur" value={parcel.sender?.name} />
+          <Field label="Destinataire" value={parcel.recipientName} />
+          <Field label="Destination" value={parcel.bag?.destinationAgency?.city} />
 
-        {/* Timeline */}
-        <Card>
-          <div className="px-5 py-4 border-b border-slate-100">
-            <h2 style={{fontFamily:'var(--font-display)'}}
-                className="font-bold text-slate-900">Suivi du colis</h2>
+          <Field label="Email expéditeur" value={parcel.sender?.email} />
+          <Field label="Téléphone expéditeur" value={parcel.sender?.phone} />
+          <Field label="Téléphone destinataire" value={parcel.recipientPhone} />
+
+          <Field label="Adresse destinataire" value={parcel.recipientAddress} />
+          <Field
+            label="Sac"
+            value={parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun')}
+            empty="Aucun"
+          />
+          <Field label="Service" value={parcel.service} />
+
+          <Field label="Type" value={parcel.type} />
+          <Field label="Urgent" value={parcel.urgent ? 'Oui' : 'Non'} />
+          <Field label="Fragile" value={parcel.fragile ? 'Oui' : 'Non'} />
+        </div>
+
+        {parcel.description ? (
+          <div className="border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              Contenu
+            </p>
+            <p className="mt-1 text-sm text-slate-700">{parcel.description}</p>
           </div>
-          <div className="p-5">
-            <TrackingTimeline
-              events={parcel.trackingEvents ?? []}
-              currentStatus={parcel.status}
-            />
-          </div>
-        </Card>
+        ) : null}
+      </header>
 
-        <div className="flex flex-col gap-4">
-
-          <Card>
-            <div className="p-5">
-              <h2 style={{fontFamily:'var(--font-display)'}}
-                  className="font-bold text-slate-900 mb-3">Modifier le sac</h2>
-              <p className="text-[11px] text-slate-500 mb-3">
-                {parcel?.bagId
-                  ? 'Retirez ce colis du sac actuel ou déplacez-le vers un autre sac ouvert.'
-                  : 'Associez ce colis à un sac ouvert.'}
-              </p>
-
-              <div className="text-xs text-slate-600 mb-2">
-                Sac actuel : <span className="font-semibold text-violet-700">{parcel?.bag?.qrcode ?? 'Aucun'}</span>
-              </div>
-
-              <select
-                value={effectiveSelectedBagId}
-                onChange={(e) => setSelectedBagId(e.target.value)}
-                disabled={bagMutation.isPending || loadingBags}
-                className="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none bg-white focus:border-violet-500"
-              >
-                <option value="">Sélectionner un sac ouvert</option>
-                {openBags.map((bag) => (
-                  <option key={bag.id} value={bag.id}>
-                    {bag.qrcode}{bag.destinationAgency?.city ? ` · ${bag.destinationAgency.city}` : ''}
-                  </option>
-                ))}
-              </select>
-
-              {!loadingBags && openBags.length === 0 && (
-                <p className="text-[11px] text-slate-400 mt-2">Aucun sac ouvert disponible pour le moment.</p>
-              )}
-
-              <div className="flex gap-2 mt-3">
-                <button
-                  type="button"
-                  onClick={handleRemoveBag}
-                  disabled={bagMutation.isPending || parcel?.status === 'collected'}
-                  className="flex-1 border-2 border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
-                >
-                  Retirer du sac
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAssignBag}
-                  disabled={bagMutation.isPending || !selectedBagId || parcel?.status === 'collected'}
-                  className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-xs"
-                >
-                  {bagMutation.isPending ? <Spinner size="sm" color="white" /> : 'Déplacer'}
-                </button>
-              </div>
+      {/* Corps */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/* Colonne principale */}
+        <div className="flex flex-col gap-5">
+          <Section
+            title="Suivi du colis"
+            description={`${(parcel.trackingEvents ?? []).length} événement(s)`}
+          >
+            <div className="px-5 py-4">
+              <TrackingTimeline
+                events={parcel.trackingEvents ?? []}
+                currentStatus={parcel.status}
+              />
             </div>
-          </Card>
+          </Section>
 
-          {/* Bloc conditionnel */}
-          {parcel.bagId ? (
-            // Message pour colis en sac
-            <Card>
-              <div className="p-5 bg-blue-50 border border-blue-100 rounded-xl">
-                <p className="text-xs text-blue-700 font-semibold">
-                  💡 Les transitions de statut se font via le sac (page Sacs)
-                </p>
-                <p className="text-[11px] text-blue-600 mt-1">
-                  Tous les colis d'un même sac avancent ensemble. Vous pouvez uniquement confirmer le retrait ou signaler un problème sur ce colis.
-                </p>
+          <Section
+            title="Gestion du sac"
+            description={
+              parcel?.bagId
+                ? 'Retirez ce colis ou déplacez-le vers un autre sac ouvert.'
+                : 'Associez ce colis à un sac ouvert.'
+            }
+          >
+            <div className="space-y-4 px-5 py-4">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <span className="text-xs text-slate-500">Sac actuel</span>
+                <span className="font-mono text-xs font-medium text-slate-900">
+                  {parcel?.bag?.qrcode ?? 'Aucun'}
+                </span>
               </div>
-            </Card>
-          ) : (
-            // Panneau de contrôle pour colis individuel
-            <Card>
-              <div className="p-5">
-                <h2 style={{fontFamily:'var(--font-display)'}}
-                    className="font-bold text-slate-900 mb-4">Gestion du colis individuel</h2>
 
-                {/* ═══ Bloc statut facture ═══ */}
-                <div className={`mb-4 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border ${invoiceCfg.color}`}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${invoiceCfg.dot}`} />
-                    <span className="text-xs font-semibold truncate">
-                      Facture : {invoiceCfg.label}
-                    </span>
-                  </div>
-                  {parcel.invoice && (
-                    <button
-                      onClick={() => navigate(`/invoices/${parcel.invoice.id}`)}
-                      className="text-[11px] font-semibold underline hover:no-underline whitespace-nowrap"
-                    >
-                      Voir
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {parcel.status === 'received' && (
-                    <button onClick={handleDepartAirport} disabled={updateStatus.isPending}
-                            className="w-full bg-[#7C3AED] hover:bg-[#5B21B6] disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                      {updateStatus.isPending ? <Spinner size="sm" color="white"/> : 'Parti aéroport'}
-                    </button>
-                  )}
-                  {parcel.status === 'departed_airport' && (
-                    <button onClick={handleArrivedDestination} disabled={updateStatus.isPending}
-                            className="w-full bg-[#34D399] hover:bg-[#059669] disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                      {updateStatus.isPending ? <Spinner size="sm" color="white"/> : 'Arrivé destination'}
-                    </button>
-                  )}
-                  {canConfirmCollection && (
-                    <>
-                      <button
-                        onClick={handleConfirmCollection}
-                        disabled={updateStatus.isPending || !isInvoicePaid}
-                        title={!isInvoicePaid ? 'Le paiement complet de la facture est requis' : ''}
-                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
-                      >
-                        {updateStatus.isPending
-                          ? <Spinner size="sm" color="white"/>
-                          : '✓ Confirmer le retrait'}
-                      </button>
-                      {!isInvoicePaid && (
-                        <p className="text-[11px] text-red-600 text-center leading-snug">
-                          🔒 Le retrait ne peut être confirmé que si la facture est entièrement payée.
-                        </p>
-                      )}
-                    </>
-                  )}
-                  {parcel.status !== 'issue' && (
-                    <div>
-                      <button onClick={() => setShowAlert(v => !v)} disabled={updateStatus.isPending}
-                              className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mb-3">
-                        <AlertTriangle size={16} />
-                        Marquer comme problématique
-                      </button>
-                      {showAlert && (
-                        <div className="space-y-2 animate-fadeIn">
-                          <textarea value={alertReason} onChange={e => setAlertReason(e.target.value)}
-                                    placeholder="Décrivez le problème…" rows={2}
-                                    className="w-full px-3 py-2.5 border-2 border-red-200 rounded-xl text-sm outline-none resize-none bg-white focus:border-red-400" />
-                          <div className="flex gap-2">
-                            <button onClick={() => setShowAlert(false)}
-                                    className="flex-1 border-2 border-slate-200 text-slate-500 py-2 rounded-xl text-xs font-semibold">Annuler</button>
-                            <button onClick={handleReportIssue} disabled={updateStatus.isPending}
-                                    className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-xs">Confirmer</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Confirmer retrait pour colis en sac (si applicable) */}
-          {canConfirmCollection && parcel.bagId && (
-            <Card>
-              <div className="p-5">
-                <h2 style={{fontFamily:'var(--font-display)'}}
-                    className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  Confirmer le retrait
-                </h2>
-
-                {/* Bloc statut facture */}
-                <div className={`mb-3 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border ${invoiceCfg.color}`}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${invoiceCfg.dot}`} />
-                    <span className="text-xs font-semibold truncate">
-                      Facture : {invoiceCfg.label}
-                    </span>
-                  </div>
-                  {parcel.invoice && (
-                    <button
-                      onClick={() => navigate(`/invoices/${parcel.invoice.id}`)}
-                      className="text-[11px] font-semibold underline hover:no-underline whitespace-nowrap"
-                    >
-                      Voir
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleConfirmCollection}
-                  disabled={updateStatus.isPending || !isInvoicePaid}
-                  title={!isInvoicePaid ? 'Le paiement complet de la facture est requis' : ''}
-                  className="w-full bg-green-600 hover:bg-green-500
-                             disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold
-                             py-2.5 rounded-xl text-sm transition-colors
-                             flex items-center justify-center gap-2"
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Déplacer vers un sac ouvert
+                </label>
+                <select
+                  value={effectiveSelectedBagId}
+                  onChange={(e) => setSelectedBagId(e.target.value)}
+                  disabled={bagMutation.isPending || loadingBags}
+                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:opacity-60"
                 >
-                  {updateStatus.isPending
-                    ? <><Spinner size="sm" color="white"/> Confirmation…</>
-                    : '✓ Confirmer le retrait du colis'
-                  }
-                </button>
-
-                {!isInvoicePaid && (
-                  <p className="text-[11px] text-red-600 text-center mt-2 leading-snug">
-                    🔒 Le retrait ne peut être confirmé que si la facture est entièrement payée.
+                  <option value="">— Sélectionner un sac —</option>
+                  {openBags.map((bag) => (
+                    <option key={bag.id} value={bag.id}>
+                      {bag.qrcode}
+                      {bag.destinationAgency?.city
+                        ? ` · ${bag.destinationAgency.city}`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+                {!loadingBags && openBags.length === 0 && (
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    Aucun sac ouvert disponible pour le moment.
                   </p>
                 )}
               </div>
-            </Card>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <GhostButton
+                  type="button"
+                  onClick={handleRemoveBag}
+                  loading={bagMutation.isPending}
+                  disabled={
+                    bagMutation.isPending || parcel?.status === 'collected'
+                  }
+                >
+                  Retirer du sac
+                </GhostButton>
+                <PrimaryButton
+                  type="button"
+                  onClick={handleAssignBag}
+                  loading={bagMutation.isPending}
+                  disabled={
+                    bagMutation.isPending ||
+                    !selectedBagId ||
+                    parcel?.status === 'collected'
+                  }
+                >
+                  Déplacer
+                </PrimaryButton>
+              </div>
+            </div>
+          </Section>
+
+          {/* Panneau de contrôle — colis individuel */}
+          {!parcel.bagId && (
+            <Section title="Actions sur le colis">
+              <div className="space-y-4 px-5 py-4">
+                <InvoiceBanner
+                  status={invoiceStatus}
+                  invoiceId={parcel.invoice?.id}
+                  onView={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                />
+
+                <div className="space-y-3">
+                  {parcel.status === 'received' && (
+                    <PrimaryButton
+                      onClick={handleDepartAirport}
+                      loading={updateStatus.isPending}
+                    >
+                      Marquer « Parti de l'aéroport »
+                    </PrimaryButton>
+                  )}
+
+                  {parcel.status === 'departed_airport' && (
+                    <PrimaryButton
+                      onClick={handleArrivedDestination}
+                      loading={updateStatus.isPending}
+                    >
+                      Marquer « Arrivé à destination »
+                    </PrimaryButton>
+                  )}
+
+                  {canConfirmCollection && (
+                    <div className="space-y-2">
+                      <PrimaryButton
+                        onClick={handleConfirmCollection}
+                        loading={updateStatus.isPending}
+                        disabled={!isInvoicePaid}
+                        icon={Check}
+                        className="!bg-emerald-600 hover:!bg-emerald-500"
+                      >
+                        Confirmer le retrait
+                      </PrimaryButton>
+                      {!isInvoicePaid && (
+                        <p className="flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                          <Lock size={12} className="mt-0.5 shrink-0" />
+                          Le retrait ne peut être confirmé que si la facture est
+                          entièrement payée.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Section>
           )}
 
-          {/* Signaler un problème pour colis en sac (si applicable) */}
-          {parcel.status !== 'issue' && parcel.bagId && (
-            <Card>
-              <div className="p-5">
-                <h2 style={{fontFamily:'var(--font-display)'}}
-                    className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <AlertTriangle size={18} className="text-red-500" />
-                  Signaler un problème
-                </h2>
-                <button onClick={() => setShowAlert(v => !v)}
-                        className="w-full bg-red-500 hover:bg-red-600
-                                   disabled:opacity-60 text-white font-semibold
-                                   py-2.5 rounded-xl text-sm transition-colors
-                                   flex items-center justify-center gap-2 mb-3"
-                        disabled={updateStatus.isPending}>
-                  {updateStatus.isPending
-                    ? <><Spinner size="sm" color="white"/> Mise à jour…</>
-                    : <><AlertTriangle size={16} /> Marquer comme problématique</>
-                  }
-                </button>
-                {showAlert && (
-                  <div className="mt-3 space-y-2 animate-fadeIn">
-                    <textarea value={alertReason} onChange={e => setAlertReason(e.target.value)}
-                              placeholder="Décrivez le problème…" rows={2}
-                              className="w-full px-3 py-2.5 border-2 border-red-200 rounded-xl text-sm outline-none resize-none bg-white focus:border-red-400"/>
-                    <div className="flex gap-2">
-                      <button onClick={() => setShowAlert(false)}
-                              className="flex-1 border-2 border-slate-200 text-slate-500 py-2 rounded-xl text-xs font-semibold">Annuler</button>
-                      <button onClick={handleReportIssue}
-                              disabled={updateStatus.isPending}
-                              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-xs">Confirmer</button>
+          {/* Confirmer retrait — colis en sac */}
+          {canConfirmCollection && parcel.bagId && (
+            <Section title="Confirmer le retrait">
+              <div className="space-y-4 px-5 py-4">
+                <InvoiceBanner
+                  status={invoiceStatus}
+                  invoiceId={parcel.invoice?.id}
+                  onView={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                />
+                <PrimaryButton
+                  onClick={handleConfirmCollection}
+                  loading={updateStatus.isPending}
+                  disabled={!isInvoicePaid}
+                  icon={Check}
+                  className="!bg-emerald-600 hover:!bg-emerald-500"
+                >
+                  Confirmer le retrait du colis
+                </PrimaryButton>
+                {!isInvoicePaid && (
+                  <p className="flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                    <Lock size={12} className="mt-0.5 shrink-0" />
+                    Le retrait ne peut être confirmé que si la facture est
+                    entièrement payée.
+                  </p>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* Signaler un problème */}
+          {parcel.status !== 'issue' && (
+            <Section
+              title="Signaler un problème"
+              description="Le colis sortira du flux normal."
+              icon={AlertTriangle}
+            >
+              <div className="space-y-3 px-5 py-4">
+                {!showAlert ? (
+                  <GhostButton
+                    tone="danger"
+                    icon={AlertTriangle}
+                    onClick={() => setShowAlert(true)}
+                    disabled={updateStatus.isPending}
+                  >
+                    Marquer comme problématique
+                  </GhostButton>
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={alertReason}
+                      onChange={(e) => setAlertReason(e.target.value)}
+                      placeholder="Décrivez le problème…"
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <GhostButton
+                        type="button"
+                        onClick={() => {
+                          setShowAlert(false)
+                          setAlertReason('')
+                        }}
+                      >
+                        Annuler
+                      </GhostButton>
+                      <button
+                        type="button"
+                        onClick={handleReportIssue}
+                        disabled={updateStatus.isPending}
+                        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {updateStatus.isPending ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        ) : null}
+                        Confirmer
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
-            </Card>
+            </Section>
           )}
 
           {parcel.status === 'issue' && (
-            <Card>
-              <div className="p-5 bg-red-50 border border-red-100 rounded-xl">
-                <p className="text-xs text-red-700 font-semibold flex items-center gap-2">
-                  <AlertTriangle size={14} /> Problème signalé
+            <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3.5">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-rose-600" />
+              <div>
+                <p className="text-sm font-semibold text-rose-800">
+                  Problème signalé
                 </p>
-                <p className="text-[11px] text-red-600 mt-1">
-                  Ce colis est marqué comme problématique et ne suivra pas le flux normal.
+                <p className="mt-0.5 text-xs text-rose-700">
+                  Ce colis ne suivra pas le flux normal tant que le problème n'est
+                  pas résolu.
                 </p>
               </div>
-            </Card>
+            </div>
           )}
 
-          {/* QR Code */}
-          <Card>
-            <div className="p-5">
-              <h2 style={{fontFamily:'var(--font-display)'}}
-                  className="font-bold text-slate-900 mb-4">QR Code</h2>
-              {parcel.qrcodeUrl ? (
-                <div className="flex flex-col items-center gap-3">
-                  <img src={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
-                      alt={parcel.qrcode}
-                      className="w-40 h-40"/>
+          {parcel.bagId ? (
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
+              <Package size={16} className="mt-0.5 shrink-0 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Colis rattaché à un sac
+                </p>
+                <p className="mt-0.5 text-xs text-slate-600">
+                  Les transitions de statut s'effectuent depuis la page du sac. Vous
+                  pouvez uniquement confirmer le retrait ou signaler un problème sur
+                  ce colis.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
 
-                  {/* Personnalisation nombre de pièces (colis uniquement) */}
-                  <div className="flex items-center gap-2 text-xs">
-                    <label className="text-slate-500">Pièce n°</label>
+        {/* Colonne latérale */}
+        <aside className="flex flex-col gap-5">
+          {/* QR code */}
+          <Section
+            title="Étiquette & QR code"
+            icon={QrCode}
+            description="À imprimer et coller sur le colis."
+          >
+            <div className="flex flex-col items-center gap-4 px-5 py-5">
+              {qrUrl ? (
+                <>
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <img src={qrUrl} alt={parcel.qrcode} className="h-40 w-40" />
+                  </div>
+
+                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <span className="text-xs text-slate-500">Pièce</span>
                     <input
                       type="number"
                       min={1}
@@ -534,9 +716,9 @@ export default function ParcelDetailPage() {
                         if (val > totalPieces) val = totalPieces
                         setCurrentPiece(val)
                       }}
-                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-center text-slate-700"
+                      className="h-8 w-14 rounded-lg border border-slate-300 bg-white text-center text-sm tabular-nums text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                     />
-                    <span className="text-slate-400">/</span>
+                    <span className="text-xs text-slate-400">/</span>
                     <input
                       type="number"
                       min={1}
@@ -547,61 +729,69 @@ export default function ParcelDetailPage() {
                         setTotalPieces(val)
                         if (currentPiece > val) setCurrentPiece(val)
                       }}
-                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-center text-slate-700"
+                      className="h-8 w-14 rounded-lg border border-slate-300 bg-white text-center text-sm tabular-nums text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                     />
                   </div>
 
                   <ParcelLabelPrinter
                     code={parcel.qrcode}
-                    qrcodeUrl={parcel.qrcodeUrl.startsWith('http') ? parcel.qrcodeUrl : `${BASE_API_URL}${parcel.qrcodeUrl}`}
+                    qrcodeUrl={qrUrl}
                     recipientName={parcel.recipientName || 'Destinataire'}
-                    recipientAddress={parcel.recipientAddress || 'Adresse non renseignée'}
+                    recipientAddress={
+                      parcel.recipientAddress || 'Adresse non renseignée'
+                    }
                     recipientPhone={parcel.recipientPhone || 'Tél non renseigné'}
                     weight={parcel.weight || 0}
                     service={parcel.service || 'Standard'}
                     fragile={parcel.fragile || false}
-                    date={new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
-                      day: 'numeric', month: 'short', year: 'numeric'
-                    }).replace('.', '') }
+                    date={new Date(parcel.createdAt)
+                      .toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                      .replace('.', '')}
                     pieceNumber={currentPiece}
                     totalPieces={totalPieces}
                   />
-                  <p className="text-[10px] text-slate-400 text-center">
-                    Scannez pour suivre ce colis
-                  </p>
-                  <a href={parcel.qrcodeUrl} download={`${parcel.qrcode}.png`}
-                    className="text-xs text-violet-600 hover:underline font-semibold flex items-center gap-1">
-                    <Download size={14} /> Télécharger PNG
+
+                  <a
+                    href={qrUrl}
+                    download={`${parcel.qrcode}.png`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline"
+                  >
+                    <Download size={13} />
+                    Télécharger le PNG
                   </a>
-                </div>
+                </>
               ) : (
-                <p className="text-xs text-slate-400 text-center py-6">
+                <p className="py-6 text-center text-xs text-slate-400">
                   QR code non disponible.
                 </p>
               )}
             </div>
-          </Card>
+          </Section>
 
-          {/* Lien suivi public */}
-          <Card>
-            <div className="p-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-slate-800">Lien de suivi</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">À partager avec le client</p>
-              </div>
-              <button onClick={() => navigator.clipboard?.writeText(
-                        `${window.location.origin}/track/${parcel.qrcode}`
-                      )}
-                      className="text-xs bg-slate-50 border-2 border-slate-200
-                                 hover:border-violet-500 hover:text-violet-600
-                                 text-slate-500 px-3 py-1.5 rounded-xl
-                                 transition-all font-semibold flex items-center gap-1">
-                <Copy size={14} /> Copier
-              </button>
+          {/* Lien de suivi */}
+          <Section title="Lien de suivi" description="À partager avec le client.">
+            <div className="flex items-center gap-2 px-5 py-4">
+              <code className="min-w-0 flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">
+                {`${window.location.origin}/track/${parcel.qrcode}`}
+              </code>
+              <InlineButton
+                type="button"
+                icon={Copy}
+                onClick={() =>
+                  navigator.clipboard?.writeText(
+                    `${window.location.origin}/track/${parcel.qrcode}`
+                  )
+                }
+              >
+                Copier
+              </InlineButton>
             </div>
-          </Card>
-
-        </div>
+          </Section>
+        </aside>
       </div>
     </div>
   )

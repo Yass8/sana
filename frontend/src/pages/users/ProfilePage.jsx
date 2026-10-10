@@ -1,11 +1,129 @@
 // src/pages/profile/ProfilePage.jsx
 import { useState, useEffect } from 'react'
+import {
+  Building2,
+  KeyRound,
+  Save,
+  ShieldCheck,
+  User as UserIcon,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useUser, useUpdateUser, useUpdatePassword } from '../../hooks/useUsers'
-import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
-import { showSuccessAlert, showErrorAlert, confirmActionAlert } from '../../components/ui/SweetsAlert'
+import {
+  useUser,
+  useUpdateUser,
+  useUpdatePassword,
+} from '../../hooks/useUsers'
+import {
+  showSuccessAlert,
+  showErrorAlert,
+  confirmActionAlert,
+} from '../../components/ui/SweetsAlert'
 
+// ────────────────────────────────────────────────────────────
+// Primitives
+// ────────────────────────────────────────────────────────────
+function Section({ title, description, icon: Icon, action, children, className = '' }) {
+  return (
+    <section className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
+      {(title || action) && (
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              {Icon ? <Icon size={14} className="text-slate-400" /> : null}
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+            ) : null}
+          </div>
+          {action}
+        </header>
+      )}
+      {children}
+    </section>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value }) {
+  const isEmpty = !value
+  return (
+    <div className="flex items-start gap-3 px-5 py-3">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <Icon size={13} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+          {label}
+        </p>
+        <p
+          className={`mt-0.5 truncate text-sm capitalize ${
+            isEmpty ? 'text-slate-400' : 'font-medium text-slate-800'
+          }`}
+        >
+          {isEmpty ? '—' : value}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, htmlFor, children }) {
+  return (
+    <div>
+      <label
+        htmlFor={htmlFor}
+        className="mb-1.5 block text-xs font-medium text-slate-600"
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function FormInput(props) {
+  return (
+    <input
+      {...props}
+      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:cursor-not-allowed disabled:bg-slate-50"
+    />
+  )
+}
+
+function PrimaryButton({ icon: Icon, loading, children, className = '', ...props }) {
+  return (
+    <button
+      {...props}
+      disabled={props.disabled || loading}
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    >
+      {loading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      ) : Icon ? (
+        <Icon size={15} />
+      ) : null}
+      {children}
+    </button>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Skeleton
+// ────────────────────────────────────────────────────────────
+function ProfileSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-10">
+      <div className="h-3 w-40 animate-pulse rounded bg-slate-100" />
+      <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+      <div className="h-48 animate-pulse rounded-xl bg-slate-100" />
+      <div className="h-48 animate-pulse rounded-xl bg-slate-100" />
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
+// Page
+// ────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user: authUser } = useAuth()
   const userId = authUser?.id
@@ -14,7 +132,12 @@ export default function ProfilePage() {
   const updateUser = useUpdateUser()
   const updatePassword = useUpdatePassword()
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', adresse: '' })
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    adresse: '',
+  })
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -32,25 +155,21 @@ export default function ProfilePage() {
     }
   }, [user])
 
-  if (isLoading || !userId) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner />
-      </div>
-    )
-  }
+  // ── Loading ───────────────────────────────────────────────
+  if (isLoading || !userId) return <ProfileSkeleton />
 
   if (!user) {
     return (
-      <div className="flex justify-center py-16 text-slate-400">
+      <div className="flex justify-center py-16 text-slate-500">
         Utilisateur introuvable
       </div>
     )
   }
 
+  // ── Handlers ──────────────────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm(prev => ({ ...prev, [name]: value }))
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSaveProfile = async (e) => {
@@ -72,7 +191,7 @@ export default function ProfilePage() {
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target
-    setPasswordForm(prev => ({ ...prev, [name]: value }))
+    setPasswordForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSavePassword = async (e) => {
@@ -85,13 +204,11 @@ export default function ProfilePage() {
       return
     }
 
-    // Demander confirmation avant de changer le mot de passe
     const confirmed = await confirmActionAlert({
       title: 'Changer le mot de passe ?',
       message: 'Êtes-vous sûr de vouloir modifier votre mot de passe ?',
       confirmButtonText: 'Oui, changer',
     })
-
     if (!confirmed) return
 
     try {
@@ -100,7 +217,11 @@ export default function ProfilePage() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       })
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
       await showSuccessAlert({
         title: 'Mot de passe modifié',
         text: 'Votre mot de passe a été mis à jour avec succès.',
@@ -113,218 +234,158 @@ export default function ProfilePage() {
     }
   }
 
-  return (
-    <div className="flex flex-col gap-5 animate-fadeIn mb-10">
+  const roleLabel = user.role?.replace('_', ' ') || ''
 
-      <div>
-        <h1 style={{ fontFamily: 'var(--font-display)' }}
-            className="text-xl md:text-2xl font-bold text-slate-900">
+  // ── Rendu ─────────────────────────────────────────────────
+  return (
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-10">
+      {/* En-tête */}
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           Mon profil
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Consultez et modifiez vos informations personnelles
+        <p className="mt-1 text-sm text-slate-500">
+          Consultez et modifiez vos informations personnelles.
         </p>
-      </div>
+      </header>
 
-      {/* Informations du compte (lecture seule) */}
-      <Card>
-        <div className="px-5 py-4 border-b border-slate-100">
-          <p style={{ fontFamily: 'var(--font-display)' }}
-             className="font-bold text-slate-900">
-            Informations du compte
-          </p>
+      {/* Informations du compte */}
+      <Section
+        title="Informations du compte"
+        description="Données de référence, non modifiables."
+        icon={UserIcon}
+      >
+        <div className="divide-y divide-slate-100 sm:grid sm:grid-cols-3 sm:divide-y-0">
+          <InfoRow icon={UserIcon} label="Nom" value={user.name} />
+          <InfoRow icon={ShieldCheck} label="Rôle" value={roleLabel} />
+          <InfoRow
+            icon={Building2}
+            label="Agence"
+            value={user.agency?.name || 'Aucune agence'}
+          />
         </div>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Nom
-            </label>
-            <div className="text-sm font-medium text-slate-700">
-              {user.name || '—'}
-            </div>
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Rôle
-            </label>
-            <div className="text-sm font-medium text-slate-700 capitalize">
-              {user.role?.replace('_', ' ') || '—'}
-            </div>
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Agence
-            </label>
-            <div className="text-sm font-medium text-slate-700">
-              {user.agency?.name || 'Aucune agence'}
-            </div>
-          </div>
-        </div>
-      </Card>
+      </Section>
 
-      {/* Formulaire profil modifiable */}
-      <Card>
-        <div className="px-5 py-4 border-b border-slate-100">
-          <p style={{ fontFamily: 'var(--font-display)' }}
-             className="font-bold text-slate-900">
-            Informations personnelles
-          </p>
-        </div>
+      {/* Informations personnelles */}
+      <Section
+        title="Informations personnelles"
+        description="Ces informations apparaissent dans vos échanges et factures."
+        icon={UserIcon}
+      >
         <form onSubmit={handleSaveProfile}>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label htmlFor="name" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Nom complet
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-              required
-            />
+          <div className="grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-2">
+            <Field label="Nom complet" htmlFor="name">
+              <FormInput
+                id="name"
+                name="name"
+                type="text"
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
+            </Field>
+
+            <Field label="Email" htmlFor="email">
+              <FormInput
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+            </Field>
+
+            <Field label="Téléphone" htmlFor="phone">
+              <FormInput
+                id="phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+              />
+            </Field>
+
+            <Field label="Adresse" htmlFor="adresse">
+              <FormInput
+                id="adresse"
+                name="adresse"
+                type="text"
+                value={form.adresse}
+                onChange={handleChange}
+              />
+            </Field>
           </div>
-          <div>
-            <label htmlFor="email" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Téléphone
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              value={form.phone}
-              onChange={handleChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-            />
-          </div>
-          <div>
-            <label htmlFor="adresse" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Adresse
-            </label>
-            <input
-              id="adresse"
-              name="adresse"
-              type="text"
-              value={form.adresse}
-              onChange={handleChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-            />
-          </div>
-          
-          </div>
-          <div className="flex justify-center p-5">
-            <button
+
+          <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+            <PrimaryButton
               type="submit"
-              disabled={updateUser.isPending}
-              className="w-full md:w-auto md:px-6 py-2.5 text-sm font-semibold text-white
-                         bg-[#0A1628] hover:bg-slate-800 rounded-xl transition-colors
-                         disabled:opacity-60 disabled:cursor-not-allowed"
+              icon={Save}
+              loading={updateUser.isPending}
             >
-              {updateUser.isPending ? 'Enregistrement...' : 'Enregistrer les modifications'}
-            </button>
+              {updateUser.isPending
+                ? 'Enregistrement…'
+                : 'Enregistrer les modifications'}
+            </PrimaryButton>
           </div>
         </form>
-      </Card>
+      </Section>
 
-      {/* Section Sécurité - version responsive */}
-      <Card>
-        <div className="px-5 py-4 border-b border-slate-100">
-          <p style={{ fontFamily: 'var(--font-display)' }}
-             className="font-bold text-slate-900">
-            Sécurité
-          </p>
-        </div>
+      {/* Sécurité */}
+      <Section
+        title="Sécurité"
+        description="Modifiez votre mot de passe régulièrement."
+        icon={KeyRound}
+      >
         <form onSubmit={handleSavePassword}>
-        <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div>
-            <label htmlFor="currentPassword" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Mot de passe actuel
-            </label>
-            <input
-              id="currentPassword"
-              name="currentPassword"
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={handlePasswordChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="newPassword" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-              Nouveau mot de passe
-            </label>
-            <input
-              id="newPassword"
-              name="newPassword"
-              type="password"
-              value={passwordForm.newPassword}
-              onChange={handlePasswordChange}
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                         focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                         bg-white text-slate-900"
-              required
-            />
-          </div>
-          <div className="flex flex-col md:flex-row lg:flex-col gap-2">
-            <div className="flex-1">
-              <label htmlFor="confirmPassword" className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                Confirmer le mot de passe
-              </label>
-              <input
+          <div className="grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-3">
+            <Field label="Mot de passe actuel" htmlFor="currentPassword">
+              <FormInput
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </Field>
+
+            <Field label="Nouveau mot de passe" htmlFor="newPassword">
+              <FormInput
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </Field>
+
+            <Field label="Confirmer le mot de passe" htmlFor="confirmPassword">
+              <FormInput
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={handlePasswordChange}
-                className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none
-                           focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all
-                           bg-white text-slate-900"
                 required
               />
-            </div>
-        </div>
-        </div>
-        <div className="flex justify-center px-5 pb-5">
-          <button
-                type="submit"
-                disabled={updatePassword.isPending}
-                className="w-full lg:w-auto px-6 py-2.5 text-sm font-semibold text-white
-                           bg-[#0A1628] hover:bg-slate-800 rounded-xl transition-colors
-                           disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {updatePassword.isPending ? 'Mise à jour...' : 'Changer le mot de passe'}
-          </button>
-        </div>
-        
+            </Field>
+          </div>
+
+          <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+            <PrimaryButton
+              type="submit"
+              icon={KeyRound}
+              loading={updatePassword.isPending}
+            >
+              {updatePassword.isPending
+                ? 'Mise à jour…'
+                : 'Changer le mot de passe'}
+            </PrimaryButton>
+          </div>
         </form>
-      </Card>
+      </Section>
     </div>
   )
 }

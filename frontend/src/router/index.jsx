@@ -13,6 +13,7 @@ import BagsPage             from '../pages/bags/BagsPage'
 import BagDetailPage        from '../pages/bags/BagDetailPage'
 import NotificationsPage    from '../pages/notifications/NotificationsPage'
 import InvoicesPage from '../pages/invoices/InvoicesPage'
+import AccountingPage from '../pages/invoices/AccountingPage'
 import ShowFacture from '../pages/invoices/ShowFacture'
 import UsersPage from '../pages/users/UsersPage'
 import UsersForm from '../pages/users/UsersForm'
@@ -56,9 +57,10 @@ const router = createBrowserRouter([
         { path: '/bags/:id',     element: <BagDetailPage /> },
         { path: '/notifications',element: <NotificationsPage /> },
         { path: '/agencies',     element: <AgenciesPage /> },
-        { path: '/invoices',      element: <InvoicesPage /> },
-        { path: '/invoices/new',  element: <NewInvoicePage /> },
-        { path: '/invoices/:id',  element: <ShowFacture /> },
+        { path: '/invoices',              element: <InvoicesPage /> },
+        { path: '/factures/accounting',   element: <AccountingPage /> },
+        { path: '/invoices/new',          element: <NewInvoicePage /> },
+        { path: '/invoices/:id',          element: <ShowFacture /> },
 
         { path: '/users',        element: <UsersPage /> },
         { path: '/users/new',    element: <UsersForm /> },

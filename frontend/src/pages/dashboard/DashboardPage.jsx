@@ -1,162 +1,275 @@
 // src/pages/dashboard/DashboardPage.jsx
-import { useNavigate }       from 'react-router-dom'
-import { useAuth }           from '../../context/AuthContext'
-import { useDashboardStats, useQuickActions } from '../../hooks/useDashboardStats'
-import { useParcels }        from '../../hooks/useParcels'
-import StatusBadge           from '../../components/ui/StatusBadge'
-import Card                  from '../../components/ui/Card'
-import Spinner               from '../../components/ui/Spinner'
+import { useNavigate } from 'react-router-dom'
+import {
+  ArrowRight,
+  CheckCircle2,
+  Package,
+  PackageCheck,
+  TriangleAlert,
+  Truck,
+} from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import {
+  useDashboardStats,
+  useQuickActions,
+} from '../../hooks/useDashboardStats'
+import { useParcels } from '../../hooks/useParcels'
+import StatusBadge from '../../components/ui/StatusBadge'
 import QuickActionsPanel from '../../components/dashboard/QuickActionPannel'
 
-function StatCard({ label, value, sub, variant = 'default' }) {
-  const variants = {
-    default: 'bg-white',
-    dark:    'bg-[#0A1628]',
-    violet:  'bg-violet-600',
-    green:   'bg-white',
-  }
-  const numColors = {
-    default: 'text-slate-900',
-    dark:    'text-white',
-    violet:  'text-white',
-    green:   'text-emerald-500',
-  }
-  const lblColors = {
-    default: 'text-slate-400',
-    dark:    'text-white/40',
-    violet:  'text-white/70',
-    green:   'text-slate-400',
-  }
+// ────────────────────────────────────────────────────────────
+// Stat
+// ────────────────────────────────────────────────────────────
+function Stat({ icon: Icon, label, value, helper, trend }) {
   return (
-    <div className={`${variants[variant]} rounded-2xl p-4 md:p-5
-                     border border-slate-100 shadow-sm`}>
-      <p style={{fontFamily:'var(--font-display)'}}
-         className={`text-3xl font-bold ${numColors[variant]}`}>
-        {value ?? '—'}
-      </p>
-      <p className={`text-xs mt-1 ${lblColors[variant]}`}>{label}</p>
-      {sub && <p className="text-xs text-emerald-500 font-semibold mt-1">{sub}</p>}
+    <div className="flex items-start gap-3 bg-white px-5 py-4">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <Icon size={14} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <div className="mt-1 flex items-baseline gap-2">
+          <p className="text-xl font-semibold tabular-nums text-slate-900">
+            {value ?? '—'}
+          </p>
+          {trend && (
+            <span
+              className={`text-xs font-medium tabular-nums ${
+                trend > 0 ? 'text-emerald-600' : 'text-slate-400'
+              }`}
+            >
+              {trend > 0 ? `+${trend}` : trend} vs hier
+            </span>
+          )}
+        </div>
+        {helper ? (
+          <p className="mt-0.5 text-xs text-slate-500">{helper}</p>
+        ) : null}
+      </div>
     </div>
   )
 }
 
-export default function DashboardPage() {
-  const { user }  = useAuth()
-  const navigate  = useNavigate()
-  const stats     = useDashboardStats()
-  const quickActions = useQuickActions()
-  const parcels   = useParcels({ limit: 5, sortBy: 'createdAt', sortDir: 'DESC' })
+// ────────────────────────────────────────────────────────────
+// Skeleton
+// ────────────────────────────────────────────────────────────
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-slate-100 last:border-0">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <td key={i} className="px-4 py-3.5">
+          <div
+            className="h-3 animate-pulse rounded bg-slate-100"
+            style={{ width: `${55 + i * 10}%` }}
+          />
+        </td>
+      ))}
+    </tr>
+  )
+}
 
-  const s    = stats.data ?? {}
+// ────────────────────────────────────────────────────────────
+// Page
+// ────────────────────────────────────────────────────────────
+export default function DashboardPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const stats = useDashboardStats()
+  const quickActions = useQuickActions()
+  const parcels = useParcels({
+    limit: 5,
+    sortBy: 'createdAt',
+    sortDir: 'DESC',
+  })
+
+  const s = stats.data ?? {}
   const data = parcels.data?.rows ?? []
 
+  const dateLabel = new Date().toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+
+  const isStaff = user?.role !== 'client'
+
   return (
-    <div className="flex flex-col gap-5 animate-fadeIn">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
+      {/* En-tête */}
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Bonjour, {user?.name?.split(' ')[0] ?? ''}
+        </h1>
+        <p className="mt-1 text-sm capitalize text-slate-500">{dateLabel}</p>
+      </header>
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 style={{fontFamily:'var(--font-display)'}}
-              className="text-xl md:text-2xl font-bold text-slate-900">
-            Bonjour, {user?.name?.split(' ')[0]}
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {new Date().toLocaleDateString('fr-FR', {
-              weekday: 'long', day: 'numeric', month: 'long'
-            })}
-          </p>
-        </div>
+      {/* Bandeau de statistiques */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 lg:grid-cols-4">
+        <Stat
+          icon={Package}
+          label="Colis aujourd'hui"
+          value={s.todayCount}
+          trend={s.todayDiff}
+        />
+        <Stat
+          icon={Truck}
+          label="Sacs en transit"
+          value={s.bagsInTransit}
+          helper="En cours d'acheminement"
+        />
+        <Stat
+          icon={TriangleAlert}
+          label="Problèmes actifs"
+          value={s.issues}
+          helper={s.issues > 0 ? 'Action requise' : 'Aucun problème'}
+        />
+        <Stat
+          icon={PackageCheck}
+          label="Livrés ce mois"
+          value={s.monthDelivered}
+          helper="Cumul du mois en cours"
+        />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Colis aujourd'hui" value={s.todayCount}
-                  sub={s.todayDiff > 0 ? `↑ +${s.todayDiff} vs hier` : null}/>
-        <StatCard label="Sacs en transit"   value={s.bagsInTransit} variant="dark"/>
-        <StatCard label="Problèmes actifs"  value={s.issues}        variant="violet"/>
-        <StatCard label="Livrés ce mois"    value={s.monthDelivered} variant="green"/>
-      </div>
-
-      {/* Actions rapides (visible pour agents et admin) */}
-      {user?.role !== 'client' && (
-        <QuickActionsPanel actions={quickActions.data} isLoading={quickActions.isLoading} />
+      {/* Actions rapides (staff) */}
+      {isStaff && (
+        <QuickActionsPanel
+          actions={quickActions.data}
+          isLoading={quickActions.isLoading}
+        />
       )}
 
-      {/* Derniers colis */}
-      <Card className='mb-10 md:mb-24'>
-        <div className="flex items-center justify-between px-4 md:px-5 py-4 
-                        border-b border-slate-100">
-          <h2 style={{fontFamily:'var(--font-display)'}}
-              className="font-bold text-slate-900">
-            Colis récents
-          </h2>
-          <button onClick={() => navigate('/parcels')}
-                  className="text-xs text-violet-600 font-semibold hover:underline">
+      {/* Colis récents */}
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Colis récents
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Derniers colis enregistrés
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/parcels')}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-900"
+          >
             Voir tout
+            <ArrowRight size={12} />
           </button>
         </div>
 
         {parcels.isLoading && (
-          <div className="flex justify-center py-10">
-            <Spinner/>
+          <>
+            <div className="hidden md:block">
+              <table className="w-full text-sm">
+                <tbody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <SkeletonRow key={i} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="divide-y divide-slate-100 md:hidden">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2 px-4 py-3.5">
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!parcels.isLoading && data.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <Package size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">
+                Aucun colis enregistré
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Les derniers colis créés apparaîtront ici.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Mobile — cards */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {data.map(p => (
-            <div key={p.id} onClick={() => navigate(`/parcels/${p.id}`)}
-                 className="px-4 py-3.5 cursor-pointer hover:bg-slate-50
-                            transition-colors">
-              <div className="flex items-center justify-between gap-2">
-                <p style={{fontFamily:'var(--font-display)'}}
-                   className="text-sm font-bold text-violet-600">
-                  {p.qrcode}
+        {/* Vue mobile */}
+        {!parcels.isLoading && data.length > 0 && (
+          <div className="divide-y divide-slate-100 md:hidden">
+            {data.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/parcels/${p.id}`)}
+                className="cursor-pointer px-4 py-3.5 transition hover:bg-slate-50/70"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-sm font-medium text-slate-900">
+                    {p.qrcode}
+                  </span>
+                  <StatusBadge status={p.status} updatedAt={p.updatedAt} />
+                </div>
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  {p.sender?.name ?? '—'} → {p.recipientName ?? '—'}
                 </p>
-                <StatusBadge status={p.status} updatedAt={p.updatedAt} />
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {p.sender?.name} → {p.recipientName}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Desktop — table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                {['Code','Expéditeur','Destinataire','Statut'].map(h => (
-                  <th key={h} className="text-left text-[10px] font-semibold
-                                         text-slate-400 uppercase tracking-wide
-                                         px-5 py-3">
-                    {h}
+        {/* Vue desktop */}
+        {!parcels.isLoading && data.length > 0 && (
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-2.5 text-left font-medium">Code</th>
+                  <th className="px-4 py-2.5 text-left font-medium">
+                    Expéditeur
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(p => (
-                <tr key={p.id} onClick={() => navigate(`/parcels/${p.id}`)}
-                    className="border-b border-slate-50 hover:bg-violet-50/50
-                               cursor-pointer transition-colors last:border-0">
-                  <td className="px-5 py-3.5">
-                    <span style={{fontFamily:'var(--font-display)'}}
-                          className="text-xs font-bold text-violet-600">
-                      {p.qrcode}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-600">{p.sender?.name ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{p.recipientName}</td>
-                  <td className="px-5 py-3.5"><StatusBadge status={p.status} updatedAt={p.updatedAt} /></td>
+                  <th className="px-4 py-2.5 text-left font-medium">
+                    Destinataire
+                  </th>
+                  <th className="px-4 py-2.5 text-left font-medium">Statut</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
+              </thead>
+              <tbody>
+                {data.map((p) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate(`/parcels/${p.id}`)}
+                    className="cursor-pointer border-b border-slate-100 transition last:border-0 hover:bg-slate-50/70"
+                  >
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono text-sm font-medium text-slate-900">
+                        {p.qrcode}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      {p.sender?.name ?? '—'}
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      {p.recipientName ?? '—'}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <StatusBadge
+                        status={p.status}
+                        updatedAt={p.updatedAt}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

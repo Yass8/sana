@@ -1,24 +1,115 @@
+// src/pages/users/UserDetail.jsx
+import { useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  CheckCircle,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
 import { useUser, useDeleteUser } from '../../hooks/useUsers'
-import Card from '../../components/ui/Card'
-import Spinner from '../../components/ui/Spinner'
 import UserAvatar from '../../components/ui/UserAvatar'
 import UserStatsCards from '../../components/users/UserStatsCards'
 import {
-  ArrowLeft, Mail, Phone, Building2, Calendar, Edit, Trash2,
-  CheckCircle, XCircle,
-  MapPin
-} from 'lucide-react'
-import { confirmDeleteAlert, showErrorAlert, showSuccessAlert } from '../../components/ui/SweetsAlert'
-import { useState } from 'react'
+  confirmDeleteAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from '../../components/ui/SweetsAlert'
 
-const ROLE_CONFIG = {
-  client:   { label: 'Client',    color: 'text-emerald-700', bg: 'bg-emerald-50' },
-  agent_fr: { label: 'Agent FR',  color: 'text-blue-700',    bg: 'bg-blue-50'    },
-  agent_af: { label: 'Agent AF',  color: 'text-purple-700',  bg: 'bg-purple-50'  },
-  admin:    { label: 'Admin',     color: 'text-amber-700',   bg: 'bg-amber-50'   },
+// ────────────────────────────────────────────────────────────
+// Config
+// ────────────────────────────────────────────────────────────
+const ROLE_META = {
+  client:   { label: 'Client',   dot: 'bg-emerald-500' },
+  agent_fr: { label: 'Agent FR', dot: 'bg-slate-500' },
+  agent_af: { label: 'Agent AF', dot: 'bg-slate-500' },
+  admin:    { label: 'Admin',    dot: 'bg-slate-900' },
 }
 
+// ────────────────────────────────────────────────────────────
+// Primitives
+// ────────────────────────────────────────────────────────────
+function Section({ title, description, action, children, className = '' }) {
+  return (
+    <section
+      className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}
+    >
+      {(title || action) && (
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+            ) : null}
+          </div>
+          {action}
+        </header>
+      )}
+      {children}
+    </section>
+  )
+}
+
+function RoleBadge({ role }) {
+  const meta = ROLE_META[role] || { label: role, dot: 'bg-slate-400' }
+  return (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-700">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  )
+}
+
+function StatusBadge({ active }) {
+  return active ? (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-700">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+      Actif
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-500">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+      Inactif
+    </span>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value, mono = false }) {
+  const isEmpty = value === null || value === undefined || value === ''
+  return (
+    <div className="flex items-start gap-3 px-5 py-3">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <Icon size={13} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+          {label}
+        </p>
+        <p
+          className={`mt-0.5 truncate text-sm ${
+            isEmpty ? 'text-slate-400' : 'font-medium text-slate-800'
+          } ${mono ? 'font-mono text-xs' : ''}`}
+        >
+          {isEmpty ? '—' : value}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonBlock({ className = '' }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-100 ${className}`} />
+}
+
+// ────────────────────────────────────────────────────────────
+// Page
+// ────────────────────────────────────────────────────────────
 export default function UserDetail() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -26,19 +117,47 @@ export default function UserDetail() {
   const deleteUser = useDeleteUser()
   const [deleting, setDeleting] = useState(false)
 
-  if (isLoading) return <div className="flex justify-center py-16"><Spinner /></div>
-  if (!user) return (
-    <div className="text-center py-16">
-      <p className="text-slate-500">Utilisateur introuvable.</p>
-      <button onClick={() => navigate('/users')} className="mt-4 text-violet-600 font-medium">Retour à la liste</button>
-    </div>
-  )
+  // ── Loading ───────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
+        <div className="h-3 w-32 animate-pulse rounded bg-slate-100" />
+        <SkeletonBlock className="h-24" />
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <SkeletonBlock className="h-72" />
+          <SkeletonBlock className="h-72" />
+        </div>
+      </div>
+    )
+  }
 
-  const roleCfg = ROLE_CONFIG[user.role] || { label: user.role, color: 'text-slate-600', bg: 'bg-slate-100' }
+  // ── Not found ─────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-24 text-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <XCircle size={18} />
+        </div>
+        <p className="text-sm font-medium text-slate-700">Utilisateur introuvable</p>
+        <button
+          type="button"
+          onClick={() => navigate('/users')}
+          className="mt-1 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <ArrowLeft size={14} />
+          Retour à la liste
+        </button>
+      </div>
+    )
+  }
 
+  // ── Handlers ──────────────────────────────────────────────
   const handleDelete = async () => {
     const message = `Supprimer définitivement ${user.name} ? Toutes ses données (colis, historique, etc.) seront perdues.`
-    const confirmed = await confirmDeleteAlert({ message, confirmButtonText: 'Supprimer' })
+    const confirmed = await confirmDeleteAlert({
+      message,
+      confirmButtonText: 'Supprimer',
+    })
     if (!confirmed) return
 
     setDeleting(true)
@@ -47,132 +166,109 @@ export default function UserDetail() {
       await showSuccessAlert({ text: 'Utilisateur supprimé.' })
       navigate('/users')
     } catch (err) {
-      await showErrorAlert({ text: err.message || 'Erreur lors de la suppression.' })
+      await showErrorAlert({
+        text: err.message || 'Erreur lors de la suppression.',
+      })
       setDeleting(false)
     }
   }
 
+  const hasAgency = Boolean(user.agency?.name)
+
+  // ── Rendu ─────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-0 animate-fadeIn mb-10 md:mb-20 lg:mb-0">
-      {/* En-tête */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/users')}
-                className="text-slate-400 hover:text-violet-600 text-sm flex items-center gap-1 transition-colors">
-          <ArrowLeft size={16} /> Retour
-        </button>
-        <h1 style={{ fontFamily: 'var(--font-display)' }} className="text-xl font-bold text-slate-900">
-          Profil utilisateur
-        </h1>
-      </div>
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
+      {/* Fil d'Ariane + En-tête */}
+      <header>
+        <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+          <Link to="/users" className="transition hover:text-slate-800">
+            Utilisateurs
+          </Link>
+          <span className="text-slate-300">/</span>
+          <span className="font-medium text-slate-700">{user.name}</span>
+        </nav>
 
-      <div className="space-y-6">
-        {/* Carte d'identité */}
-        <Card>
-          <div className="p-5 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <UserAvatar id={user.id} name={user.name} size="lg" />
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">{user.name}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleCfg.bg} ${roleCfg.color}`}>
-                      {roleCfg.label}
-                    </span>
-                    {user.isActive ? (
-                      <span className="text-xs text-emerald-600 flex items-center gap-1">
-                        <CheckCircle size={12} /> Actif
-                      </span>
-                    ) : (
-                      <span className="text-xs text-red-500 flex items-center gap-1">
-                        <XCircle size={12} /> Inactif
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Link to={`/users/${user.id}/edit`}
-                      className="flex items-center gap-1.5 border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-semibold hover:border-violet-500 hover:text-violet-600 transition-colors">
-                  <Edit size={16} /> Modifier
-                </Link>
-                <button onClick={handleDelete} disabled={deleting}
-                        className="flex items-center gap-1.5 border-2 border-red-200 text-red-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
-                  <Trash2 size={16} /> {deleting ? 'Suppression...' : 'Supprimer'}
-                </button>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <UserAvatar id={user.id} name={user.name} size="lg" />
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                {user.name}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                <RoleBadge role={user.role} />
+                <StatusBadge active={user.isActive} />
               </div>
             </div>
           </div>
-        </Card>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to={`/users/${user.id}/edit`}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+            >
+              <Pencil size={14} />
+              Modifier
+            </Link>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-rose-200 bg-white px-3.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-300 border-t-rose-600" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+              {deleting ? 'Suppression…' : 'Supprimer'}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Corps */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Coordonnées */}
-        <Card>
-          <div className="p-5 md:p-6">
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">Coordonnées</h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <Mail size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Email</p>
-                  <p className="text-sm font-medium text-slate-800 break-all">{user.email}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <Phone size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Téléphone</p>
-                  <p className="text-sm font-medium text-slate-800">{user.phone || '—'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <MapPin size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Adresse</p>
-                  <p className="text-sm font-medium text-slate-800">{user.adresse || '—'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <Building2 size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Agence</p>
-                  <p className="text-sm font-medium text-slate-800">
-                    {user.agency?.name ? `${user.agency.name} (${user.agency.city})` : 'Aucune'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <Calendar size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Inscrit le</p>
-                  <p className="text-sm font-medium text-slate-800">
-                    {new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                      day: 'numeric', month: 'long', year: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
+        <Section
+          title="Coordonnées"
+          description="Informations de contact et rattachement."
+        >
+          <div className="divide-y divide-slate-100">
+            <InfoRow icon={Mail} label="Email" value={user.email} />
+            <InfoRow icon={Phone} label="Téléphone" value={user.phone} />
+            <InfoRow icon={MapPin} label="Adresse" value={user.adresse} />
+            <InfoRow
+              icon={Building2}
+              label="Agence"
+              value={
+                hasAgency
+                  ? `${user.agency.name} · ${user.agency.city ?? ''}`.trim()
+                  : 'Aucune'
+              }
+              empty="Aucune"
+            />
+            <InfoRow
+              icon={Calendar}
+              label="Inscrit le"
+              value={new Date(user.createdAt).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            />
           </div>
-        </Card>
+        </Section>
 
-        {/* Statistiques colis (visible pour tous, mais pertinent surtout pour les clients) */}
-        <Card>
-          <div className="p-5 md:p-6">
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
-              Colis envoyés
-            </h3>
+        {/* Statistiques */}
+        <Section
+          title="Colis envoyés"
+          description="Activité cumulée de cet utilisateur."
+        >
+          <div className="px-5 py-4">
             <UserStatsCards stats={user} />
           </div>
-        </Card>
+        </Section>
       </div>
     </div>
   )
