@@ -23,7 +23,7 @@ module.exports = (sequelize) => {
     bagId: { type: DataTypes.UUID, allowNull: true, field: 'bag_id' },
     senderId: { type: DataTypes.UUID, allowNull: false, field: 'sender_id' },
     recipientName: { type: DataTypes.STRING(100), allowNull: false, field: 'recipient_name' },
-    recipientPhone: { type: DataTypes.STRING(20), allowNull: true, field: 'recipient_phone' },
+    recipientPhone: { type: DataTypes.STRING(100), allowNull: true, field: 'recipient_phone' },
     recipientAddress: { type: DataTypes.STRING(255), allowNull: true, field: 'recipient_address' },
     qrcodeUrl: { type: DataTypes.STRING(255), allowNull: true, field: 'qrcode_url' },
     status: {
