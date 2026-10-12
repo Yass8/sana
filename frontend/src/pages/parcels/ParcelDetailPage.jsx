@@ -744,6 +744,7 @@ export default function ParcelDetailPage() {
                     weight={parcel.weight || 0}
                     service={parcel.service || 'Standard'}
                     fragile={parcel.fragile || false}
+                    urgent={parcel.urgent || false}
                     date={new Date(parcel.createdAt)
                       .toLocaleDateString('fr-FR', {
                         day: 'numeric',

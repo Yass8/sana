@@ -62,7 +62,7 @@ const searchByName = async (req, res, next) => {
           { email: { [Op.like]: `%${q}%` } },
         ],
       },
-      attributes: ['id', 'name', 'email', 'phone'],
+      attributes: ['id', 'name', 'email', 'phone', 'adresse', 'role'],
       order: [['name', 'ASC']],
       limit: 10,
     })

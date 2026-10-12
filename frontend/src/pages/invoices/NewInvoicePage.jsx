@@ -365,7 +365,7 @@ export default function NewInvoicePage() {
   const [currency, setCurrency] = useState('EUR')
   const [notes, setNotes] = useState('')
 
-  const [paymentMode, setPaymentMode] = useState('recipient_full')
+  const [paymentMode, setPaymentMode] = useState('sender_full')
   const [senderShareInput, setSenderShareInput] = useState(0)
   const [senderPaid, setSenderPaid] = useState(0)
   const [recipientPaid, setRecipientPaid] = useState(0)
