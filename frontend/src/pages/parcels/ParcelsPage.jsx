@@ -389,7 +389,7 @@ export default function ParcelsPage() {
                       </div>
                       {/* type du colis */}
                       {p.type !== 'client' && (
-                        <div className="mt-0.5 text-[11px] text-slate-400">
+                        <div className="mt-0.5 text-[11px] text-purple-600">
                           {p.type === 'autre' && 'Autre livraison' }
                         </div>
                       )}
