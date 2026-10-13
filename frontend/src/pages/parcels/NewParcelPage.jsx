@@ -924,7 +924,7 @@ export default function NewParcelInvoicePage() {
                   htmlFor="clientSearch"
                   helper={
                     !isNewClient
-                      ? `Client sélectionné : ${selectedClient.name}`
+                      ? `Client sélectionné : ${selectedClient.name} (${selectedClient.email}) (tel: ${selectedClient.phone}). Cliquez sur la croix pour le désélectionner.`
                       : "Si le client n'existe pas, laissez vide et remplissez ses infos ci-dessous."
                   }
                 >

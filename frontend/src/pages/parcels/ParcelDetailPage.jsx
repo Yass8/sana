@@ -1,22 +1,51 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+// src/pages/parcels/ParcelDetailPage.jsx
+// ═══════════════════════════════════════════════════════════════
+// Page détail colis — fusion avec la vue facture
+// ───────────────────────────────────────────────────────────────
+// Layout task-first :
+//   1. Header compact (code + statut + résumé + actions)
+//   2. Détails colis repliables (fermés par défaut)
+//   3. Sections interactives en haut (Facture, Actions, QR, Suivi)
+//   4. Infos secondaires en bas (Gestion sac, Lien suivi)
+//
+// La facture s'ouvre dans une modal plein écran (?invoice=open)
+// ═══════════════════════════════════════════════════════════════
+
+import { useEffect, useMemo, useState } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   ArrowUpRight,
   Check,
+  CheckCircle2,
+  ChevronDown,
   Copy,
   Download,
+  Euro,
+  FileText,
+  Loader2,
   Lock,
+  Mail,
   Package,
   Pencil,
-  Plus,
   QrCode,
+  Save,
+  Send,
+  Trash2,
+  X,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useParcel, useUpdateParcelStatus } from '../../hooks/useParcels'
 import { useBags } from '../../hooks/useBags'
+import {
+  useInvoice,
+  useUpdateInvoice,
+  useDeleteInvoice,
+  useSendInvoiceEmail,
+} from '../../hooks/useInvoices'
 import { parcelsApi } from '../../api/parcels.api'
 import TrackingTimeline from '../../components/ui/TrackingTimeline'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -24,6 +53,7 @@ import DeleteButton from '../../components/ui/DeleteButton'
 import { ParcelLabelPrinter } from '../../components/ui/ParcelLabelPrinter'
 import {
   confirmActionAlert,
+  confirmDeleteAlert,
   showSuccessAlert,
   showErrorAlert,
 } from '../../components/ui/SweetsAlert'
@@ -31,7 +61,7 @@ import {
 const BASE_API_URL = import.meta.env.VITE_BASE_API_URL
 
 // ────────────────────────────────────────────────────────────
-// Config factures
+// Config
 // ────────────────────────────────────────────────────────────
 const INVOICE_STATUS_CONFIG = {
   paid:           { label: 'Payée',               dot: 'bg-emerald-500', tone: 'text-emerald-700' },
@@ -41,9 +71,21 @@ const INVOICE_STATUS_CONFIG = {
   none:           { label: 'Aucune facture',      dot: 'bg-slate-300',   tone: 'text-slate-500' },
 }
 
-// ────────────────────────────────────────────────────────────
-// Primitives
-// ────────────────────────────────────────────────────────────
+const INVOICE_STATUS_OPTIONS = ['draft', 'partially_paid', 'paid', 'overdue'].map((v) => ({
+  value: v,
+  label: INVOICE_STATUS_CONFIG[v].label,
+}))
+
+const fmtMoney = (value, currency = 'EUR') =>
+  `${Number(value || 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${currency}`
+
+// ═══════════════════════════════════════════════════════════
+// PRIMITIVES
+// ═══════════════════════════════════════════════════════════
+
 function Section({ title, description, icon: Icon, action, children, className = '' }) {
   return (
     <section className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
@@ -77,6 +119,79 @@ function Field({ label, value, empty = 'Non renseigné' }) {
         {isEmpty ? empty : value}
       </p>
     </div>
+  )
+}
+
+/**
+ * Bloc repliable des détails du colis.
+ * Fermé par défaut → place aux actions en premier.
+ */
+function CollapsibleParcelDetails({ parcel }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition hover:bg-slate-50/60"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+            <Package size={13} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Détails du colis
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Destinataire, contact, service, options…
+            </p>
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-slate-400 transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {open ? (
+        <div className="border-t border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Expéditeur" value={parcel.sender?.name} />
+            <Field label="Destinataire" value={parcel.recipientName} />
+            <Field label="Destination" value={parcel.bag?.destinationAgency?.city} />
+
+            <Field label="Email expéditeur" value={parcel.sender?.email} />
+            <Field label="Téléphone expéditeur" value={parcel.sender?.phone} />
+            <Field label="Téléphone destinataire" value={parcel.recipientPhone} />
+
+            <Field label="Adresse destinataire" value={parcel.recipientAddress} />
+            <Field
+              label="Sac"
+              value={parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun')}
+              empty="Aucun"
+            />
+            <Field label="Service" value={parcel.service} />
+
+            <Field label="Type" value={parcel.type} />
+            <Field label="Urgent" value={parcel.urgent ? 'Oui' : 'Non'} />
+            <Field label="Fragile" value={parcel.fragile ? 'Oui' : 'Non'} />
+          </div>
+
+          {parcel.description ? (
+            <div className="border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                Contenu
+              </p>
+              <p className="mt-1 text-sm text-slate-700">{parcel.description}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
@@ -154,14 +269,12 @@ function InlineButton({ icon: Icon, children, className = '', ...props }) {
   )
 }
 
-// ────────────────────────────────────────────────────────────
-// Skeleton
-// ────────────────────────────────────────────────────────────
-function DetailSkeleton() {
+function Skeleton() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 pb-10">
       <div className="h-3 w-40 animate-pulse rounded bg-slate-100" />
       <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+      <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-4">
           <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
@@ -177,12 +290,684 @@ function DetailSkeleton() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Page
+// INVOICE SUMMARY CARD (sidebar / colonne principale)
 // ═══════════════════════════════════════════════════════════
+
+function InvoiceSummaryCard({ invoice, onOpen }) {
+  if (!invoice) {
+    return (
+      <Section title="Facture" icon={FileText}>
+        <div className="px-5 py-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <FileText size={16} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Aucune facture</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Ce colis n'a pas encore été facturé.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+    )
+  }
+
+  const cfg = INVOICE_STATUS_CONFIG[invoice.status] || INVOICE_STATUS_CONFIG.draft
+  const total = Number(invoice.total || 0)
+  const paid = Number(invoice.montantPaye || 0)
+  const remaining = Math.max(0, total - paid)
+
+  return (
+    <Section
+      title="Facture"
+      icon={FileText}
+      action={
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+          {cfg.label}
+        </span>
+      }
+    >
+      <div className="space-y-3 px-5 py-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-medium text-slate-600">
+              #{invoice.number}
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              Total
+            </span>
+          </div>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
+            {fmtMoney(total, invoice.currency)}
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-500">Payé</span>
+            <span className="font-medium tabular-nums text-emerald-600">
+              {fmtMoney(paid, invoice.currency)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-500">Reste à payer</span>
+            <span
+              className={`font-semibold tabular-nums ${
+                remaining > 0 ? 'text-amber-600' : 'text-emerald-600'
+              }`}
+            >
+              {fmtMoney(remaining, invoice.currency)}
+            </span>
+          </div>
+        </div>
+
+        <PrimaryButton type="button" icon={FileText} onClick={onOpen}>
+          Voir la facture
+        </PrimaryButton>
+      </div>
+    </Section>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// INVOICE DETAIL MODAL
+// ═══════════════════════════════════════════════════════════
+
+function InvoiceDetailModal({ invoiceId, parcelId, open, onClose }) {
+  if (!open) return null
+  return (
+    <InvoiceDetailModalContent
+      invoiceId={invoiceId}
+      parcelId={parcelId}
+      onClose={onClose}
+    />
+  )
+}
+
+function InvoiceDetailModalContent({ invoiceId, parcelId, onClose }) {
+  const queryClient = useQueryClient()
+
+  const { data: inv, isLoading, refetch } = useInvoice(invoiceId)
+  const updateMutation = useUpdateInvoice()
+  const deleteMutation = useDeleteInvoice()
+  const sendMutation = useSendInvoiceEmail()
+
+  const [status, setStatus] = useState('draft')
+  const [total, setTotal] = useState('')
+  const [notes, setNotes] = useState('')
+  const [senderPaid, setSenderPaid] = useState('0')
+  const [recipientPaid, setRecipientPaid] = useState('0')
+  const [markAsPaid, setMarkAsPaid] = useState(false)
+  const [remainingPayer, setRemainingPayer] = useState('')
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    if (!inv) return
+    setStatus(inv.status || 'draft')
+    setTotal(inv.total != null ? String(inv.total) : '0')
+    setSenderPaid(inv.senderPaid != null ? String(inv.senderPaid) : '0')
+    setRecipientPaid(inv.recipientPaid != null ? String(inv.recipientPaid) : '0')
+    setNotes(inv.notes || '')
+    setEmail(inv.parcel?.sender?.email || '')
+    setMarkAsPaid(false)
+    setRemainingPayer('')
+  }, [inv])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const numericTotal = Number(total) || 0
+  const numericSenderPaid = Number(senderPaid) || 0
+  const numericRecipientPaid = Number(recipientPaid) || 0
+  const currentPaid = numericSenderPaid + numericRecipientPaid
+  const remainingAmount = Math.max(0, numericTotal - currentPaid)
+
+  const senderShare = Number(inv?.senderShare) || 0
+  const recipientShare = Number(inv?.recipientShare) || 0
+  const senderRemainingCapacity = Math.max(0, senderShare - numericSenderPaid)
+  const recipientRemainingCapacity = Math.max(0, recipientShare - numericRecipientPaid)
+
+  const senderCanPayRemaining =
+    remainingAmount > 0 && senderRemainingCapacity + 0.001 >= remainingAmount
+  const recipientCanPayRemaining =
+    remainingAmount > 0 && recipientRemainingCapacity + 0.001 >= remainingAmount
+
+  const finalPayment = useMemo(() => {
+    let finalSenderPaid = numericSenderPaid
+    let finalRecipientPaid = numericRecipientPaid
+    if (markAsPaid && remainingPayer && remainingAmount > 0) {
+      if (remainingPayer === 'sender') finalSenderPaid += remainingAmount
+      if (remainingPayer === 'recipient') finalRecipientPaid += remainingAmount
+    }
+    return {
+      senderPaid: finalSenderPaid,
+      recipientPaid: finalRecipientPaid,
+      montantPaye: finalSenderPaid + finalRecipientPaid,
+    }
+  }, [numericSenderPaid, numericRecipientPaid, remainingAmount, markAsPaid, remainingPayer])
+
+  const calculatedPaymentStatus =
+    finalPayment.montantPaye >= numericTotal - 0.001
+      ? 'paid'
+      : finalPayment.montantPaye > 0
+      ? 'partially_paid'
+      : status
+
+  const pdfUrl =
+    inv?.pdfPublicUrl ||
+    (inv?.pdfUrl &&
+      (inv.pdfUrl.startsWith('http')
+        ? inv.pdfUrl
+        : `${BASE_API_URL}/api/supabase/public/${inv.pdfUrl}`)) ||
+    null
+
+  const isSaving = updateMutation.isPending
+  const isSending = sendMutation.isPending
+  const isDeleting = deleteMutation.isPending
+
+  const totalBelowPaid = numericTotal + 0.001 < currentPaid
+  const invalidTotal = !Number.isFinite(numericTotal) || numericTotal < 0
+  const cannotFullySettleWithOnePayer =
+    remainingAmount > 0 && !senderCanPayRemaining && !recipientCanPayRemaining
+
+  const handleMarkAsPaidChange = (checked) => {
+    setMarkAsPaid(checked)
+    if (!checked) {
+      setRemainingPayer('')
+      return
+    }
+    if (senderCanPayRemaining && !recipientCanPayRemaining) {
+      setRemainingPayer('sender')
+      return
+    }
+    if (recipientCanPayRemaining && !senderCanPayRemaining) {
+      setRemainingPayer('recipient')
+      return
+    }
+    setRemainingPayer('')
+  }
+
+  const handleUpdate = async () => {
+    if (!inv) return
+    if (invalidTotal) {
+      return showErrorAlert({
+        title: 'Montant invalide',
+        text: 'Veuillez saisir un montant total valide.',
+      })
+    }
+    if (totalBelowPaid) {
+      return showErrorAlert({
+        title: 'Montant impossible',
+        text: `Le montant total ne peut pas être inférieur au montant déjà payé (${fmtMoney(currentPaid, inv.currency)}).`,
+      })
+    }
+    if (markAsPaid) {
+      if (!remainingPayer) {
+        return showErrorAlert({
+          title: 'Payeur requis',
+          text: 'Veuillez indiquer qui a payé le reste.',
+        })
+      }
+      if (remainingPayer === 'sender' && !senderCanPayRemaining) {
+        return showErrorAlert({
+          title: 'Paiement impossible',
+          text: "L'expéditeur ne peut pas prendre en charge la totalité du reste selon sa part.",
+        })
+      }
+      if (remainingPayer === 'recipient' && !recipientCanPayRemaining) {
+        return showErrorAlert({
+          title: 'Paiement impossible',
+          text: 'Le destinataire ne peut pas prendre en charge la totalité du reste selon sa part.',
+        })
+      }
+    }
+
+    const statusChanged = status !== inv.status
+    const totalChanged = numericTotal !== (Number(inv.total) || 0)
+    const senderPaidChanged = finalPayment.senderPaid !== (Number(inv.senderPaid) || 0)
+    const recipientPaidChanged = finalPayment.recipientPaid !== (Number(inv.recipientPaid) || 0)
+    const notesChanged = (notes || '') !== (inv.notes || '')
+
+    const nothingChanged =
+      !statusChanged && !totalChanged && !senderPaidChanged &&
+      !recipientPaidChanged && !notesChanged
+
+    if (nothingChanged) {
+      return showErrorAlert({
+        title: 'Aucun changement',
+        text: 'Aucune modification détectée.',
+      })
+    }
+
+    const payload = {
+      total: numericTotal,
+      senderPaid: finalPayment.senderPaid,
+      recipientPaid: finalPayment.recipientPaid,
+      notes: notes.trim() || null,
+    }
+
+    try {
+      await updateMutation.mutateAsync({ id: invoiceId, data: payload })
+      setMarkAsPaid(false)
+      setRemainingPayer('')
+      queryClient.invalidateQueries({ queryKey: ['parcel', parcelId] })
+      showSuccessAlert({
+        title: 'Facture mise à jour',
+        text: 'Les informations ont été enregistrées.',
+      })
+      await refetch()
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Impossible de mettre à jour la facture.'
+      showErrorAlert({ title: 'Échec', text: message })
+    }
+  }
+
+  const handleSend = async () => {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return showErrorAlert({
+        title: 'Email invalide',
+        text: 'Veuillez saisir une adresse email valide.',
+      })
+    }
+    try {
+      await sendMutation.mutateAsync({ id: invoiceId, data: { to: email, attach: true } })
+      showSuccessAlert({
+        title: 'Email envoyé',
+        text: `La facture a été envoyée à ${email}.`,
+      })
+    } catch {
+      showErrorAlert({
+        title: 'Erreur envoi',
+        text: "L'email n'a pas pu être envoyé.",
+      })
+    }
+  }
+
+  const handleDelete = async () => {
+    const ok = await confirmDeleteAlert({
+      message: `Supprimer définitivement la facture ${inv?.number} ?`,
+    })
+    if (!ok) return
+    try {
+      await deleteMutation.mutateAsync(invoiceId)
+      queryClient.invalidateQueries({ queryKey: ['parcel', parcelId] })
+      showSuccessAlert({ title: 'Facture supprimée' })
+      onClose()
+    } catch {
+      showErrorAlert({ title: 'Échec suppression' })
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex h-full w-full max-w-6xl flex-col overflow-hidden bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+          <div className="min-w-0">
+            <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+              Facture
+              {inv?.number ? (
+                <span className="font-mono text-slate-500">#{inv.number}</span>
+              ) : null}
+              {inv ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                  <span className={`h-1.5 w-1.5 rounded-full ${
+                    (INVOICE_STATUS_CONFIG[markAsPaid ? calculatedPaymentStatus : inv.status] ||
+                      INVOICE_STATUS_CONFIG.draft).dot
+                  }`} />
+                  {(INVOICE_STATUS_CONFIG[markAsPaid ? calculatedPaymentStatus : inv.status] ||
+                    INVOICE_STATUS_CONFIG.draft).label}
+                </span>
+              ) : null}
+            </h2>
+            {inv ? (
+              <p className="mt-0.5 text-xs text-slate-500">
+                Créée le {new Date(inv.createdAt).toLocaleDateString('fr-FR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            {pdfUrl ? (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+              >
+                <Download size={14} />
+                Télécharger
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Fermer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </header>
+
+        {isLoading || !inv ? (
+          <div className="flex flex-1 items-center justify-center p-10 text-sm text-slate-500">
+            <Loader2 size={16} className="mr-2 animate-spin" />
+            Chargement de la facture…
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+            {/* PDF */}
+            <div className="shrink-0 border-b border-slate-200 bg-slate-50 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+              {pdfUrl ? (
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <iframe
+                    src={pdfUrl}
+                    className="h-[400px] w-full sm:h-[500px] lg:h-full lg:min-h-[600px]"
+                    title={`Facture ${inv.number}`}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">
+                      Aucun PDF disponible
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Le PDF n'a pas encore été généré pour cette facture.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Édition */}
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 lg:w-96 lg:flex-none">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Statut
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                >
+                  {INVOICE_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Montant total
+                </label>
+                <div className="relative">
+                  <Euro
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={total}
+                    onChange={(e) => setTotal(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm tabular-nums text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                {totalBelowPaid ? (
+                  <p className="mt-1.5 flex items-start gap-1.5 text-xs text-rose-600">
+                    <AlertCircle size={12} className="mt-0.5 shrink-0" />
+                    Le montant total ne peut pas être inférieur au montant déjà payé.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-3 border-t border-slate-100 pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-700">Paiement</span>
+                  {currentPaid > 0 ? (
+                    remainingAmount <= 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                        <CheckCircle2 size={11} />
+                        Soldée
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium tabular-nums text-amber-600">
+                        Reste {fmtMoney(remainingAmount, inv.currency)}
+                      </span>
+                    )
+                  ) : null}
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Total</span>
+                    <span className="font-medium tabular-nums text-slate-800">
+                      {fmtMoney(numericTotal, inv.currency)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Déjà payé</span>
+                    <span className="font-medium tabular-nums text-emerald-600">
+                      {fmtMoney(currentPaid, inv.currency)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-xs">
+                    <span className="font-medium text-slate-600">Reste à payer</span>
+                    <span
+                      className={`font-semibold tabular-nums ${
+                        remainingAmount > 0 ? 'text-amber-600' : 'text-emerald-600'
+                      }`}
+                    >
+                      {fmtMoney(remainingAmount, inv.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Expéditeur</span>
+                    <span className="tabular-nums text-slate-700">
+                      {fmtMoney(numericSenderPaid, inv.currency)} / {fmtMoney(senderShare, inv.currency)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Destinataire</span>
+                    <span className="tabular-nums text-slate-700">
+                      {fmtMoney(numericRecipientPaid, inv.currency)} / {fmtMoney(recipientShare, inv.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {remainingAmount > 0 ? (
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition ${
+                      cannotFullySettleWithOnePayer
+                        ? 'cursor-not-allowed border-slate-200 bg-slate-50'
+                        : markAsPaid
+                        ? 'border-emerald-300 bg-emerald-50'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={markAsPaid}
+                      disabled={cannotFullySettleWithOnePayer}
+                      onChange={(e) => handleMarkAsPaidChange(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <p className="text-xs font-medium text-slate-700">
+                        Facture entièrement réglée
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        Les {fmtMoney(remainingAmount, inv.currency)} restants seront ajoutés au paiement.
+                      </p>
+                    </div>
+                  </label>
+                ) : null}
+
+                {cannotFullySettleWithOnePayer ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                    <AlertCircle size={13} className="mt-0.5 shrink-0 text-amber-600" />
+                    <p className="text-[11px] text-amber-700">
+                      Aucun payeur ne peut prendre en charge seul la totalité du reste selon la répartition actuelle.
+                    </p>
+                  </div>
+                ) : null}
+
+                {markAsPaid && remainingAmount > 0 ? (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-600">
+                      Qui a payé le reste ?
+                    </label>
+                    <select
+                      value={remainingPayer}
+                      onChange={(e) => setRemainingPayer(e.target.value)}
+                      className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="">Sélectionner…</option>
+                      <option value="sender" disabled={!senderCanPayRemaining}>
+                        Expéditeur{!senderCanPayRemaining ? ' — part insuffisante' : ''}
+                      </option>
+                      <option value="recipient" disabled={!recipientCanPayRemaining}>
+                        Destinataire{!recipientCanPayRemaining ? ' — part insuffisante' : ''}
+                      </option>
+                    </select>
+                  </div>
+                ) : null}
+
+                {markAsPaid && remainingPayer ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                      Après enregistrement
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Expéditeur</span>
+                        <span className="tabular-nums text-slate-700">
+                          {fmtMoney(finalPayment.senderPaid, inv.currency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Destinataire</span>
+                        <span className="tabular-nums text-slate-700">
+                          {fmtMoney(finalPayment.recipientPaid, inv.currency)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-1.5 text-xs">
+                        <span className="font-medium text-slate-700">Total payé</span>
+                        <span className="font-semibold tabular-nums text-emerald-600">
+                          {fmtMoney(finalPayment.montantPaye, inv.currency)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Note interne
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Ajouter une note…"
+                  className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                />
+              </div>
+
+              <PrimaryButton
+                icon={Save}
+                loading={isSaving}
+                onClick={handleUpdate}
+                disabled={invalidTotal || totalBelowPaid}
+              >
+                {isSaving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+              </PrimaryButton>
+
+              <div className="space-y-3 border-t border-slate-200 pt-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                    Envoyer par email
+                  </label>
+                  <div className="relative">
+                    <Mail
+                      size={14}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="client@exemple.com"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+                </div>
+                <PrimaryButton
+                  tone="emerald"
+                  icon={Send}
+                  loading={isSending}
+                  onClick={handleSend}
+                  disabled={!email}
+                >
+                  {isSending ? 'Envoi…' : 'Envoyer la facture'}
+                </PrimaryButton>
+              </div>
+
+              <div className="border-t border-slate-200 pt-4">
+                <GhostButton
+                  tone="danger"
+                  icon={Trash2}
+                  loading={isDeleting}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? 'Suppression…' : 'Supprimer la facture'}
+                </GhostButton>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE PRINCIPALE
+// ═══════════════════════════════════════════════════════════
+
 export default function ParcelDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const updateStatus = useUpdateParcelStatus()
 
@@ -191,16 +976,31 @@ export default function ParcelDetailPage() {
   const [totalPieces, setTotalPieces] = useState(1)
   const [currentPiece, setCurrentPiece] = useState(1)
   const [selectedBagId, setSelectedBagId] = useState('')
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(
+    () => searchParams.get('invoice') === 'open'
+  )
 
   const { data: parcel, isLoading, isError } = useParcel(id)
   const { data: openBags = [], isLoading: loadingBags } = useBags({ status: 'ouvert' })
   const effectiveSelectedBagId = selectedBagId || parcel?.bagId || ''
 
-  // ── État de la facture ────────────────────────────────────
-  const invoiceStatus = parcel?.invoice?.status || 'none'
+  useEffect(() => {
+    if (invoiceModalOpen && searchParams.get('invoice') !== 'open') {
+      const next = new URLSearchParams(searchParams)
+      next.set('invoice', 'open')
+      setSearchParams(next, { replace: true })
+    } else if (!invoiceModalOpen && searchParams.get('invoice') === 'open') {
+      const next = new URLSearchParams(searchParams)
+      next.delete('invoice')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceModalOpen])
+
+  const invoice = parcel?.invoice || null
+  const invoiceStatus = invoice?.status || 'none'
   const isInvoicePaid = invoiceStatus === 'paid'
 
-  // ── Mutation sac ──────────────────────────────────────────
   const bagMutation = useMutation({
     mutationFn: (bagId) => parcelsApi.update(id, { bagId }),
     onSuccess: async () => {
@@ -216,7 +1016,6 @@ export default function ParcelDetailPage() {
     },
   })
 
-  // ── Handlers ──────────────────────────────────────────────
   const handleReportIssue = async () => {
     const confirmed = await confirmActionAlert({
       message: 'Voulez-vous marquer ce colis comme problématique ?',
@@ -299,13 +1098,11 @@ export default function ParcelDetailPage() {
     }
   }
 
-  // ── États dérivés ─────────────────────────────────────────
   const canConfirmCollection =
     parcel?.status === 'arrived_destination' &&
     (user?.role === 'agent_af' || user?.role === 'admin')
 
-  // ── Rendu ─────────────────────────────────────────────────
-  if (isLoading) return <DetailSkeleton />
+  if (isLoading) return <Skeleton />
 
   if (isError) {
     return (
@@ -332,6 +1129,9 @@ export default function ParcelDetailPage() {
       : `${BASE_API_URL}${parcel.qrcodeUrl}`
     : null
 
+  // ═══════════════════════════════════════════════════════════
+  // RENDU — Layout task-first
+  // ═══════════════════════════════════════════════════════════
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
       {/* Fil d'Ariane */}
@@ -347,11 +1147,11 @@ export default function ParcelDetailPage() {
         <span className="font-mono font-medium text-slate-900">{parcel.qrcode}</span>
       </nav>
 
-      {/* En-tête */}
+      {/* ─── Header compact ─── */}
       <header className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-mono text-xl font-semibold text-slate-900">
                 {parcel.qrcode}
               </h1>
@@ -362,18 +1162,24 @@ export default function ParcelDetailPage() {
               />
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              Déposé le{' '}
-              {new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
+              {parcel.recipientName ? (
+                <span className="font-medium text-slate-700">
+                  {parcel.recipientName}
+                </span>
+              ) : null}
               {parcel.weight ? (
                 <>
-                  {' · '}
+                  {parcel.recipientName ? ' · ' : null}
                   <span className="tabular-nums">{parcel.weight} kg</span>
                 </>
               ) : null}
+              {' · '}
+              Déposé le{' '}
+              {new Date(parcel.createdAt).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
             </p>
           </div>
 
@@ -399,156 +1205,45 @@ export default function ParcelDetailPage() {
             <DeleteButton type="parcel" id={id} />
           </div>
         </div>
-
-        {/* Grille de champs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Expéditeur" value={parcel.sender?.name} />
-          <Field label="Destinataire" value={parcel.recipientName} />
-          <Field label="Destination" value={parcel.bag?.destinationAgency?.city} />
-
-          <Field label="Email expéditeur" value={parcel.sender?.email} />
-          <Field label="Téléphone expéditeur" value={parcel.sender?.phone} />
-          <Field label="Téléphone destinataire" value={parcel.recipientPhone} />
-
-          <Field label="Adresse destinataire" value={parcel.recipientAddress} />
-          <Field
-            label="Sac"
-            value={parcel.bag?.qrcode ?? (parcel.bagId ? '—' : 'Aucun')}
-            empty="Aucun"
-          />
-          <Field label="Service" value={parcel.service} />
-
-          <Field label="Type" value={parcel.type} />
-          <Field label="Urgent" value={parcel.urgent ? 'Oui' : 'Non'} />
-          <Field label="Fragile" value={parcel.fragile ? 'Oui' : 'Non'} />
-        </div>
-
-        {parcel.description ? (
-          <div className="border-t border-slate-200 bg-slate-50/60 px-5 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-              Contenu
-            </p>
-            <p className="mt-1 text-sm text-slate-700">{parcel.description}</p>
-          </div>
-        ) : null}
       </header>
 
-      {/* Corps */}
+      {/* ─── Détails du colis (repliable, fermé par défaut) ─── */}
+      <CollapsibleParcelDetails parcel={parcel} />
+
+      {/* ─── Corps : sections interactives en premier ─── */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Colonne principale */}
+        {/* Colonne principale : workflow */}
         <div className="flex flex-col gap-5">
-          <Section
-            title="Suivi du colis"
-            description={`${(parcel.trackingEvents ?? []).length} événement(s)`}
-          >
-            <div className="px-5 py-4">
-              <TrackingTimeline
-                events={parcel.trackingEvents ?? []}
-                currentStatus={parcel.status}
-              />
-            </div>
-          </Section>
-
-          <Section
-            title="Gestion du sac"
-            description={
-              parcel?.bagId
-                ? 'Retirez ce colis ou déplacez-le vers un autre sac ouvert.'
-                : 'Associez ce colis à un sac ouvert.'
-            }
-          >
-            <div className="space-y-4 px-5 py-4">
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="text-xs text-slate-500">Sac actuel</span>
-                <span className="font-mono text-xs font-medium text-slate-900">
-                  {parcel?.bag?.qrcode ?? 'Aucun'}
-                </span>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Déplacer vers un sac ouvert
-                </label>
-                <select
-                  value={effectiveSelectedBagId}
-                  onChange={(e) => setSelectedBagId(e.target.value)}
-                  disabled={bagMutation.isPending || loadingBags}
-                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:opacity-60"
-                >
-                  <option value="">— Sélectionner un sac —</option>
-                  {openBags.map((bag) => (
-                    <option key={bag.id} value={bag.id}>
-                      {bag.qrcode}
-                      {bag.destinationAgency?.city
-                        ? ` · ${bag.destinationAgency.city}`
-                        : ''}
-                    </option>
-                  ))}
-                </select>
-                {!loadingBags && openBags.length === 0 && (
-                  <p className="mt-1.5 text-xs text-slate-400">
-                    Aucun sac ouvert disponible pour le moment.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <GhostButton
-                  type="button"
-                  onClick={handleRemoveBag}
-                  loading={bagMutation.isPending}
-                  disabled={
-                    bagMutation.isPending || parcel?.status === 'collected'
-                  }
-                >
-                  Retirer du sac
-                </GhostButton>
-                <PrimaryButton
-                  type="button"
-                  onClick={handleAssignBag}
-                  loading={bagMutation.isPending}
-                  disabled={
-                    bagMutation.isPending ||
-                    !selectedBagId ||
-                    parcel?.status === 'collected'
-                  }
-                >
-                  Déplacer
-                </PrimaryButton>
-              </div>
-            </div>
-          </Section>
-
-          {/* Panneau de contrôle — colis individuel */}
-          {!parcel.bagId && (
+          {/* 1. Actions sur le colis */}
+          {!parcel.bagId ? (
             <Section title="Actions sur le colis">
               <div className="space-y-4 px-5 py-4">
                 <InvoiceBanner
                   status={invoiceStatus}
-                  invoiceId={parcel.invoice?.id}
-                  onView={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                  invoiceId={invoice?.id}
+                  onView={() => setInvoiceModalOpen(true)}
                 />
 
                 <div className="space-y-3">
-                  {parcel.status === 'received' && (
+                  {parcel.status === 'received' ? (
                     <PrimaryButton
                       onClick={handleDepartAirport}
                       loading={updateStatus.isPending}
                     >
                       Marquer « Parti de l'aéroport »
                     </PrimaryButton>
-                  )}
+                  ) : null}
 
-                  {parcel.status === 'departed_airport' && (
+                  {parcel.status === 'departed_airport' ? (
                     <PrimaryButton
                       onClick={handleArrivedDestination}
                       loading={updateStatus.isPending}
                     >
                       Marquer « Arrivé à destination »
                     </PrimaryButton>
-                  )}
+                  ) : null}
 
-                  {canConfirmCollection && (
+                  {canConfirmCollection ? (
                     <div className="space-y-2">
                       <PrimaryButton
                         onClick={handleConfirmCollection}
@@ -559,28 +1254,27 @@ export default function ParcelDetailPage() {
                       >
                         Confirmer le retrait
                       </PrimaryButton>
-                      {!isInvoicePaid && (
+                      {!isInvoicePaid ? (
                         <p className="flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
                           <Lock size={12} className="mt-0.5 shrink-0" />
-                          Le retrait ne peut être confirmé que si la facture est
-                          entièrement payée.
+                          Le retrait ne peut être confirmé que si la facture est entièrement payée.
                         </p>
-                      )}
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </Section>
-          )}
+          ) : null}
 
           {/* Confirmer retrait — colis en sac */}
-          {canConfirmCollection && parcel.bagId && (
+          {canConfirmCollection && parcel.bagId ? (
             <Section title="Confirmer le retrait">
               <div className="space-y-4 px-5 py-4">
                 <InvoiceBanner
                   status={invoiceStatus}
-                  invoiceId={parcel.invoice?.id}
-                  onView={() => navigate(`/invoices/${parcel.invoice.id}`)}
+                  invoiceId={invoice?.id}
+                  onView={() => setInvoiceModalOpen(true)}
                 />
                 <PrimaryButton
                   onClick={handleConfirmCollection}
@@ -591,19 +1285,18 @@ export default function ParcelDetailPage() {
                 >
                   Confirmer le retrait du colis
                 </PrimaryButton>
-                {!isInvoicePaid && (
+                {!isInvoicePaid ? (
                   <p className="flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
                     <Lock size={12} className="mt-0.5 shrink-0" />
-                    Le retrait ne peut être confirmé que si la facture est
-                    entièrement payée.
+                    Le retrait ne peut être confirmé que si la facture est entièrement payée.
                   </p>
-                )}
+                ) : null}
               </div>
             </Section>
-          )}
+          ) : null}
 
           {/* Signaler un problème */}
-          {parcel.status !== 'issue' && (
+          {parcel.status !== 'issue' ? (
             <Section
               title="Signaler un problème"
               description="Le colis sortira du flux normal."
@@ -654,22 +1347,19 @@ export default function ParcelDetailPage() {
                 )}
               </div>
             </Section>
-          )}
+          ) : null}
 
-          {parcel.status === 'issue' && (
+          {parcel.status === 'issue' ? (
             <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3.5">
               <AlertTriangle size={16} className="mt-0.5 shrink-0 text-rose-600" />
               <div>
-                <p className="text-sm font-semibold text-rose-800">
-                  Problème signalé
-                </p>
+                <p className="text-sm font-semibold text-rose-800">Problème signalé</p>
                 <p className="mt-0.5 text-xs text-rose-700">
-                  Ce colis ne suivra pas le flux normal tant que le problème n'est
-                  pas résolu.
+                  Ce colis ne suivra pas le flux normal tant que le problème n'est pas résolu.
                 </p>
               </div>
             </div>
-          )}
+          ) : null}
 
           {parcel.bagId ? (
             <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
@@ -679,18 +1369,106 @@ export default function ParcelDetailPage() {
                   Colis rattaché à un sac
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600">
-                  Les transitions de statut s'effectuent depuis la page du sac. Vous
-                  pouvez uniquement confirmer le retrait ou signaler un problème sur
-                  ce colis.
+                  Les transitions de statut s'effectuent depuis la page du sac. Vous pouvez uniquement confirmer le retrait ou signaler un problème sur ce colis.
                 </p>
               </div>
             </div>
           ) : null}
+
+          {/* 2. Suivi du colis */}
+          <Section
+            title="Suivi du colis"
+            description={`${(parcel.trackingEvents ?? []).length} événement(s)`}
+          >
+            <div className="px-5 py-4">
+              <TrackingTimeline
+                events={parcel.trackingEvents ?? []}
+                currentStatus={parcel.status}
+              />
+            </div>
+          </Section>
+
+          {/* 3. Gestion du sac */}
+          <Section
+            title="Gestion du sac"
+            description={
+              parcel?.bagId
+                ? 'Retirez ce colis ou déplacez-le vers un autre sac ouvert.'
+                : 'Associez ce colis à un sac ouvert.'
+            }
+          >
+            <div className="space-y-4 px-5 py-4">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <span className="text-xs text-slate-500">Sac actuel</span>
+                <span className="font-mono text-xs font-medium text-slate-900">
+                  {parcel?.bag?.qrcode ?? 'Aucun'}
+                </span>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Déplacer vers un sac ouvert
+                </label>
+                <select
+                  value={effectiveSelectedBagId}
+                  onChange={(e) => setSelectedBagId(e.target.value)}
+                  disabled={bagMutation.isPending || loadingBags}
+                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:opacity-60"
+                >
+                  <option value="">— Sélectionner un sac —</option>
+                  {openBags.map((bag) => (
+                    <option key={bag.id} value={bag.id}>
+                      {bag.qrcode}
+                      {bag.destinationAgency?.city
+                        ? ` · ${bag.destinationAgency.city}`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+                {!loadingBags && openBags.length === 0 ? (
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    Aucun sac ouvert disponible pour le moment.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <GhostButton
+                  type="button"
+                  onClick={handleRemoveBag}
+                  loading={bagMutation.isPending}
+                  disabled={
+                    bagMutation.isPending || parcel?.status === 'collected'
+                  }
+                >
+                  Retirer du sac
+                </GhostButton>
+                <PrimaryButton
+                  type="button"
+                  onClick={handleAssignBag}
+                  loading={bagMutation.isPending}
+                  disabled={
+                    bagMutation.isPending ||
+                    !selectedBagId ||
+                    parcel?.status === 'collected'
+                  }
+                >
+                  Déplacer
+                </PrimaryButton>
+              </div>
+            </div>
+          </Section>
         </div>
 
-        {/* Colonne latérale */}
+        {/* Sidebar : facture + QR + lien suivi */}
         <aside className="flex flex-col gap-5">
-          {/* QR code */}
+          {/* Facture (résumé compact) */}
+          <InvoiceSummaryCard
+            invoice={invoice}
+            onOpen={() => setInvoiceModalOpen(true)}
+          />
+
+          {/* Étiquette & QR code */}
           <Section
             title="Étiquette & QR code"
             icon={QrCode}
@@ -737,9 +1515,7 @@ export default function ParcelDetailPage() {
                     code={parcel.qrcode}
                     qrcodeUrl={qrUrl}
                     recipientName={parcel.recipientName || 'Destinataire'}
-                    recipientAddress={
-                      parcel.recipientAddress || 'Adresse non renseignée'
-                    }
+                    recipientAddress={parcel.recipientAddress || 'Adresse non renseignée'}
                     recipientPhone={parcel.recipientPhone || 'Tél non renseigné'}
                     weight={parcel.weight || 0}
                     service={parcel.service || 'Standard'}
@@ -794,6 +1570,16 @@ export default function ParcelDetailPage() {
           </Section>
         </aside>
       </div>
+
+      {/* Modal facture */}
+      {invoice ? (
+        <InvoiceDetailModal
+          invoiceId={invoice.id}
+          parcelId={id}
+          open={invoiceModalOpen}
+          onClose={() => setInvoiceModalOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   CheckCircle2,
+  ChevronRight,
   Clock,
   Download,
   Eye,
@@ -497,7 +498,9 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="font-mono text-xs text-slate-500">
-                        {inv.parcel?.qrcode ?? '—'}
+                        {inv.parcel?.qrcode ?? '—'} <br />
+                        {inv.parcel?.sender?.name ?? '—'} <ChevronRight size={12} className="inline-block text-slate-400" />{' '}
+                        {inv.parcel?.recipientName ?? '—'}
                       </span>
                     </td>
                     <td className="hidden px-4 py-3.5 text-slate-700 md:table-cell">
