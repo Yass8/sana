@@ -4,18 +4,15 @@
 // ───────────────────────────────────────────────────────────────
 // Un seul formulaire, un seul submit, une seule requête backend.
 //
-// Sections :
-//   1. Client (recherche existant ou création inline)
-//   2. Destinataire
-//   3. Détails du colis
-//   4. Facturation (repliable, article auto-généré depuis le poids)
+// Règle métier :
+//   • Dépôt client ('client') : forfait minimum 1 kg (17 €) même si < 1 kg
+//   • Livraison (shein, temu, amazon…) : prix au poids réel, sans minimum
 //
 // Après création réussie → navigation vers /parcels/:id
-// (impression et actions gérées dans la fiche colis)
 // ═══════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import Select from 'react-select'
 import {
@@ -24,7 +21,11 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ExternalLink,
   Loader2,
+  Mail,
+  MapPin,
+  Phone,
   Plus,
   Trash2,
   User,
@@ -45,6 +46,7 @@ import {
 
 const CURRENCIES = ['EUR', 'USD', 'XOF', 'MAD', 'KMF']
 const DEFAULT_PRICE_PER_KG = 17
+const MIN_BILLABLE_KG = 1 // Forfait minimum pour dépôt client
 const DRAFT_KEY = 'new-parcel-invoice-draft'
 
 const PARCEL_TYPES = [
@@ -99,6 +101,35 @@ const fmt = (n) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+
+const initials = (name) => {
+  if (!name) return '?'
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+/**
+ * Calcule la quantité à facturer en tenant compte du forfait minimum.
+ *
+ * Règle métier :
+ *   • Dépôt client ('client')      → minimum 1 kg (soit 17 €)
+ *   • Livraison (shein, temu, …)   → facturé au poids réel (pas de minimum)
+ *
+ * @param {string|number} weight - Poids du colis en kg
+ * @param {string} type - Type de colis (parcel.type)
+ * @returns {number} Quantité à mettre sur la ligne facture
+ */
+const getBillableQuantity = (weight, type) => {
+  const w = Number(weight) || 0
+  if (w <= 0) return 0
+  if (type === 'client' && w < MIN_BILLABLE_KG) return MIN_BILLABLE_KG
+  return w
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PRIMITIVES UI
@@ -200,6 +231,75 @@ function Field({ label, htmlFor, required, error, helper, children }) {
   )
 }
 
+function InfoLine({ icon: Icon, label, value, className = '' }) {
+  const isEmpty = !value || value === ''
+  return (
+    <div className={`flex items-start gap-2.5 ${className}`}>
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-slate-400 ring-1 ring-slate-200">
+        <Icon size={12} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+          {label}
+        </p>
+        <p
+          className={`mt-0.5 truncate text-sm ${
+            isEmpty ? 'italic text-slate-400' : 'font-medium text-slate-800'
+          }`}
+        >
+          {isEmpty ? 'Non renseigné' : value}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ClientInfoCard({ client }) {
+  const fullName = client.name || 'Client'
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+      <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+            {initials(fullName)}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {fullName}
+            </p>
+            <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+              <CheckCircle2 size={11} />
+              Client existant
+            </p>
+          </div>
+        </div>
+
+        <Link
+          to={`/users/${client.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+          title="Ouvrir la fiche dans un nouvel onglet"
+        >
+          <ExternalLink size={12} />
+          Fiche
+        </Link>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <InfoLine icon={Mail}    label="Email"     value={client.email} />
+        <InfoLine icon={Phone}   label="Téléphone" value={client.phone} />
+        <InfoLine
+          icon={MapPin}
+          label="Adresse"
+          value={client.adresse}
+          className="sm:col-span-2"
+        />
+      </div>
+    </div>
+  )
+}
+
 function PaymentModeCard({ mode, selected, onSelect }) {
   const Icon = mode.icon
   return (
@@ -258,28 +358,7 @@ function PaymentProgress({ paid, due, currency }) {
   )
 }
 
-/**
- * Carte de paiement d'un payeur (expéditeur ou destinataire).
- *
- * Contient :
- *   • Part due (lecture)
- *   • Barre de progression (déjà payé / part)
- *   • Checkbox « Payé au complet » → auto-remplit le montant
- *   • Input « Acompte versé » (masqué si payé au complet)
- *
- * @param {string} payerType - 'sender' | 'recipient'
- * @param {number} share     - Part due (0 si non concerné)
- * @param {number} paid      - Montant payé actuellement (controlé par le parent)
- * @param {Function} onPaidChange - Callback quand le montant change
- */
-function PayerCard({
-  payerType,
-  share,
-  paid,
-  currency,
-  onPaidChange,
-  disabled,
-}) {
+function PayerCard({ payerType, share, paid, currency, onPaidChange, disabled }) {
   const isDisabled = disabled || share === 0
   const isFull = !isDisabled && paid >= share - 0.001
 
@@ -299,7 +378,6 @@ function PayerCard({
           : 'border-slate-200 bg-white'
       }`}
     >
-      {/* En-tête */}
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
           <Icon size={13} />
@@ -307,7 +385,6 @@ function PayerCard({
         <span className="text-xs font-semibold text-slate-700">{label}</span>
       </div>
 
-      {/* Part due */}
       <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
         Part due
       </p>
@@ -318,12 +395,10 @@ function PayerCard({
         </span>
       </p>
 
-      {/* Progression */}
       <div className="mt-3">
         <PaymentProgress paid={paid} due={share} currency={currency} />
       </div>
 
-      {/* Checkbox « Payé au complet » */}
       <label
         className={`mt-3 flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition ${
           isDisabled
@@ -350,7 +425,6 @@ function PayerCard({
         </div>
       </label>
 
-      {/* Acompte — masqué si payé au complet */}
       {!isFull && !isDisabled ? (
         <div className="mt-3">
           <label className="mb-1.5 block text-[11px] font-medium text-slate-600">
@@ -614,18 +688,20 @@ export default function NewParcelInvoicePage() {
     }
   }
 
-  // ─── Auto-fill quantité quand poids change ───
+  // ─── Auto-fill quantité quand poids OU type change ───
+  // Le type influence le forfait minimum → on dépend des deux.
   useEffect(() => {
     const w = parseFloat(parcel.weight)
     if (!w || w <= 0) return
     if (quantityTouchedRef.current) return
+    const qty = getBillableQuantity(w, parcel.type)
     setInvoice((prev) => ({
       ...prev,
       items: prev.items.map((it, i) =>
-        i === 0 ? { ...it, quantite: w } : it
+        i === 0 ? { ...it, quantite: qty } : it
       ),
     }))
-  }, [parcel.weight])
+  }, [parcel.weight, parcel.type])
 
   // ─── Reset acomptes quand mode paiement change ───
   useEffect(() => {
@@ -722,7 +798,9 @@ export default function NewParcelInvoicePage() {
         ...prev.items,
         {
           ...DEFAULT_ITEM,
-          quantite: parseFloat(parcel.weight) || DEFAULT_ITEM.quantite,
+          quantite:
+            getBillableQuantity(parcel.weight, parcel.type) ||
+            DEFAULT_ITEM.quantite,
         },
       ],
     }))
@@ -744,9 +822,12 @@ export default function NewParcelInvoicePage() {
     setInvoice((prev) => ({ ...prev, recipientPaid: value }))
   }
 
-  // ─── Feedback prix live ───
+  // ─── Feedback prix live + détection du forfait minimum ───
   const weightNum = parseFloat(parcel.weight)
-  const livePrice = weightNum > 0 ? weightNum * DEFAULT_PRICE_PER_KG : 0
+  const billableQty = getBillableQuantity(weightNum, parcel.type)
+  const livePrice = billableQty > 0 ? billableQty * DEFAULT_PRICE_PER_KG : 0
+  const isMinApplied =
+    parcel.type === 'client' && weightNum > 0 && weightNum < MIN_BILLABLE_KG
 
   // ─── Validation ───
   const validate = () => {
@@ -783,17 +864,14 @@ export default function NewParcelInvoicePage() {
     }
 
     const payload = {
-      // Client
       ...(isNewClient
         ? { senderData: { ...client } }
         : { senderId: selectedClient.id }),
 
-      // Destinataire
       recipientName:    recipient.name.trim(),
       recipientPhone:   recipient.phone.trim() || null,
       recipientAddress: recipient.address.trim() || null,
 
-      // Colis
       bagId:       parcel.bagId || null,
       description: parcel.description.trim() || null,
       weight:      weightNum,
@@ -802,7 +880,6 @@ export default function NewParcelInvoicePage() {
       urgent:      parcel.urgent,
       fragile:     parcel.fragile,
 
-      // Facture
       items: invoice.items.map((it) => ({
         description:    it.description.trim(),
         subDescription: it.subDescription?.trim() || undefined,
@@ -840,7 +917,6 @@ export default function NewParcelInvoicePage() {
         })
       }
 
-      // Reset complet
       setClient({ name: '', email: '', phone: '', adresse: '' })
       setSelectedClient(null)
       setClientQuery('')
@@ -922,11 +998,6 @@ export default function NewParcelInvoicePage() {
                 <Field
                   label="Rechercher un client existant"
                   htmlFor="clientSearch"
-                  helper={
-                    !isNewClient
-                      ? `Client sélectionné : ${selectedClient.name} (${selectedClient.email}) (tel: ${selectedClient.phone}). Cliquez sur la croix pour le désélectionner.`
-                      : "Si le client n'existe pas, laissez vide et remplissez ses infos ci-dessous."
-                  }
                 >
                   <Select
                     inputId="clientSearch"
@@ -958,6 +1029,10 @@ export default function NewParcelInvoicePage() {
                     styles={selectStyles}
                   />
                 </Field>
+
+                {!isNewClient && selectedClient ? (
+                  <ClientInfoCard client={selectedClient} />
+                ) : null}
 
                 {isNewClient ? (
                   <div className="grid grid-cols-1 gap-4 rounded-lg border border-amber-200 bg-amber-50/60 p-3 sm:grid-cols-2">
@@ -1086,7 +1161,9 @@ export default function NewParcelInvoicePage() {
                   required
                   error={errors['parcel.weight']}
                   helper={
-                    livePrice > 0
+                    isMinApplied
+                      ? `Forfait minimum 1 kg appliqué → ${fmt(DEFAULT_PRICE_PER_KG)} €`
+                      : livePrice > 0
                       ? `≈ ${fmt(livePrice)} € à ${DEFAULT_PRICE_PER_KG} €/kg`
                       : null
                   }
@@ -1269,6 +1346,26 @@ export default function NewParcelInvoicePage() {
                         />
                       ))}
                     </div>
+
+                    {/* Indicateur forfait minimum */}
+                    {isMinApplied && Number(invoice.items[0]?.quantite) >= 1 ? (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                        <AlertCircle
+                          size={13}
+                          className="mt-0.5 shrink-0 text-amber-600"
+                        />
+                        <p className="text-xs text-amber-700">
+                          <span className="font-medium">
+                            Forfait minimum 1 kg appliqué.
+                          </span>{' '}
+                          Poids réel :{' '}
+                          <span className="tabular-nums">{weightNum} kg</span> —
+                          facturé <span className="tabular-nums">1 kg</span> (
+                          {fmt(DEFAULT_PRICE_PER_KG)} €).
+                        </p>
+                      </div>
+                    ) : null}
+
                     {errors['invoice.items'] ? (
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-rose-600">
                         <AlertCircle size={12} />
