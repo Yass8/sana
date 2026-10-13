@@ -387,6 +387,12 @@ export default function ParcelsPage() {
                           month: 'short',
                         })}
                       </div>
+                      {/* type du colis */}
+                      {p.type !== 'client' && (
+                        <div className="mt-0.5 text-[11px] text-slate-400">
+                          {p.type === 'autre' && 'Autre livraison' }
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-slate-700">
                       {p.sender?.name ?? '—'}
