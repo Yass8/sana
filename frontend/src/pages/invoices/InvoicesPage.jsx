@@ -414,9 +414,6 @@ export default function InvoicesPage() {
               <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500">
                 <th className="px-4 py-2.5 text-left font-medium">N° facture</th>
                 <th className="px-4 py-2.5 text-left font-medium">Colis</th>
-                <th className="hidden px-4 py-2.5 text-left font-medium md:table-cell">
-                  Client
-                </th>
                 <th className="hidden px-4 py-2.5 text-left font-medium lg:table-cell">
                   Paiement
                 </th>
@@ -502,9 +499,6 @@ export default function InvoicesPage() {
                         {inv.parcel?.sender?.name ?? '—'} <ChevronRight size={12} className="inline-block text-slate-400" />{' '}
                         {inv.parcel?.recipientName ?? '—'}
                       </span>
-                    </td>
-                    <td className="hidden px-4 py-3.5 text-slate-700 md:table-cell">
-                      {inv.parcel?.sender?.name ?? '—'}
                     </td>
                     <td className="hidden px-4 py-3.5 lg:table-cell">
                       <PaymentModeCell mode={inv.paymentMode} />
