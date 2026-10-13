@@ -936,6 +936,7 @@ function InvoiceDetailModalContent({ invoiceId, parcelId, onClose }) {
                   loading={isSending}
                   onClick={handleSend}
                   disabled={!email}
+                  className='bg-green-700'
                 >
                   {isSending ? 'Envoi…' : 'Envoyer la facture'}
                 </PrimaryButton>
