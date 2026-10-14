@@ -1212,9 +1212,9 @@ export default function ParcelDetailPage() {
       <CollapsibleParcelDetails parcel={parcel} />
 
       {/* ─── Corps : sections interactives en premier ─── */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Colonne principale : workflow */}
-        <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5">
           {/* 1. Actions sur le colis */}
           {!parcel.bagId ? (
             <Section title="Actions sur le colis">
@@ -1462,7 +1462,7 @@ export default function ParcelDetailPage() {
         </div>
 
         {/* Sidebar : facture + QR + lien suivi */}
-        <aside className="flex flex-col gap-5">
+        <aside className="flex min-w-0 flex-col gap-5">
           {/* Facture (résumé compact) */}
           <InvoiceSummaryCard
             invoice={invoice}
