@@ -25,6 +25,7 @@ import {
   Copy,
   Download,
   Euro,
+  ExternalLink,
   FileText,
   Loader2,
   Lock,
@@ -216,12 +217,24 @@ function InvoiceBanner({ status, invoiceId, onView }) {
   )
 }
 
-function PrimaryButton({ icon: Icon, loading, children, className = '', ...props }) {
+function PrimaryButton({
+  icon: Icon,
+  loading,
+  children,
+  className = '',
+  tone = 'default',
+  ...props
+}) {
+  const toneClass =
+    tone === 'emerald'
+      ? 'bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-600'
+      : 'bg-slate-900 hover:bg-slate-800 focus:ring-slate-900'
+
   return (
     <button
       {...props}
       disabled={props.disabled || loading}
-      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
     >
       {loading ? (
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -674,15 +687,52 @@ function InvoiceDetailModalContent({ invoiceId, parcelId, onClose }) {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
             {/* PDF */}
-            <div className="shrink-0 border-b border-slate-200 bg-slate-50 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+            <div className="order-last shrink-0 border-t border-slate-200 bg-slate-50 p-4 lg:order-first lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-t-0">
               {pdfUrl ? (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <iframe
-                    src={pdfUrl}
-                    className="h-[400px] w-full sm:h-[500px] lg:h-full lg:min-h-[600px]"
-                    title={`Facture ${inv.number}`}
-                  />
-                </div>
+                <>
+                  {/* Mobile : carte avec boutons (pas d'iframe) */}
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 lg:hidden mb-30 lg:mb-0">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                        <FileText size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-slate-800">
+                          Facture #{inv.number}
+                        </p>
+                        <p className="text-[10px] text-slate-500">PDF disponible</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-medium text-white transition hover:bg-slate-800"
+                      >
+                        <ExternalLink size={12} />
+                        Ouvrir
+                      </a>
+                      <a
+                        href={pdfUrl}
+                        download
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50"
+                        aria-label="Télécharger"
+                      >
+                        <Download size={13} />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Desktop : iframe */}
+                  <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white lg:block">
+                    <iframe
+                      src={pdfUrl}
+                      className="h-full min-h-[600px] w-full"
+                      title={`Facture ${inv.number}`}
+                    />
+                  </div>
+                </>
               ) : (
                 <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
@@ -942,7 +992,7 @@ function InvoiceDetailModalContent({ invoiceId, parcelId, onClose }) {
                 </PrimaryButton>
               </div>
 
-              <div className="border-t border-slate-200 pt-4">
+              <div className="border-t border-slate-200 pt-4 mb-0 lg:mb-0">
                 <GhostButton
                   tone="danger"
                   icon={Trash2}
