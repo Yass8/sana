@@ -360,9 +360,11 @@ export default function AccountingPage() {
                           {fmt(paid)} €
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-500">
-                          {fmt(senderPaid)} €
+                          <span className="text-xs">{invoice.parcel?.sender?.name ?? '—'}</span>
+                          <br /> {fmt(senderPaid)} €
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-500">
+                          <span className="text-xs">{invoice.parcel?.recipientName ?? '—'}</span> <br />
                           {fmt(recipientPaid)} €
                         </td>
                         <td
