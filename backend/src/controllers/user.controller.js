@@ -148,6 +148,11 @@ const create = async (req, res, next) => {
 
     res.status(201).json(user.toSafeJSON())
 
+    // si l'user est client, on n'envoie pas de mail de bienvenue
+    if (user.role === ROLES.CLIENT) {
+      sendMail = false
+    }
+
     if (sendMail) {
       try {
         await sendWelcomeEmail({
