@@ -1212,7 +1212,7 @@ export default function NewParcelInvoicePage() {
                     }
                   >
                     <option value="standard">Standard</option>
-                    <option value="express">Express</option>
+                    <option value="express" selected>Express</option>
                   </FormSelect>
                 </Field>
 
