@@ -39,6 +39,14 @@ const PAYMENT_MODE_META = {
   split:          { label: 'Partagé',      icon: Users },
 }
 
+const MET_PAYED = {
+  cash : { color: 'text-emerald-500' },
+  card : { color: 'text-amber-500' },
+  virement : { color: 'text-slate-400' },
+  wero : { color: 'text-rose-500' },
+  mixed: { color: 'text-purple-500' }
+}
+
 const fmt = (n) =>
   Number(n || 0).toLocaleString('fr-FR', {
     minimumFractionDigits: 2,
@@ -492,6 +500,11 @@ export default function InvoicesPage() {
                       <span className="font-mono text-sm font-medium text-slate-900">
                         #{inv.number}
                       </span>
+                      {inv.paymentMethod && (
+                        <div className={`mt-0.5 text-[11px] font-medium ${MET_PAYED[inv.paymentMethod]?.color || 'text-slate-400'}`}>
+                          {inv.paymentMethod.charAt(0).toUpperCase() + inv.paymentMethod.slice(1)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="font-mono text-xs text-slate-500">

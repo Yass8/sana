@@ -82,6 +82,7 @@ const create = async (req, res, next) => {
       // ── Nouveaux champs ────────────────────────────────
       paymentMode     = 'recipient_full',
       paymentLocation = null,
+      paymentMethod   = null,
       senderShare     = 0,
       senderPaid      = 0,
       recipientPaid   = 0,
@@ -140,6 +141,7 @@ const create = async (req, res, next) => {
       notes,
       paymentMode,
       paymentLocation,
+      paymentMethod,
       senderShare:    shares.senderShare,
       recipientShare: shares.recipientShare,
       senderPaid:     sPaid,
@@ -248,6 +250,7 @@ const update = async (req, res, next) => {
       'notes',
       'paymentMode',
       'paymentLocation',
+      'paymentMethod',
       'senderShare',
       'senderPaid',
       'recipientPaid',

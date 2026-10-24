@@ -31,6 +31,14 @@ const TABS = [
   { key: 'draft', label: 'Impayées' },
 ]
 
+const MET_PAYED = {
+  cash : { color: 'text-emerald-500' },
+  card : { color: 'text-amber-500' },
+  virement : { color: 'text-slate-400' },
+  wero : { color: 'text-rose-500' },
+  mixed: { color: 'text-purple-500' }
+}
+
 function StatusDot({ status = 'draft' }) {
   const meta = STATUS_META[status] || STATUS_META.draft
   return (
@@ -349,6 +357,11 @@ export default function AccountingPage() {
                           <div className="mt-0.5 font-mono text-[11px] text-slate-400">
                             {invoice.parcel?.qrcode || 'Colis non lié'}
                           </div>
+                          {invoice.paymentMethod && (
+                            <div className={`mt-0.5 text-[11px] font-medium ${MET_PAYED[invoice.paymentMethod]?.color || 'text-slate-400'}`}>
+                              {invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <StatusDot status={invoice.status} />

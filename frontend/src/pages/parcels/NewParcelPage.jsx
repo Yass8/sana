@@ -62,6 +62,15 @@ const PARCEL_TYPES = [
   { value: 'autre',      label: 'Autre' },
 ]
 
+const PAYMENT_METHODS = [
+  { value: '',         label: 'Aucun'},
+  { value: 'cash',     label: 'Espèces' },
+  { value: 'wero',     label: 'Wero' },
+  { value: 'virement', label: 'Virement' },
+  { value: 'mixed',    label: 'Mixte' },
+  { value: 'card',     label: 'Carte bancaire',  disabled: true },
+]
+
 const DEFAULT_ITEM = {
   description: 'COLIS EXPRESS',
   subDescription: 'Envoi Express de colis au départ de CDG à destination de MORONI.',
@@ -638,6 +647,7 @@ export default function NewParcelInvoicePage() {
     taxRate: 0,
     currency: 'EUR',
     paymentMode: 'sender_full',
+    paymentMethod: '',
     senderShareInput: 0,
     senderPaid: 0,
     recipientPaid: 0,
@@ -892,6 +902,7 @@ export default function NewParcelInvoicePage() {
       currency:      invoice.currency,
       notes:         invoice.notes?.trim() || undefined,
       paymentMode:   invoice.paymentMode,
+      paymentMethod: invoice.paymentMethod,
       senderShare:   Number(invoice.senderShareInput) || 0,
       senderPaid:    Number(invoice.senderPaid) || 0,
       recipientPaid: Number(invoice.recipientPaid) || 0,
@@ -933,6 +944,7 @@ export default function NewParcelInvoicePage() {
         taxRate: 0,
         currency: 'EUR',
         paymentMode: 'sender_full',
+        paymentMethod: '',
         senderShareInput: 0,
         senderPaid: 0,
         recipientPaid: 0,
@@ -1497,6 +1509,43 @@ export default function NewParcelInvoicePage() {
                         className="tabular-nums"
                       />
                     </Field>
+                    {/* Méthode de paiement en radio */}
+                    <div className="md:col-span-2">
+                      <Field
+                        label="Méthode de paiement"
+                        htmlFor="paymentMethod"
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          {PAYMENT_METHODS.map((m) => (
+                            <label
+                              key={m.value}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${invoice.paymentMethod === m.value
+                                ? 'border-slate-900 bg-slate-100'
+                                : 'border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                id={`paymentMethod-${m.value}`}
+                                name="paymentMethod"
+                                value={m.value}
+                                checked={invoice.paymentMethod === m.value}
+                                disabled={m.disabled}
+                                onChange={(e) =>
+                                  setInvoice((prev) => ({
+                                    ...prev,
+                                    paymentMethod: e.target.value,
+                                  }))
+                                }
+                                className="border-slate-300 text-slate-900 focus:ring-slate-900"
+                              />
+                              {m.label}
+                            </label>
+                          ))}
+                        </div>
+                      </Field>
+                    </div>
+                    {/* Notes internes */}
                     <div className="md:col-span-2">
                       <Field
                         label="Notes internes"
