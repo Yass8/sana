@@ -1,8 +1,44 @@
 // src/controllers/user.controller.js
 const { User, Agency } = require('../models')
 const { ROLES }        = require('../constants')
-    const { Op, Sequelize } = require('sequelize')
+const { Op, Sequelize } = require('sequelize')
 const { sendWelcomeEmail } = require('../services/email.service')
+
+const normalizeSearchText = (value = '') =>
+  String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const tokenizeSearch = (value = '') =>
+  normalizeSearchText(value)
+    .split(/\s+/)
+    .filter(Boolean)
+
+const matchesClientSearch = (query, name = '', email = '') => {
+  const queryTokens = tokenizeSearch(query)
+  if (!queryTokens.length) return false
+
+  const candidateTokens = [
+    ...tokenizeSearch(name),
+    ...tokenizeSearch(email),
+  ].filter(Boolean)
+
+  if (!candidateTokens.length) return false
+
+  const normalizedQuery = normalizeSearchText(query)
+  const normalizedCandidate = normalizeSearchText(`${name} ${email}`)
+
+  if (normalizedCandidate.includes(normalizedQuery)) {
+    return true
+  }
+
+  return queryTokens.every((token) =>
+    candidateTokens.some((candidateToken) => candidateToken.includes(token))
+  )
+}
 
 // ─── GET /api/users ───────────────────────────────────
 const getAll = async (req, res, next) => {
@@ -54,20 +90,29 @@ const searchByName = async (req, res, next) => {
       return res.json([])
     }
 
+    const searchTokens = tokenizeSearch(q)
+    const nameLikeFilters = searchTokens.length
+      ? searchTokens.map((token) => ({
+          [Op.or]: [
+            { name: { [Op.like]: `%${token}%` } },
+            { email: { [Op.like]: `%${token}%` } },
+          ],
+        }))
+      : []
+
     const users = await User.findAll({
       where: {
         role: ROLES.CLIENT,
-        [Op.or]: [
-          { name: { [Op.like]: `%${q}%` } },
-          { email: { [Op.like]: `%${q}%` } },
-        ],
+        ...(nameLikeFilters.length ? { [Op.and]: nameLikeFilters } : {}),
       },
       attributes: ['id', 'name', 'email', 'phone', 'adresse', 'role'],
       order: [['name', 'ASC']],
-      limit: 10,
+      limit: 25,
     })
 
-    return res.json(users)
+    const filteredUsers = users.filter((user) => matchesClientSearch(q, user.name, user.email))
+
+    return res.json(filteredUsers.slice(0, 10))
   } catch (err) {
     next(err)
   }
@@ -176,8 +221,8 @@ const update = async (req, res, next) => {
     const user = await User.findByPk(req.params.id)
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' })
 
-    const { name, phone, adresse, role, agencyId, isActive } = req.body
-    await user.update({ name, phone, adresse, role, agencyId, isActive })
+    const { name, email, phone, adresse, role, agencyId, isActive } = req.body
+    await user.update({ name, email, phone, adresse, role, agencyId, isActive })
 
     res.json(user.toSafeJSON())
   } catch (err) { next(err) }
