@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
     },
     parcelId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       unique: true,
       field: 'parcel_id',
     },

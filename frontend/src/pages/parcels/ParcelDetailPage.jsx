@@ -321,6 +321,13 @@ function InvoiceSummaryCard({ invoice, onOpen }) {
                 Ce colis n'a pas encore été facturé.
               </p>
             </div>
+            <div>
+              <a href="/invoices/new" target="_blank" rel="noopener noreferrer">
+                <PrimaryButton icon={FileText}>
+                  Créer une facture
+                </PrimaryButton>
+              </a>
+            </div>
           </div>
         </div>
       </Section>
