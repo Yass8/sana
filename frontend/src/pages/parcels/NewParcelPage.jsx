@@ -635,7 +635,7 @@ export default function NewParcelInvoicePage() {
   const [parcel, setParcel] = useState({
     weight: '',
     bagId: preselectedBagId,
-    service: 'standard',
+    service: 'express',
     type: 'client',
     urgent: false,
     fragile: false,
@@ -1223,8 +1223,9 @@ export default function NewParcelInvoicePage() {
                       setParcel((p) => ({ ...p, service: e.target.value }))
                     }
                   >
+                    <option value="express">Express</option>
                     <option value="standard">Standard</option>
-                    <option value="express" selected>Express</option>
+
                   </FormSelect>
                 </Field>
 
