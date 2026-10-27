@@ -82,7 +82,7 @@ const create = async (req, res, next) => {
       // ── Nouveaux champs ────────────────────────────────
       paymentMode     = 'recipient_full',
       paymentLocation = null,
-      paymentMethod   = null,
+      paymentMethod   = 'none',
       senderShare     = 0,
       senderPaid      = 0,
       recipientPaid   = 0,

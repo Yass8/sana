@@ -32,11 +32,12 @@ const TABS = [
 ]
 
 const MET_PAYED = {
-  cash : { color: 'text-emerald-500' },
-  card : { color: 'text-amber-500' },
-  virement : { color: 'text-slate-400' },
-  wero : { color: 'text-rose-500' },
-  mixed: { color: 'text-purple-500' }
+  cash : { color: 'text-emerald-500', label: 'Espèces' },
+  card : { color: 'text-amber-500', label: 'Carte' },
+  virement : { color: 'text-slate-400', label: 'Virement' },
+  wero : { color: 'text-yellow-500', label: 'Wero' },
+  mixed: { color: 'text-purple-500', label: 'Mixte' },
+  none:  { color: 'text-rose-500', label: 'Aucun paiement' }
 }
 
 function StatusDot({ status = 'draft' }) {
@@ -359,7 +360,7 @@ export default function AccountingPage() {
                           </div>
                           {invoice.paymentMethod && (
                             <div className={`mt-0.5 text-[11px] font-medium ${MET_PAYED[invoice.paymentMethod]?.color || 'text-slate-400'}`}>
-                              {invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}
+                              {MET_PAYED[invoice.paymentMethod]?.label || invoice.paymentMethod.charAt(0).toUpperCase() + invoice.paymentMethod.slice(1)}
                             </div>
                           )}
                         </td>

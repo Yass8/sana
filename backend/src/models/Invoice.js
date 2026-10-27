@@ -5,7 +5,7 @@ const { enumType } = require('./utils');
 const STATUSES          = ['draft', 'paid', 'partially_paid', 'overdue'];
 const PAYMENT_MODES     = ['sender_full', 'recipient_full', 'split'];
 const PAYMENT_LOCATIONS = ['origin', 'destination', 'mixed'];
-const PAYMENT_METHODS   = ['cash', 'card', 'wero', 'virement','mixed'];
+const PAYMENT_METHODS   = ['cash', 'card', 'wero', 'virement','mixed','none',];//none=aucun paiement
 
 module.exports = (sequelize) => {
   const Invoice = sequelize.define('Invoice', {
@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
     },
     parcelId: {
       type: DataTypes.UUID,
-      allowNull: true,
+      allowNull: false,
       unique: true,
       field: 'parcel_id',
     },
@@ -70,6 +70,7 @@ module.exports = (sequelize) => {
     paymentMethod: {
       ...enumType(PAYMENT_METHODS),
       allowNull: true,
+      defaultValue: 'none',
       field: 'payment_method',
     },
     senderShare: {

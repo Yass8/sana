@@ -63,7 +63,7 @@ const PARCEL_TYPES = [
 ]
 
 const PAYMENT_METHODS = [
-  { value: '',         label: 'Aucun'},
+  { value: 'none',         label: 'Aucun'},
   { value: 'cash',     label: 'Espèces' },
   { value: 'wero',     label: 'Wero' },
   { value: 'virement', label: 'Virement' },
